@@ -1,0 +1,1818 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>Gamium Finance AI - 智能决策大屏</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-dark: #0a0e1a;
+            --bg-panel: rgba(10, 20, 40, 0.85);
+            --border-glow: #00f5ff;
+            --accent-cyan: #00f5ff;
+            --accent-blue: #0080ff;
+            --accent-purple: #a855f7;
+            --accent-green: #00ff88;
+            --accent-orange: #ff9500;
+            --accent-red: #ff3366;
+            --accent-yellow: #ffdd00;
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --grid-color: rgba(0, 245, 255, 0.1);
+        }
+        
+        body {
+            font-family: 'Rajdhani', 'PingFang SC', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        /* 科技感背景 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(0, 128, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(168, 85, 247, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(0, 245, 255, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* 网格背景 */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.5;
+        }
+        
+        /* 扫描线效果 */
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+            animation: scan 4s linear infinite;
+            pointer-events: none;
+            z-index: 50;
+            opacity: 0.6;
+        }
+        
+        @keyframes scan {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { top: 100%; opacity: 0; }
+        }
+        
+        /* 主容器 */
+        .dashboard {
+            position: relative;
+            z-index: 1;
+            padding: 20px;
+            max-width: 1920px;
+            margin: 0 auto;
+        }
+        
+        /* 头部 */
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 100;
+        }
+        
+        .header-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 42px;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            text-shadow: 0 0 30px rgba(0, 245, 255, 0.5);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { filter: drop-shadow(0 0 10px var(--accent-cyan)); }
+            to { filter: drop-shadow(0 0 25px var(--accent-cyan)); }
+        }
+        
+        .header-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+            letter-spacing: 4px;
+            margin-top: 8px;
+        }
+        
+        .header-line {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-cyan), var(--accent-blue), var(--accent-purple), transparent);
+            margin-top: 15px;
+        }
+        
+        .datetime {
+            position: absolute;
+            right: 0;
+            top: 10px;
+            font-family: 'Orbitron', monospace;
+            font-size: 18px;
+            color: var(--accent-cyan);
+        }
+        
+        .nav-links {
+            position: absolute;
+            left: 0;
+            top: 10px;
+            display: flex;
+            gap: 15px;
+            z-index: 100;
+        }
+        
+        .nav-link {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 8px 16px;
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            z-index: 100;
+        }
+        
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            background: rgba(0, 245, 255, 0.1);
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.3);
+        }
+        
+        .nav-link:active {
+            transform: scale(0.98);
+        }
+        
+        .realtime-controls {
+            position: absolute;
+            right: 0;
+            bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .ctrl-btn {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 13px;
+            padding: 6px 14px;
+            border: 1px solid var(--accent-cyan);
+            background: rgba(0, 245, 255, 0.1);
+            color: var(--accent-cyan);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .ctrl-btn:hover {
+            background: rgba(0, 245, 255, 0.3);
+            box-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+        }
+        
+        .speed-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-left: 10px;
+        }
+        
+        #speed-select {
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 13px;
+            padding: 5px 10px;
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            background: rgba(0, 20, 40, 0.8);
+            color: var(--accent-cyan);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        /* 数字跳动效果 */
+        .number-animate {
+            display: inline-block;
+            transition: transform 0.15s ease, color 0.3s ease;
+        }
+        
+        .number-animate.bump {
+            transform: scale(1.15);
+            color: #fff !important;
+        }
+        
+        /* 交易流水动画 */
+        .tx-row {
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .tx-row.approved {
+            background: linear-gradient(90deg, rgba(0, 255, 136, 0.1), transparent);
+        }
+        
+        .tx-row.rejected {
+            background: linear-gradient(90deg, rgba(255, 51, 102, 0.1), transparent);
+        }
+        
+        /* 实时状态指示器 */
+        .realtime-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: 20px;
+        }
+        
+        .realtime-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-red);
+        }
+        
+        .realtime-dot.active {
+            background: var(--accent-green);
+            animation: realtimePulse 1s infinite;
+        }
+        
+        @keyframes realtimePulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); }
+            50% { box-shadow: 0 0 0 8px rgba(0, 255, 136, 0); }
+        }
+        
+        .realtime-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .realtime-text.active {
+            color: var(--accent-green);
+        }
+        
+        /* 决策解释样式 */
+        .analysis-placeholder {
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 40px;
+            font-size: 14px;
+        }
+        
+        .customer-profile {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+        
+        .profile-item {
+            background: rgba(0, 245, 255, 0.05);
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            border-radius: 6px;
+            padding: 12px;
+        }
+        
+        .profile-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .profile-value {
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 4px;
+            color: var(--accent-cyan);
+        }
+        
+        .profile-tag {
+            display: inline-block;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-top: 4px;
+        }
+        
+        .profile-tag.good { background: rgba(0, 255, 136, 0.2); color: var(--accent-green); }
+        .profile-tag.warn { background: rgba(255, 149, 0, 0.2); color: var(--accent-orange); }
+        .profile-tag.bad { background: rgba(255, 51, 102, 0.2); color: var(--accent-red); }
+        
+        /* 风险因子 */
+        .risk-factor-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .risk-factor-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 6px;
+            border-left: 3px solid;
+        }
+        
+        .risk-factor-item.up { border-color: var(--accent-red); }
+        .risk-factor-item.down { border-color: var(--accent-green); }
+        
+        .factor-icon {
+            font-size: 18px;
+        }
+        
+        .factor-info {
+            flex: 1;
+        }
+        
+        .factor-name {
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .factor-reason {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        
+        .factor-contribution {
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        
+        .factor-contribution.up { color: var(--accent-red); }
+        .factor-contribution.down { color: var(--accent-green); }
+        
+        /* 规则链 */
+        .rules-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .rule-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 6px;
+        }
+        
+        .rule-status {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .rule-status.passed { background: rgba(0, 255, 136, 0.2); color: var(--accent-green); }
+        .rule-status.failed { background: rgba(255, 51, 102, 0.2); color: var(--accent-red); }
+        
+        .rule-info {
+            flex: 1;
+        }
+        
+        .rule-name {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .rule-condition {
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .rule-weight {
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        /* 决策展示 */
+        .decision-display {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+        }
+        
+        .decision-main {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+        }
+        
+        .decision-result {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px 30px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+        
+        .decision-result.approved {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.2), rgba(0, 128, 255, 0.1));
+            border: 2px solid var(--accent-green);
+        }
+        
+        .decision-result.rejected {
+            background: linear-gradient(135deg, rgba(255, 51, 102, 0.2), rgba(168, 85, 247, 0.1));
+            border: 2px solid var(--accent-red);
+        }
+        
+        .decision-icon {
+            font-size: 36px;
+        }
+        
+        .decision-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+        }
+        
+        .decision-result.approved .decision-text { color: var(--accent-green); }
+        .decision-result.rejected .decision-text { color: var(--accent-red); }
+        
+        .decision-scores {
+            display: flex;
+            gap: 25px;
+        }
+        
+        .score-item {
+            text-align: center;
+        }
+        
+        .score-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .score-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            margin-top: 5px;
+        }
+        
+        .decision-reasons {
+            flex: 1;
+            padding-left: 30px;
+            border-left: 2px solid rgba(0, 245, 255, 0.3);
+        }
+        
+        .reason-title {
+            font-size: 12px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+        
+        .reason-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .reason-list li {
+            font-size: 13px;
+            color: var(--text-secondary);
+            padding: 5px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .reason-list li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent-cyan);
+        }
+        
+        /* 主网格布局 */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 20px;
+        }
+        
+        /* 面板样式 */
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+        
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+        }
+        
+        .panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, rgba(0, 245, 255, 0.05) 0%, transparent 30%);
+            pointer-events: none;
+        }
+        
+        .panel-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(0, 245, 255, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .panel-icon {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-cyan);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--accent-cyan);
+        }
+        
+        .panel-body {
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 中央大图 */
+        .center-panel {
+            grid-column: 2;
+            grid-row: 1 / 3;
+        }
+        
+        /* KPI 卡片 */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .kpi-card {
+            background: linear-gradient(135deg, rgba(0, 128, 255, 0.1), rgba(168, 85, 247, 0.1));
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        
+        .kpi-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 32px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .kpi-value.warning {
+            background: linear-gradient(135deg, var(--accent-orange), var(--accent-red));
+            -webkit-background-clip: text;
+        }
+        
+        .kpi-value.success {
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+            -webkit-background-clip: text;
+        }
+        
+        .kpi-change {
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .kpi-change.up { color: var(--accent-green); }
+        .kpi-change.down { color: var(--accent-red); }
+        
+        /* 图表容器 */
+        .chart-container {
+            height: 280px;
+            position: relative;
+        }
+        
+        .chart-container-lg {
+            height: 400px;
+        }
+        
+        .chart-container-sm {
+            height: 200px;
+        }
+        
+        /* 仪表盘 */
+        .gauge-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        
+        .gauge-item {
+            text-align: center;
+        }
+        
+        .gauge-chart {
+            height: 150px;
+        }
+        
+        .gauge-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 10px;
+        }
+        
+        /* 实时数据表格 */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th {
+            font-size: 11px;
+            color: var(--accent-cyan);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(0, 245, 255, 0.3);
+            text-align: left;
+        }
+        
+        .data-table td {
+            font-size: 13px;
+            padding: 12px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .data-table tr:hover td {
+            background: rgba(0, 245, 255, 0.05);
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-dot.high { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+        .status-dot.medium { background: var(--accent-orange); box-shadow: 0 0 8px var(--accent-orange); }
+        .status-dot.low { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        
+        /* 雷达图区域 */
+        .radar-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+        
+        .radar-chart {
+            flex: 1;
+            height: 250px;
+        }
+        
+        .radar-stats {
+            width: 150px;
+        }
+        
+        .radar-stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .radar-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .radar-stat-value {
+            font-family: 'Orbitron', monospace;
+            font-size: 14px;
+            color: var(--accent-cyan);
+        }
+        
+        /* 进度条 */
+        .progress-bar {
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));
+            transition: width 1s ease;
+            position: relative;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 20px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
+            animation: progress-shine 1.5s infinite;
+        }
+        
+        @keyframes progress-shine {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        /* 3D 立方体效果 */
+        .cube-container {
+            perspective: 1000px;
+            width: 120px;
+            height: 120px;
+            margin: 20px auto;
+        }
+        
+        .cube {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            animation: rotateCube 20s infinite linear;
+        }
+        
+        @keyframes rotateCube {
+            from { transform: rotateX(0) rotateY(0); }
+            to { transform: rotateX(360deg) rotateY(360deg); }
+        }
+        
+        .cube-face {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, rgba(0, 128, 255, 0.3), rgba(168, 85, 247, 0.3));
+            border: 1px solid var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            color: var(--accent-cyan);
+        }
+        
+        .cube-face.front { transform: translateZ(60px); }
+        .cube-face.back { transform: rotateY(180deg) translateZ(60px); }
+        .cube-face.left { transform: rotateY(-90deg) translateZ(60px); }
+        .cube-face.right { transform: rotateY(90deg) translateZ(60px); }
+        .cube-face.top { transform: rotateX(90deg) translateZ(60px); }
+        .cube-face.bottom { transform: rotateX(-90deg) translateZ(60px); }
+        
+        /* 流动边框 */
+        .flow-border {
+            position: relative;
+        }
+        
+        .flow-border::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple), var(--accent-cyan));
+            border-radius: 10px;
+            z-index: -1;
+            animation: borderFlow 3s linear infinite;
+            background-size: 200% 100%;
+        }
+        
+        @keyframes borderFlow {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 200% 50%; }
+        }
+        
+        /* 数字滚动效果 */
+        .rolling-number {
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        
+        /* 底部状态栏 */
+        .status-bar {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: var(--bg-panel);
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            border-radius: 8px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .status-text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        /* 装饰角 */
+        .corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--accent-cyan);
+        }
+        
+        .corner-tl { top: 0; left: 0; border-right: none; border-bottom: none; }
+        .corner-tr { top: 0; right: 0; border-left: none; border-bottom: none; }
+        .corner-bl { bottom: 0; left: 0; border-right: none; border-top: none; }
+        .corner-br { bottom: 0; right: 0; border-left: none; border-top: none; }
+        
+        /* 响应式 */
+        @media (max-width: 1400px) {
+            .main-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .center-panel {
+                grid-column: 1 / 3;
+                grid-row: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="scanline"></div>
+    
+    <div class="dashboard">
+        <!-- 头部 -->
+        <header class="header">
+            <div class="nav-links">
+                <a href="/" class="nav-link active">📊 大屏监控</a>
+                <a href="/control" class="nav-link">🎮 操作控制台</a>
+            </div>
+            <h1 class="header-title">Gamium Finance AI</h1>
+            <p class="header-subtitle">智能金融决策系统 · 实时经营监控大屏</p>
+            <div class="header-line"></div>
+            <div class="datetime" id="datetime"></div>
+            <div class="realtime-controls">
+                <button class="ctrl-btn" id="btn-start" onclick="startRealtime()">▶ 启动实时</button>
+                <button class="ctrl-btn" id="btn-stop" onclick="stopRealtime()" style="display:none">⏸ 暂停</button>
+                <button class="ctrl-btn" onclick="resetRealtime()">🔄 重置</button>
+                <span class="speed-label">速度:</span>
+                <select id="speed-select" onchange="changeSpeed()">
+                    <option value="2000">慢速</option>
+                    <option value="1000" selected>正常</option>
+                    <option value="500">快速</option>
+                    <option value="200">极速</option>
+                </select>
+            </div>
+        </header>
+        
+        <!-- KPI 区域 -->
+        <div class="kpi-grid" style="grid-template-columns: repeat(8, 1fr);">
+            <div class="kpi-card">
+                <div class="kpi-label">总资本规模(亿)</div>
+                <div class="kpi-value number-animate" id="kpi-capital">¥386</div>
+                <div class="kpi-change up">↑ 实时更新</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">累计利润(亿)</div>
+                <div class="kpi-value success number-animate" id="kpi-profit">¥286</div>
+                <div class="kpi-change up">↑ 本季度</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">不良贷款率</div>
+                <div class="kpi-value warning number-animate" id="kpi-npl">2.15%</div>
+                <div class="kpi-change">实时监控</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">客户总数</div>
+                <div class="kpi-value number-animate" id="kpi-customers">523,847</div>
+                <div class="kpi-change up">↑ 实时增长</div>
+            </div>
+            <div class="kpi-card" style="border-color: rgba(0, 255, 136, 0.5);">
+                <div class="kpi-label">今日通过</div>
+                <div class="kpi-value success number-animate" id="stat-approved">0</div>
+                <div class="kpi-change">笔贷款</div>
+            </div>
+            <div class="kpi-card" style="border-color: rgba(255, 51, 102, 0.5);">
+                <div class="kpi-label">今日拒绝</div>
+                <div class="kpi-value warning number-animate" id="stat-rejected">0</div>
+                <div class="kpi-change">笔申请</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">已处理总数</div>
+                <div class="kpi-value number-animate" id="stat-total">0</div>
+                <div class="kpi-change">笔审批</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">通过率</div>
+                <div class="kpi-value success number-animate" id="stat-rate">0%</div>
+                <div class="realtime-indicator">
+                    <div class="realtime-dot"></div>
+                    <span class="realtime-text">待启动</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 主网格 -->
+        <div class="main-grid">
+            <!-- 左侧面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <span class="panel-title">各周期违约率对比</span>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-container" id="chart-cycle"></div>
+                </div>
+            </div>
+            
+            <!-- 中央大面板 -->
+            <div class="panel center-panel flow-border">
+                <div class="corner corner-tl"></div>
+                <div class="corner corner-tr"></div>
+                <div class="corner corner-bl"></div>
+                <div class="corner corner-br"></div>
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <span class="panel-title">银行经营全景监控</span>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-container-lg" id="chart-main"></div>
+                </div>
+            </div>
+            
+            <!-- 右侧面板 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <span class="panel-title">策略能力雷达</span>
+                </div>
+                <div class="panel-body">
+                    <div class="radar-section">
+                        <div class="radar-chart" id="chart-radar"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 左下面板 - 风险监控 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <span class="panel-title">客户风险分布</span>
+                </div>
+                <div class="panel-body">
+                    <div class="chart-container" id="chart-risk"></div>
+                </div>
+            </div>
+            
+            <!-- 右下面板 - 实时数据 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <span class="panel-title">实时贷款审批</span>
+                </div>
+                <div class="panel-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>客户类型</th>
+                                <th>金额</th>
+                                <th>风险等级</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="realtime-table">
+                            <!-- 动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- AI 决策解释区域 -->
+        <div class="main-grid" style="margin-top: 20px; grid-template-columns: 1fr 1fr 1fr;">
+            <!-- 客户画像分析 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon" style="background: var(--accent-purple);"></div>
+                    <span class="panel-title">👤 客户画像分析</span>
+                </div>
+                <div class="panel-body" id="customer-analysis">
+                    <div class="analysis-placeholder">等待审批数据...</div>
+                </div>
+            </div>
+            
+            <!-- 风险因子分解 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon" style="background: var(--accent-orange);"></div>
+                    <span class="panel-title">⚖️ 风险因子贡献度</span>
+                </div>
+                <div class="panel-body" id="risk-factors">
+                    <div class="analysis-placeholder">等待审批数据...</div>
+                </div>
+            </div>
+            
+            <!-- 决策规则链 -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon" style="background: var(--accent-green);"></div>
+                    <span class="panel-title">🔗 决策规则链</span>
+                </div>
+                <div class="panel-body" id="rules-chain">
+                    <div class="analysis-placeholder">等待审批数据...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 最终决策展示 -->
+        <div class="panel flow-border" style="margin-top: 20px;">
+            <div class="corner corner-tl"></div>
+            <div class="corner corner-tr"></div>
+            <div class="corner corner-bl"></div>
+            <div class="corner corner-br"></div>
+            <div class="panel-header">
+                <div class="panel-icon" style="background: var(--accent-cyan);"></div>
+                <span class="panel-title">🤖 AI 决策结论</span>
+            </div>
+            <div class="panel-body">
+                <div class="decision-display" id="decision-display">
+                    <div class="decision-main">
+                        <div class="decision-result" id="decision-result">
+                            <span class="decision-icon">⏳</span>
+                            <span class="decision-text">等待审批</span>
+                        </div>
+                        <div class="decision-scores">
+                            <div class="score-item">
+                                <div class="score-label">风险评分</div>
+                                <div class="score-value" id="score-risk">--</div>
+                            </div>
+                            <div class="score-item">
+                                <div class="score-label">规则得分</div>
+                                <div class="score-value" id="score-rule">--</div>
+                            </div>
+                            <div class="score-item">
+                                <div class="score-label">置信度</div>
+                                <div class="score-value" id="score-confidence">--</div>
+                            </div>
+                            <div class="score-item">
+                                <div class="score-label">预期LTV</div>
+                                <div class="score-value" id="score-ltv">--</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="decision-reasons" id="decision-reasons">
+                        <div class="reason-title">决策依据:</div>
+                        <ul class="reason-list">
+                            <li>等待分析...</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 底部仪表盘 -->
+        <div class="main-grid" style="margin-top: 20px; grid-template-columns: repeat(4, 1fr);">
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <span class="panel-title">资本充足率</span>
+                </div>
+                <div class="panel-body">
+                    <div class="gauge-chart" id="gauge-capital"></div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <span class="panel-title">流动性覆盖率</span>
+                </div>
+                <div class="panel-body">
+                    <div class="gauge-chart" id="gauge-liquidity"></div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <span class="panel-title">ROA</span>
+                </div>
+                <div class="panel-body">
+                    <div class="gauge-chart" id="gauge-roa"></div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-icon"></div>
+                    <span class="panel-title">模型置信度</span>
+                </div>
+                <div class="panel-body">
+                    <div class="gauge-chart" id="gauge-confidence"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-indicator"></div>
+                <span class="status-text">系统运行正常</span>
+            </div>
+            <div class="status-item">
+                <span class="status-text">模型版本: AlphaZero v2.1.0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-text">数据延迟: <span style="color: var(--accent-green)">12ms</span></span>
+            </div>
+            <div class="status-item">
+                <span class="status-text">最后更新: <span id="last-update">--</span></span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 更新时间
+        function updateDateTime() {
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('zh-CN', { 
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                weekday: 'short'
+            });
+            const timeStr = now.toLocaleTimeString('zh-CN', { 
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            });
+            document.getElementById('datetime').innerHTML = `${dateStr} ${timeStr}`;
+            document.getElementById('last-update').textContent = timeStr;
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+        
+        // ECharts 主题
+        const chartTheme = {
+            backgroundColor: 'transparent',
+            textStyle: { color: '#fff' },
+            title: { textStyle: { color: '#00f5ff' } },
+            legend: { textStyle: { color: '#fff' } }
+        };
+        
+        // 初始化图表
+        function initCharts() {
+            // 经济周期对比图
+            const cycleChart = echarts.init(document.getElementById('chart-cycle'));
+            cycleChart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: { trigger: 'axis' },
+                grid: { left: 50, right: 20, top: 20, bottom: 40 },
+                xAxis: {
+                    type: 'category',
+                    data: ['正常期', '繁荣期', '萧条期', '衰退期'],
+                    axisLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } },
+                    axisLabel: { color: '#fff' }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } },
+                    splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+                    axisLabel: { color: '#fff', formatter: '{value}%' }
+                },
+                series: [{
+                    type: 'bar',
+                    data: [
+                        { value: 12.18, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#00f5ff' }, { offset: 1, color: '#0080ff' }] } } },
+                        { value: 12.10, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#00ff88' }, { offset: 1, color: '#00aa44' }] } } },
+                        { value: 28.32, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#ff3366' }, { offset: 1, color: '#cc0033' }] } } },
+                        { value: 15.77, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#ff9500' }, { offset: 1, color: '#cc7700' }] } } }
+                    ],
+                    barWidth: '50%',
+                    label: {
+                        show: true,
+                        position: 'top',
+                        color: '#fff',
+                        formatter: '{c}%'
+                    }
+                }]
+            });
+            
+            // 主监控图 - 多维度折线图
+            const mainChart = echarts.init(document.getElementById('chart-main'));
+            const months = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+            mainChart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: { trigger: 'axis' },
+                legend: {
+                    data: ['累计利润(亿)', 'NPL率(%)', '客户增长(万)', '审批量(千)'],
+                    textStyle: { color: '#fff' },
+                    top: 10
+                },
+                grid: { left: 60, right: 60, top: 60, bottom: 40 },
+                xAxis: {
+                    type: 'category',
+                    data: months,
+                    axisLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } },
+                    axisLabel: { color: '#fff' }
+                },
+                yAxis: [
+                    {
+                        type: 'value',
+                        name: '金额/数量',
+                        axisLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } },
+                        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
+                        axisLabel: { color: '#fff' }
+                    },
+                    {
+                        type: 'value',
+                        name: 'NPL率%',
+                        axisLine: { lineStyle: { color: 'rgba(255,51,102,0.5)' } },
+                        splitLine: { show: false },
+                        axisLabel: { color: '#ff3366' }
+                    }
+                ],
+                series: [
+                    {
+                        name: '累计利润(亿)',
+                        type: 'line',
+                        smooth: true,
+                        data: [50, 75, 95, 120, 145, 165, 190, 210, 235, 255, 270, 286],
+                        lineStyle: { width: 3, color: '#00f5ff' },
+                        areaStyle: {
+                            color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(0,245,255,0.3)' }, { offset: 1, color: 'rgba(0,245,255,0)' }] }
+                        },
+                        symbol: 'circle',
+                        symbolSize: 8,
+                        itemStyle: { color: '#00f5ff' }
+                    },
+                    {
+                        name: 'NPL率(%)',
+                        type: 'line',
+                        smooth: true,
+                        yAxisIndex: 1,
+                        data: [1.8, 1.9, 2.0, 2.1, 2.3, 2.5, 2.4, 2.3, 2.2, 2.1, 2.2, 2.15],
+                        lineStyle: { width: 3, color: '#ff3366' },
+                        symbol: 'circle',
+                        symbolSize: 8,
+                        itemStyle: { color: '#ff3366' }
+                    },
+                    {
+                        name: '客户增长(万)',
+                        type: 'bar',
+                        data: [8.2, 7.5, 9.1, 10.2, 8.8, 7.9, 11.2, 9.5, 8.1, 7.3, 8.9, 8.5],
+                        barWidth: '30%',
+                        itemStyle: {
+                            color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(168,85,247,0.8)' }, { offset: 1, color: 'rgba(168,85,247,0.2)' }] }
+                        }
+                    },
+                    {
+                        name: '审批量(千)',
+                        type: 'bar',
+                        data: [45, 52, 48, 55, 62, 58, 65, 70, 68, 72, 75, 78],
+                        barWidth: '30%',
+                        itemStyle: {
+                            color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: 'rgba(0,255,136,0.8)' }, { offset: 1, color: 'rgba(0,255,136,0.2)' }] }
+                        }
+                    }
+                ]
+            });
+            
+            // 雷达图
+            const radarChart = echarts.init(document.getElementById('chart-radar'));
+            radarChart.setOption({
+                backgroundColor: 'transparent',
+                radar: {
+                    indicator: [
+                        { name: '风控能力', max: 100 },
+                        { name: '盈利能力', max: 100 },
+                        { name: '成长能力', max: 100 },
+                        { name: '运营效率', max: 100 },
+                        { name: '客户满意度', max: 100 },
+                        { name: '创新指数', max: 100 }
+                    ],
+                    axisName: { color: '#fff', fontSize: 11 },
+                    splitArea: { areaStyle: { color: ['rgba(0,245,255,0.05)', 'rgba(0,245,255,0.1)'] } },
+                    splitLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } },
+                    axisLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } }
+                },
+                series: [{
+                    type: 'radar',
+                    data: [
+                        {
+                            value: [85, 78, 72, 88, 82, 65],
+                            name: 'AlphaZero策略',
+                            areaStyle: { color: 'rgba(0,245,255,0.3)' },
+                            lineStyle: { color: '#00f5ff', width: 2 },
+                            itemStyle: { color: '#00f5ff' }
+                        },
+                        {
+                            value: [65, 55, 60, 70, 58, 45],
+                            name: '传统规则策略',
+                            areaStyle: { color: 'rgba(168,85,247,0.3)' },
+                            lineStyle: { color: '#a855f7', width: 2 },
+                            itemStyle: { color: '#a855f7' }
+                        }
+                    ]
+                }],
+                legend: {
+                    data: ['AlphaZero策略', '传统规则策略'],
+                    textStyle: { color: '#fff', fontSize: 11 },
+                    bottom: 0
+                }
+            });
+            
+            // 风险分布饼图
+            const riskChart = echarts.init(document.getElementById('chart-risk'));
+            riskChart.setOption({
+                backgroundColor: 'transparent',
+                tooltip: { trigger: 'item' },
+                legend: {
+                    orient: 'vertical',
+                    right: 20,
+                    top: 'center',
+                    textStyle: { color: '#fff', fontSize: 12 }
+                },
+                series: [{
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    center: ['35%', '50%'],
+                    avoidLabelOverlap: false,
+                    itemStyle: {
+                        borderRadius: 8,
+                        borderColor: '#0a0e1a',
+                        borderWidth: 2
+                    },
+                    label: { show: false },
+                    emphasis: {
+                        label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#fff' },
+                        itemStyle: { shadowBlur: 20, shadowColor: 'rgba(0, 0, 0, 0.5)' }
+                    },
+                    data: [
+                        { value: 45, name: '工薪阶层', itemStyle: { color: '#00ff88' } },
+                        { value: 25, name: '小微企业', itemStyle: { color: '#ff9500' } },
+                        { value: 18, name: '自由职业', itemStyle: { color: '#ff3366' } },
+                        { value: 12, name: '农户', itemStyle: { color: '#00f5ff' } }
+                    ]
+                }]
+            });
+            
+            // 仪表盘
+            function createGauge(elementId, value, color, title) {
+                const chart = echarts.init(document.getElementById(elementId));
+                chart.setOption({
+                    backgroundColor: 'transparent',
+                    series: [{
+                        type: 'gauge',
+                        startAngle: 200,
+                        endAngle: -20,
+                        min: 0,
+                        max: 100,
+                        splitNumber: 5,
+                        radius: '90%',
+                        center: ['50%', '60%'],
+                        axisLine: {
+                            lineStyle: {
+                                width: 12,
+                                color: [[value/100, color], [1, 'rgba(255,255,255,0.1)']]
+                            }
+                        },
+                        pointer: {
+                            itemStyle: { color: color },
+                            width: 4,
+                            length: '60%'
+                        },
+                        axisTick: { show: false },
+                        splitLine: { show: false },
+                        axisLabel: { show: false },
+                        detail: {
+                            valueAnimation: true,
+                            formatter: '{value}%',
+                            color: color,
+                            fontSize: 24,
+                            fontFamily: 'Orbitron',
+                            offsetCenter: [0, '40%']
+                        },
+                        data: [{ value: value }]
+                    }]
+                });
+            }
+            
+            createGauge('gauge-capital', 15.2, '#00f5ff', '资本充足率');
+            createGauge('gauge-liquidity', 142, '#00ff88', '流动性覆盖率');
+            createGauge('gauge-roa', 6.8, '#a855f7', 'ROA');
+            createGauge('gauge-confidence', 92, '#ff9500', '模型置信度');
+        }
+        
+        // 实时交易记录
+        let realtimeTransactions = [];
+        let realtimeInterval = null;
+        let tickSpeed = 1000;
+        
+        function updateTransactionTable() {
+            const tbody = document.getElementById('realtime-table');
+            const rows = realtimeTransactions.slice(0, 6).map(tx => `
+                <tr class="tx-row ${tx.approved ? 'approved' : 'rejected'}">
+                    <td><span style="color: var(--text-secondary); font-size: 11px;">${tx.timestamp}</span> ${tx.customer_type}</td>
+                    <td>¥${tx.amount}万</td>
+                    <td><span class="status-dot ${tx.risk_level}"></span>${tx.risk_level === 'low' ? '低' : tx.risk_level === 'medium' ? '中' : '高'}风险</td>
+                    <td style="color: ${tx.approved ? '#00ff88' : '#ff3366'}">${tx.status}</td>
+                </tr>
+            `).join('');
+            tbody.innerHTML = rows || '<tr><td colspan="4" style="text-align:center; color: var(--text-secondary)">等待数据...</td></tr>';
+        }
+        
+        // 数字跳动动画
+        function animateKPI(elementId, newValue, prefix = '', suffix = '') {
+            const el = document.getElementById(elementId);
+            const current = parseFloat(el.textContent.replace(/[^\d.-]/g, '')) || 0;
+            
+            if (Math.abs(newValue - current) < 0.01) return;
+            
+            el.classList.add('bump');
+            setTimeout(() => el.classList.remove('bump'), 150);
+            
+            const diff = newValue - current;
+            const steps = 20;
+            const stepValue = diff / steps;
+            let step = 0;
+            
+            const interval = setInterval(() => {
+                step++;
+                const value = current + stepValue * step;
+                if (suffix === '%') {
+                    el.textContent = prefix + value.toFixed(2) + suffix;
+                } else if (value >= 10000) {
+                    el.textContent = prefix + Math.round(value).toLocaleString();
+                } else {
+                    el.textContent = prefix + value.toFixed(value >= 100 ? 0 : 1);
+                }
+                if (step >= steps) clearInterval(interval);
+            }, 20);
+        }
+        
+        // 更新客户画像分析
+        function updateCustomerAnalysis(analysis) {
+            const container = document.getElementById('customer-analysis');
+            const tagClass = (status) => status === '稳定' || status === '健康' ? 'good' : status === '偏高' || status === '波动较大' ? 'warn' : 'bad';
+            
+            container.innerHTML = `
+                <div class="customer-profile">
+                    <div class="profile-item">
+                        <div class="profile-label">客户类型</div>
+                        <div class="profile-value">${analysis.type}</div>
+                        <span class="profile-tag ${analysis.type_risk === '低' ? 'good' : analysis.type_risk === '中' ? 'warn' : 'bad'}">${analysis.type_risk}风险</span>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">年龄</div>
+                        <div class="profile-value">${analysis.age}岁</div>
+                        <span class="profile-tag ${analysis.age_factor === '稳定' ? 'good' : 'warn'}">${analysis.age_factor}</span>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">月收入</div>
+                        <div class="profile-value">¥${analysis.income.toLocaleString()}</div>
+                        <span class="profile-tag ${tagClass(analysis.income_stability)}">${analysis.income_stability}</span>
+                    </div>
+                    <div class="profile-item">
+                        <div class="profile-label">负债率</div>
+                        <div class="profile-value">${analysis.debt_ratio}%</div>
+                        <span class="profile-tag ${tagClass(analysis.debt_status)}">${analysis.debt_status}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 更新风险因子
+        function updateRiskFactors(riskFactors, positiveFactors) {
+            const container = document.getElementById('risk-factors');
+            
+            let html = '<div class="risk-factor-list">';
+            
+            // 风险增加因子
+            riskFactors.forEach(f => {
+                html += `
+                    <div class="risk-factor-item up">
+                        <span class="factor-icon">📈</span>
+                        <div class="factor-info">
+                            <div class="factor-name">${f.name}: ${f.value}</div>
+                            <div class="factor-reason">${f.reason}</div>
+                        </div>
+                        <div class="factor-contribution up">+${f.contribution}%</div>
+                    </div>
+                `;
+            });
+            
+            // 风险降低因子
+            positiveFactors.forEach(f => {
+                html += `
+                    <div class="risk-factor-item down">
+                        <span class="factor-icon">📉</span>
+                        <div class="factor-info">
+                            <div class="factor-name">${f.name}: ${f.value}</div>
+                            <div class="factor-reason">${f.reason}</div>
+                        </div>
+                        <div class="factor-contribution down">-${f.contribution}%</div>
+                    </div>
+                `;
+            });
+            
+            if (riskFactors.length === 0 && positiveFactors.length === 0) {
+                html += '<div class="analysis-placeholder">无显著风险因子</div>';
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // 更新规则链
+        function updateRulesChain(rules) {
+            const container = document.getElementById('rules-chain');
+            
+            let html = '<div class="rules-list">';
+            rules.forEach(r => {
+                html += `
+                    <div class="rule-item">
+                        <div class="rule-status ${r.passed ? 'passed' : 'failed'}">
+                            ${r.passed ? '✓' : '✗'}
+                        </div>
+                        <div class="rule-info">
+                            <div class="rule-name">${r.id} ${r.name}</div>
+                            <div class="rule-condition">${r.condition}</div>
+                        </div>
+                        <div class="rule-weight">权重 ${r.weight}%</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // 更新决策结论
+        function updateDecision(decision, transaction) {
+            const resultEl = document.getElementById('decision-result');
+            const approved = decision.result === '批准';
+            
+            resultEl.className = `decision-result ${approved ? 'approved' : 'rejected'}`;
+            resultEl.innerHTML = `
+                <span class="decision-icon">${approved ? '✅' : '❌'}</span>
+                <span class="decision-text">${decision.result}</span>
+            `;
+            
+            document.getElementById('score-risk').textContent = decision.risk_score + '%';
+            document.getElementById('score-risk').style.color = decision.risk_score < 15 ? 'var(--accent-green)' : decision.risk_score < 25 ? 'var(--accent-orange)' : 'var(--accent-red)';
+            
+            document.getElementById('score-rule').textContent = decision.rule_score + '%';
+            document.getElementById('score-confidence').textContent = decision.confidence + '%';
+            document.getElementById('score-ltv').textContent = '¥' + (transaction.expected_ltv || 0).toLocaleString();
+            
+            const reasonsList = document.querySelector('#decision-reasons .reason-list');
+            reasonsList.innerHTML = decision.reasons.map(r => `<li>${r}</li>`).join('');
+        }
+        
+        // 实时数据 tick
+        async function realtimeTick() {
+            try {
+                const response = await fetch('/api/realtime/tick', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 添加新交易到列表
+                    realtimeTransactions.unshift(data.transaction);
+                    if (realtimeTransactions.length > 20) realtimeTransactions.pop();
+                    
+                    // 更新表格
+                    updateTransactionTable();
+                    
+                    // 更新 KPI 数字 (带动画)
+                    animateKPI('kpi-capital', data.stats.capital, '¥');
+                    animateKPI('kpi-profit', data.stats.profit, '¥');
+                    animateKPI('kpi-npl', data.stats.npl, '', '%');
+                    animateKPI('kpi-customers', data.stats.customers);
+                    
+                    // 更新今日统计
+                    document.getElementById('stat-approved').textContent = data.stats.approved_today;
+                    document.getElementById('stat-rejected').textContent = data.stats.rejected_today;
+                    document.getElementById('stat-total').textContent = data.stats.total_processed;
+                    document.getElementById('stat-rate').textContent = data.stats.approval_rate + '%';
+                    
+                    // 更新决策解释
+                    if (data.explanation) {
+                        updateCustomerAnalysis(data.explanation.customer_analysis);
+                        updateRiskFactors(data.explanation.risk_factors, data.explanation.positive_factors);
+                        updateRulesChain(data.explanation.rules_triggered);
+                        updateDecision(data.explanation.decision, data.transaction);
+                    }
+                }
+            } catch (e) {
+                console.error('Realtime tick failed:', e);
+            }
+        }
+        
+        function startRealtime() {
+            if (realtimeInterval) return;
+            
+            document.getElementById('btn-start').style.display = 'none';
+            document.getElementById('btn-stop').style.display = 'inline-block';
+            document.querySelector('.realtime-dot')?.classList.add('active');
+            document.querySelector('.realtime-text')?.classList.add('active');
+            document.querySelector('.realtime-text').textContent = '实时处理中...';
+            
+            realtimeTick(); // 立即执行一次
+            realtimeInterval = setInterval(realtimeTick, tickSpeed);
+        }
+        
+        function stopRealtime() {
+            if (realtimeInterval) {
+                clearInterval(realtimeInterval);
+                realtimeInterval = null;
+            }
+            
+            document.getElementById('btn-start').style.display = 'inline-block';
+            document.getElementById('btn-stop').style.display = 'none';
+            document.querySelector('.realtime-dot')?.classList.remove('active');
+            document.querySelector('.realtime-text')?.classList.remove('active');
+            document.querySelector('.realtime-text').textContent = '已暂停';
+        }
+        
+        async function resetRealtime() {
+            stopRealtime();
+            realtimeTransactions = [];
+            updateTransactionTable();
+            
+            try {
+                await fetch('/api/realtime/reset', { method: 'POST' });
+                // 重置 KPI 显示
+                document.getElementById('kpi-capital').textContent = '¥386';
+                document.getElementById('kpi-profit').textContent = '¥286';
+                document.getElementById('kpi-npl').textContent = '2.15%';
+                document.getElementById('kpi-customers').textContent = '523,847';
+                document.getElementById('stat-approved').textContent = '0';
+                document.getElementById('stat-rejected').textContent = '0';
+                document.getElementById('stat-total').textContent = '0';
+                document.getElementById('stat-rate').textContent = '0%';
+            } catch (e) {
+                console.error('Reset failed:', e);
+            }
+        }
+        
+        function changeSpeed() {
+            tickSpeed = parseInt(document.getElementById('speed-select').value);
+            if (realtimeInterval) {
+                stopRealtime();
+                startRealtime();
+            }
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            updateTransactionTable();
+            
+            // 自动启动实时模式
+            setTimeout(startRealtime, 1000);
+        });
+        
+        // 窗口大小变化时重新初始化图表
+        window.addEventListener('resize', () => {
+            echarts.getInstanceByDom(document.getElementById('chart-cycle'))?.resize();
+            echarts.getInstanceByDom(document.getElementById('chart-main'))?.resize();
+            echarts.getInstanceByDom(document.getElementById('chart-radar'))?.resize();
+            echarts.getInstanceByDom(document.getElementById('chart-risk'))?.resize();
+            echarts.getInstanceByDom(document.getElementById('gauge-capital'))?.resize();
+            echarts.getInstanceByDom(document.getElementById('gauge-liquidity'))?.resize();
+            echarts.getInstanceByDom(document.getElementById('gauge-roa'))?.resize();
+            echarts.getInstanceByDom(document.getElementById('gauge-confidence'))?.resize();
+        });
+    </script>
+</body>
+</html>
+

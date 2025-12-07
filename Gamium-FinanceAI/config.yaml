@@ -1,0 +1,57 @@
+# Gamium Finance AI 配置文件
+
+# 环境配置
+environment:
+  simulation_years: 10
+  initial_capital: 100.0  # 亿元
+  initial_assets: 1000.0  # 亿元
+  
+  # 客群参数
+  segments:
+    prime:
+      base_default_rate: 0.01
+      recovery_rate: 0.60
+    near_prime:
+      base_default_rate: 0.03
+      recovery_rate: 0.40
+    subprime:
+      base_default_rate: 0.08
+      recovery_rate: 0.25
+
+# 网络配置
+network:
+  state_dim: 22
+  hidden_dim: 256
+  num_residual_blocks: 4
+  
+# MCTS 配置
+mcts:
+  num_simulations: 50
+  c_puct: 1.5
+  dirichlet_alpha: 0.3
+  dirichlet_epsilon: 0.25
+  temperature: 1.0
+  temperature_threshold: 30
+
+# 训练配置
+training:
+  num_iterations: 100
+  games_per_iteration: 10
+  train_steps_per_iteration: 100
+  batch_size: 64
+  learning_rate: 0.001
+  lr_decay_step: 100
+  lr_decay_gamma: 0.9
+  max_replay_buffer: 50000
+  
+# 评估配置
+evaluation:
+  num_episodes: 10
+  deterministic: true
+
+# 日志配置
+logging:
+  log_dir: "logs"
+  save_frequency: 10  # 每 N 次迭代保存一次
+  verbose: true
+

@@ -1,0 +1,3592 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamium Finance AI - 金融决策智能平台</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #131a2b;
+            --bg-card: #1a2332;
+            --bg-hover: #243044;
+            --accent-primary: #00d4aa;
+            --accent-secondary: #7c3aed;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --accent-blue: #3b82f6;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #2d3a4f;
+            --gradient-primary: linear-gradient(135deg, #00d4aa 0%, #7c3aed 100%);
+            --gradient-card: linear-gradient(180deg, rgba(26, 35, 50, 0.9) 0%, rgba(19, 26, 43, 0.95) 100%);
+            --shadow-glow: 0 0 40px rgba(0, 212, 170, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 背景效果 */
+        .bg-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle at 20% 80%, rgba(0, 212, 170, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* 导航栏 */
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 64px;
+            background: rgba(10, 14, 23, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            z-index: 1000;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            font-size: 28px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            margin-left: 48px;
+        }
+
+        .nav-tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+            background: var(--bg-hover);
+        }
+
+        .nav-tab.active {
+            color: var(--accent-primary);
+            background: rgba(0, 212, 170, 0.1);
+        }
+
+        /* 主内容区 */
+        .main-content {
+            position: relative;
+            margin-top: 64px;
+            padding: 24px;
+            z-index: 1;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 卡片 */
+        .card {
+            background: var(--gradient-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: var(--shadow-glow);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-icon {
+            font-size: 24px;
+        }
+
+        /* 网格布局 */
+        .grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        @media (max-width: 1200px) {
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 768px) {
+            .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+            .nav-tabs { display: none; }
+        }
+
+        /* 统计卡片 */
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 20px rgba(0, 212, 170, 0.1);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .stat-value.positive { color: var(--accent-primary); }
+        .stat-value.negative { color: var(--accent-danger); }
+        .stat-value.warning { color: var(--accent-warning); }
+
+        .stat-change {
+            font-size: 12px;
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* 按钮 */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--gradient-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(0, 212, 170, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-card);
+            border-color: var(--accent-primary);
+        }
+        
+        /* 弹窗样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 85vh;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+        
+        .modal-header h3 {
+            margin: 0;
+            color: var(--accent-primary);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .modal-close:hover {
+            color: var(--accent-danger);
+        }
+        
+        .modal-body {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(85vh - 80px);
+        }
+        
+        .detail-section {
+            margin-bottom: 24px;
+        }
+        
+        .detail-section-title {
+            font-size: 14px;
+            color: var(--accent-primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        
+        .detail-item {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .detail-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .detail-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 4px;
+        }
+        
+        .detail-value.positive { color: var(--accent-success); }
+        .detail-value.warning { color: var(--accent-warning); }
+        .detail-value.negative { color: var(--accent-danger); }
+        
+        .risk-meter {
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .risk-meter-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .analysis-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        
+        .analysis-title {
+            font-size: 13px;
+            color: var(--accent-primary);
+            margin-bottom: 12px;
+        }
+        
+        .factor-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .factor-name {
+            width: 100px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .factor-bar-bg {
+            flex: 1;
+            height: 8px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .factor-bar-fill {
+            height: 100%;
+            border-radius: 4px;
+        }
+        
+        .factor-value {
+            width: 50px;
+            text-align: right;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        /* 步骤详情样式 */
+        .step-link {
+            font-size: 12px;
+            color: var(--accent-primary);
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .timeline-item:hover .step-link {
+            opacity: 1;
+        }
+        
+        .step-detail {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        
+        .step-detail.show {
+            display: block;
+        }
+        
+        .action-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .action-item:last-child {
+            border-bottom: none;
+        }
+        
+        .action-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 12px;
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-primary);
+        }
+        
+        .action-content {
+            flex: 1;
+        }
+        
+        .action-name {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        
+        .action-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        
+        .action-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* 审计日志样式 */
+        .audit-entry {
+            display: flex;
+            padding: 12px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 13px;
+        }
+        
+        .audit-entry:hover {
+            background: var(--bg-secondary);
+        }
+        
+        .audit-time {
+            width: 100px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        
+        .audit-action {
+            width: 150px;
+            font-weight: 500;
+            color: var(--accent-primary);
+        }
+        
+        .audit-detail {
+            flex: 1;
+            color: var(--text-secondary);
+        }
+        
+        .data-sample-table {
+            width: 100%;
+            font-size: 12px;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+        
+        .data-sample-table th,
+        .data-sample-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .data-sample-table th {
+            color: var(--accent-primary);
+            font-weight: 500;
+        }
+        
+        .feature-chip {
+            display: inline-block;
+            padding: 2px 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            margin: 2px;
+            font-size: 11px;
+            color: var(--text-secondary);
+        }
+        
+        .rule-card {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        
+        .rule-name {
+            font-weight: 500;
+            color: var(--accent-primary);
+            margin-bottom: 8px;
+        }
+        
+        .rule-params {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .rule-param {
+            font-size: 12px;
+            padding: 4px 8px;
+            background: var(--bg-card);
+            border-radius: 4px;
+        }
+        
+        .rule-param span {
+            color: var(--text-muted);
+        }
+        
+        /* 数据浏览器样式 */
+        .data-source-item {
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .data-source-item:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent-primary);
+        }
+        
+        .data-source-item.active {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--accent-primary);
+        }
+        
+        .data-file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin: 4px 0;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .data-file-item:hover {
+            background: rgba(59, 130, 246, 0.15);
+        }
+        
+        .data-file-item.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent-primary);
+        }
+        
+        .schema-table {
+            width: 100%;
+            font-size: 12px;
+            border-collapse: collapse;
+        }
+        
+        .schema-table th,
+        .schema-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .schema-table th {
+            background: var(--bg-secondary);
+            color: var(--accent-primary);
+            font-weight: 500;
+        }
+        
+        .dtype-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .dtype-int { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .dtype-float { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .dtype-object { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+        .dtype-bool { background: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+        .dtype-datetime { background: rgba(236, 72, 153, 0.2); color: #f472b6; }
+        
+        .data-grid {
+            width: 100%;
+            overflow-x: auto;
+        }
+        
+        .data-grid table {
+            width: 100%;
+            min-width: 800px;
+            font-size: 12px;
+            border-collapse: collapse;
+        }
+        
+        .data-grid th,
+        .data-grid td {
+            padding: 10px 8px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .data-grid th {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+        }
+        
+        .data-grid tr:hover {
+            background: rgba(59, 130, 246, 0.05);
+        }
+        
+        .data-grid tr {
+            cursor: pointer;
+        }
+        
+        .record-field {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .record-field:last-child {
+            border-bottom: none;
+        }
+        
+        .field-name {
+            width: 180px;
+            font-weight: 500;
+            color: var(--accent-primary);
+            flex-shrink: 0;
+        }
+        
+        .field-value {
+            flex: 1;
+            word-break: break-all;
+        }
+        
+        .field-meta {
+            width: 100px;
+            text-align: right;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+        
+        .stat-bar {
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+        
+        .stat-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 4px;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--accent-danger);
+            border: 1px solid var(--accent-danger);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* 表单 */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.1);
+        }
+
+        .form-range {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        /* 表格 */
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        tr:hover {
+            background: var(--bg-hover);
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-primary);
+            transition: width 0.5s ease;
+        }
+
+        /* 标签 */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: rgba(0, 212, 170, 0.15);
+            color: var(--accent-primary);
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.15);
+            color: var(--accent-warning);
+        }
+
+        .badge-danger {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--accent-danger);
+        }
+
+        /* 图表容器 */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 16px;
+        }
+
+        /* 客户画像卡片 */
+        .customer-profile {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .profile-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .profile-label {
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .profile-value {
+            font-weight: 500;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 风险仪表盘 */
+        .risk-meter {
+            position: relative;
+            width: 200px;
+            height: 100px;
+            margin: 20px auto;
+        }
+
+        /* 模拟控制面板 */
+        .control-panel {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            padding: 20px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        /* 日志面板 */
+        .log-panel {
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            padding: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        .log-entry {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        /* 时间线 */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--border-color);
+        }
+
+        .timeline-item {
+            position: relative;
+            padding: 16px 0;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -24px;
+            top: 20px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+        }
+
+        .timeline-item.pending::before {
+            background: var(--text-muted);
+        }
+
+        .timeline-item.active::before {
+            box-shadow: 0 0 0 4px rgba(0, 212, 170, 0.3);
+        }
+
+        /* 加载动画 */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* 经济周期指示器 */
+        .cycle-indicator {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .cycle-phase {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
+
+        .cycle-phase.active {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .cycle-boom { background: rgba(0, 212, 170, 0.2); color: var(--accent-primary); }
+        .cycle-recession { background: rgba(245, 158, 11, 0.2); color: var(--accent-warning); }
+        .cycle-depression { background: rgba(239, 68, 68, 0.2); color: var(--accent-danger); }
+        .cycle-recovery { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+
+        /* 滚动条 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="logo">
+            <span class="logo-icon">🎮</span>
+            <span>Gamium Finance AI</span>
+        </div>
+        <a href="/" class="nav-tab" style="text-decoration: none; margin-right: 20px; background: linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(168, 85, 247, 0.2)); border: 1px solid rgba(0, 245, 255, 0.5);">
+            📺 大屏监控
+        </a>
+        <div class="nav-tabs">
+            <button class="nav-tab active" data-page="dashboard">📊 仪表盘</button>
+            <button class="nav-tab" data-page="customer">👤 客户预测</button>
+            <button class="nav-tab" data-page="analysis">📈 周期分析</button>
+            <button class="nav-tab" data-page="simulation">🏦 银行模拟</button>
+            <button class="nav-tab" data-page="comparison">⚔️ 策略对比</button>
+            <button class="nav-tab" data-page="distillation">🔬 数据蒸馏</button>
+            <button class="nav-tab" data-page="databrowser">📂 数据浏览</button>
+        </div>
+    </nav>
+
+    <!-- 主内容 -->
+    <main class="main-content">
+        <!-- 仪表盘页面 -->
+        <div id="page-dashboard" class="page active">
+            <h1 style="margin-bottom: 24px; font-size: 28px;">欢迎使用 Gamium Finance AI</h1>
+            
+            <div class="grid grid-4">
+                <div class="stat-card">
+                    <div class="stat-label">模型状态</div>
+                    <div class="stat-value positive">已就绪</div>
+                    <div class="stat-change">✅ 世界模型已加载</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">支持客户类型</div>
+                    <div class="stat-value">4</div>
+                    <div class="stat-change">工薪/小微/自由职业/农户</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">经济周期阶段</div>
+                    <div class="stat-value">4</div>
+                    <div class="stat-change">繁荣/衰退/萧条/复苏</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">策略数量</div>
+                    <div class="stat-value">5</div>
+                    <div class="stat-change">含 AlphaZero</div>
+                </div>
+            </div>
+
+            <div class="grid grid-2" style="margin-top: 24px;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><span class="card-icon">🎯</span> 快速开始</div>
+                    </div>
+                    <div style="display: grid; gap: 12px;">
+                        <button class="btn btn-secondary" onclick="switchPage('customer')">
+                            👤 生成客户并预测违约风险
+                        </button>
+                        <button class="btn btn-secondary" onclick="switchPage('analysis')">
+                            📈 分析经济周期对违约率的影响
+                        </button>
+                        <button class="btn btn-secondary" onclick="switchPage('simulation')">
+                            🏦 模拟银行10年经营
+                        </button>
+                        <button class="btn btn-secondary" onclick="switchPage('comparison')">
+                            ⚔️ 对比不同策略表现
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><span class="card-icon">📚</span> 核心能力</div>
+                    </div>
+                    <div class="timeline">
+                        <div class="timeline-item">
+                            <strong>数据蒸馏</strong>
+                            <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+                                从历史数据中学习"商业物理定律"
+                            </p>
+                        </div>
+                        <div class="timeline-item">
+                            <strong>客户预测</strong>
+                            <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+                                预测违约概率、LTV、流失风险
+                            </p>
+                        </div>
+                        <div class="timeline-item">
+                            <strong>经济周期模拟</strong>
+                            <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+                                繁荣→衰退→萧条→复苏完整周期
+                            </p>
+                        </div>
+                        <div class="timeline-item">
+                            <strong>AlphaZero 决策</strong>
+                            <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">
+                                自我博弈学习最优经营策略
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 客户预测页面 -->
+        <div id="page-customer" class="page">
+            <h1 style="margin-bottom: 24px;">👤 客户预测</h1>
+            
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><span class="card-icon">⚙️</span> 配置参数</div>
+                    </div>
+                    
+                    <h4 style="margin: 0 0 16px; color: var(--accent-primary); font-size: 14px;">👤 客户属性</h4>
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label class="form-label">客户类型</label>
+                            <select id="customer-type" class="form-select">
+                                <option value="">随机</option>
+                                <option value="salaried">工薪阶层</option>
+                                <option value="small_business">小微企业主</option>
+                                <option value="freelancer">自由职业</option>
+                                <option value="farmer">农户</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">风险画像</label>
+                            <select id="risk-profile" class="form-select">
+                                <option value="low">低风险</option>
+                                <option value="medium" selected>中等风险</option>
+                                <option value="high">高风险</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">所属行业</label>
+                            <select id="customer-industry" class="form-select">
+                                <option value="">随机</option>
+                                <option value="manufacturing">制造业</option>
+                                <option value="service">服务业</option>
+                                <option value="retail">零售业</option>
+                                <option value="catering">餐饮业</option>
+                                <option value="it">IT/互联网</option>
+                                <option value="construction">建筑业</option>
+                                <option value="agriculture">农业</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-3" style="margin-top: 12px;">
+                        <div class="form-group">
+                            <label class="form-label">城市等级</label>
+                            <select id="customer-city" class="form-select">
+                                <option value="">随机</option>
+                                <option value="tier_1">一线城市</option>
+                                <option value="tier_2">二线城市</option>
+                                <option value="tier_3">三线城市</option>
+                                <option value="tier_4">四线及以下</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">年龄范围</label>
+                            <select id="customer-age" class="form-select">
+                                <option value="">随机</option>
+                                <option value="young">青年 (22-35)</option>
+                                <option value="middle">中年 (35-50)</option>
+                                <option value="senior">中老年 (50+)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">客户关系</label>
+                            <select id="customer-relation" class="form-select">
+                                <option value="new">新客户</option>
+                                <option value="normal" selected>普通客户</option>
+                                <option value="vip">VIP客户</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin: 20px 0 16px; color: var(--accent-primary); font-size: 14px;">💰 贷款条件</h4>
+                    <div class="grid grid-3">
+                        <div class="form-group">
+                            <label class="form-label">贷款金额 (元)</label>
+                            <input type="number" id="loan-amount" class="form-input" value="100000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">年利率</label>
+                            <input type="number" id="loan-rate" class="form-input" value="0.08" step="0.01">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">期限 (月)</label>
+                            <input type="number" id="loan-term" class="form-input" value="24">
+                        </div>
+                    </div>
+                    <div class="grid grid-2" style="margin-top: 12px;">
+                        <div class="form-group">
+                            <label class="form-label">贷款用途</label>
+                            <select id="loan-purpose" class="form-select">
+                                <option value="consumption">消费</option>
+                                <option value="business" selected>经营周转</option>
+                                <option value="house">购房</option>
+                                <option value="car">购车</option>
+                                <option value="education">教育</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">担保方式</label>
+                            <select id="loan-guarantee" class="form-select">
+                                <option value="credit" selected>信用</option>
+                                <option value="mortgage">抵押</option>
+                                <option value="guarantee">担保</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <h4 style="margin: 20px 0 16px; color: var(--accent-primary); font-size: 14px;">🌍 宏观环境</h4>
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label class="form-label">经济周期</label>
+                            <select id="market-scenario" class="form-select">
+                                <option value="boom">繁荣期 (GDP +6%)</option>
+                                <option value="normal" selected>正常期 (GDP +3%)</option>
+                                <option value="recession">衰退期 (GDP +1%)</option>
+                                <option value="depression">萧条期 (GDP -2%)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">货币政策</label>
+                            <select id="market-policy" class="form-select">
+                                <option value="loose">宽松 (低利率)</option>
+                                <option value="normal" selected>中性</option>
+                                <option value="tight">紧缩 (高利率)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="generateAndPredict()" style="width: 100%; margin-top: 20px;">
+                        🎲 生成客户并预测
+                    </button>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><span class="card-icon">📋</span> 预测结果</div>
+                        <button class="btn btn-secondary" id="btn-customer-detail" onclick="showCustomerDetail()" style="display: none;">
+                            📄 查看完整画像
+                        </button>
+                    </div>
+                    <div id="prediction-result">
+                        <div class="loading">
+                            <p style="color: var(--text-muted);">点击"生成客户并预测"开始</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 客户详情弹窗 -->
+        <div id="customer-detail-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📋 客户完整画像</h3>
+                    <button class="modal-close" onclick="closeCustomerDetail()">×</button>
+                </div>
+                <div class="modal-body" id="customer-detail-content">
+                </div>
+            </div>
+        </div>
+
+        <!-- 周期分析页面 -->
+        <div id="page-analysis" class="page">
+            <h1 style="margin-bottom: 24px;">📈 经济周期影响分析</h1>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span class="card-icon">⚙️</span> 分析配置</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" id="btn-cycle-trace" onclick="showCycleTrace()" style="display: none;">
+                            📋 分析日志
+                        </button>
+                        <button class="btn btn-primary" onclick="runCycleAnalysis()">
+                            🔍 运行分析
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group" style="max-width: 300px;">
+                    <label class="form-label">样本客户数量</label>
+                    <input type="number" id="analysis-count" class="form-input" value="100" min="50" max="200">
+                </div>
+                <div id="cycle-run-id" style="font-size: 12px; color: var(--text-muted); margin-top: 8px;"></div>
+            </div>
+            
+            <div id="analysis-result" style="display: none;">
+                <div class="grid grid-4" id="cycle-stats"></div>
+                
+                <div class="grid grid-2" style="margin-top: 20px;">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">📊 各周期违约率对比</div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="cycle-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-title">👥 萧条期各客户类型风险</div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="type-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 银行模拟页面 -->
+        <div id="page-simulation" class="page">
+            <h1 style="margin-bottom: 24px;">🏦 银行经营模拟</h1>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span class="card-icon">🎮</span> 模拟控制</div>
+                    <button class="btn btn-secondary" id="btn-sim-trace" onclick="showSimulationTrace()" style="display: none;">
+                        📋 模拟日志
+                    </button>
+                </div>
+                <div class="grid grid-2">
+                    <div class="form-group">
+                        <label class="form-label">选择策略</label>
+                        <select id="sim-strategy" class="form-select">
+                            <option value="rule_based">规则策略 (模拟传统银行)</option>
+                            <option value="conservative">保守策略</option>
+                            <option value="aggressive">激进策略</option>
+                            <option value="random">随机策略</option>
+                        </select>
+                    </div>
+                    <div style="display: flex; align-items: flex-end; gap: 8px;">
+                        <button class="btn btn-primary" onclick="runSimulation()" style="flex: 1;">
+                            ▶️ 运行10年模拟
+                        </button>
+                    </div>
+                </div>
+                <div id="sim-run-id" style="font-size: 12px; color: var(--text-muted); margin-top: 8px;"></div>
+            </div>
+            
+            <div id="sim-result" style="display: none;">
+                <div class="grid grid-4" id="sim-stats"></div>
+                
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <div class="card-title">📈 经营曲线</div>
+                    </div>
+                    <div class="cycle-indicator" id="current-phase">
+                        <div class="cycle-phase cycle-boom">繁荣</div>
+                        <div class="cycle-phase cycle-recession">衰退</div>
+                        <div class="cycle-phase cycle-depression">萧条</div>
+                        <div class="cycle-phase cycle-recovery">复苏</div>
+                    </div>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="sim-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 策略对比页面 -->
+        <div id="page-comparison" class="page">
+            <h1 style="margin-bottom: 24px;">⚔️ 策略对比</h1>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><span class="card-icon">⚙️</span> 对比配置</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary" id="btn-comparison-trace" onclick="showComparisonTrace()" style="display: none;">
+                            📋 对比日志
+                        </button>
+                        <button class="btn btn-primary" onclick="runComparison()">
+                            🏁 开始对比
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group" style="max-width: 300px;">
+                    <label class="form-label">每策略评估回合数</label>
+                    <input type="number" id="comparison-episodes" class="form-input" value="3" min="1" max="5">
+                </div>
+                <div id="comparison-run-id" style="font-size: 12px; color: var(--text-muted); margin-top: 8px;"></div>
+            </div>
+            
+            <div id="comparison-result" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">🏆 策略排名</div>
+                    </div>
+                    <div class="table-container">
+                        <table id="comparison-table">
+                            <thead>
+                                <tr>
+                                    <th>排名</th>
+                                    <th>策略</th>
+                                    <th>平均奖励</th>
+                                    <th>累计利润</th>
+                                    <th>平均NPL</th>
+                                    <th>破产率</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <div class="card-title">📊 可视化对比</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="comparison-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据蒸馏页面 -->
+        <div id="page-distillation" class="page">
+            <h1 style="margin-bottom: 24px;">🔬 数据蒸馏</h1>
+            
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><span class="card-icon">⚙️</span> 蒸馏配置</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">数据来源</label>
+                        <select id="distill-source" class="form-input" onchange="updateDistillOptions()">
+                            <option value="synthetic">🔧 合成数据 (演示用)</option>
+                            <option value="test_data">📊 测试数据集 (10K客户)</option>
+                            <option value="historical">🏭 完整历史数据 (5M客户)</option>
+                        </select>
+                    </div>
+                    
+                    <div id="synthetic-options">
+                        <div class="form-group">
+                            <label class="form-label">合成数据量</label>
+                            <input type="number" id="distill-size" class="form-input" value="1000" min="500" max="3000">
+                        </div>
+                    </div>
+                    
+                    <div id="real-data-options" style="display: none;">
+                        <div class="form-group">
+                            <label class="form-label">采样大小 (留空使用全部)</label>
+                            <input type="number" id="distill-sample" class="form-input" value="" placeholder="如: 50000">
+                        </div>
+                        <div id="data-source-info" class="stat-card" style="padding: 12px; margin-bottom: 12px;">
+                            <div style="font-size: 12px; color: var(--text-muted);">正在检查数据源...</div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="runDistillation()" id="btn-distill" style="width: 100%; margin-top: 16px;">
+                        🔥 开始蒸馏
+                    </button>
+                    
+                    <div id="distill-progress" style="margin-top: 24px; display: none;">
+                        <div class="form-label">进度</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="distill-progress-bar" style="width: 0%"></div>
+                        </div>
+                        <div id="distill-percent" style="text-align: center; margin-top: 8px; font-family: 'JetBrains Mono';">0%</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><span class="card-icon">📝</span> 蒸馏日志</div>
+                        <button class="btn btn-secondary" id="btn-audit-log" onclick="showAuditLog()" style="display: none;">
+                            📋 审计日志
+                        </button>
+                    </div>
+                    <div class="log-panel" id="distill-logs">
+                        <div class="log-entry" style="color: var(--text-muted);">等待开始...</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 步骤详情卡片 -->
+            <div class="card" style="margin-top: 20px;" id="distill-result">
+                <div class="card-header">
+                    <div class="card-title"><span class="card-icon">📊</span> 蒸馏过程追踪</div>
+                    <span id="distill-run-id" style="font-size: 12px; color: var(--text-muted);"></span>
+                </div>
+                <div class="timeline" id="distill-steps">
+                    <div class="timeline-item pending" data-step="1" onclick="showStepDetail(1)">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>📦 第一步: 数据准备</strong>
+                                <p style="color: var(--text-muted); font-size: 13px;">收集并清洗历史贷款记录</p>
+                            </div>
+                            <span class="step-link">查看详情 →</span>
+                        </div>
+                        <div class="step-detail" id="step-detail-1"></div>
+                    </div>
+                    <div class="timeline-item pending" data-step="2" onclick="showStepDetail(2)">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>⚙️ 第二步: 特征工程</strong>
+                                <p style="color: var(--text-muted); font-size: 13px;">提取静态/行为/信贷/环境特征</p>
+                            </div>
+                            <span class="step-link">查看详情 →</span>
+                        </div>
+                        <div class="step-detail" id="step-detail-2"></div>
+                    </div>
+                    <div class="timeline-item pending" data-step="3" onclick="showStepDetail(3)">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>🧠 第三步: 规律建模</strong>
+                                <p style="color: var(--text-muted); font-size: 13px;">训练模型学习隐藏规律</p>
+                            </div>
+                            <span class="step-link">查看详情 →</span>
+                        </div>
+                        <div class="step-detail" id="step-detail-3"></div>
+                    </div>
+                    <div class="timeline-item pending" data-step="4" onclick="showStepDetail(4)">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <strong>📦 第四步: 函数封装</strong>
+                                <p style="color: var(--text-muted); font-size: 13px;">封装为 predict_customer_future() API</p>
+                            </div>
+                            <span class="step-link">查看详情 →</span>
+                        </div>
+                        <div class="step-detail" id="step-detail-4"></div>
+                    </div>
+                    <div class="timeline-item pending" data-step="5" onclick="showStepDetail(5)">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <p style="color: var(--text-muted); font-size: 13px;">使用保留数据回测验证</p>
+                            </div>
+                            <span class="step-link">查看详情 →</span>
+                        </div>
+                        <div class="step-detail" id="step-detail-5"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 验证结果卡片 -->
+            <div class="card" style="margin-top: 20px; display: none;" id="validation-card">
+                <div class="card-header">
+                    <div class="card-title"><span class="card-icon">📈</span> 验证结果详情</div>
+                </div>
+                <div id="validation-content"></div>
+            </div>
+        </div>
+        
+        <!-- 数据浏览器页面 -->
+        <div id="page-databrowser" class="page">
+            <h1 style="margin-bottom: 24px;">📂 数据浏览器</h1>
+            
+            <div class="grid grid-2">
+                <!-- 数据源选择 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><span class="card-icon">📁</span> 数据源</div>
+                        <button class="btn btn-secondary" onclick="refreshDataSources()">🔄 刷新</button>
+                    </div>
+                    <div id="data-sources-list">
+                        <div style="text-align: center; color: var(--text-muted); padding: 20px;">加载中...</div>
+                    </div>
+                </div>
+                
+                <!-- 表结构 -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title"><span class="card-icon">📋</span> 表结构</div>
+                        <button class="btn btn-secondary" onclick="showTableStats()" id="btn-stats" style="display: none;">📊 统计信息</button>
+                    </div>
+                    <div id="table-schema">
+                        <div style="text-align: center; color: var(--text-muted); padding: 20px;">选择数据表查看结构</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 数据表格 -->
+            <div class="card" style="margin-top: 20px;">
+                <div class="card-header">
+                    <div class="card-title"><span class="card-icon">📊</span> 数据记录</div>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="text" id="data-search" class="form-input" placeholder="搜索..." 
+                               style="width: 200px;" onkeypress="if(event.key==='Enter')searchData()">
+                        <button class="btn btn-secondary" onclick="searchData()">🔍 搜索</button>
+                    </div>
+                </div>
+                <div id="data-table-container">
+                    <div style="text-align: center; color: var(--text-muted); padding: 40px;">选择数据表查看记录</div>
+                </div>
+                <div id="data-pagination" style="display: none; padding: 16px; border-top: 1px solid var(--border-color);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div id="pagination-info" style="color: var(--text-muted); font-size: 13px;"></div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-secondary" onclick="prevPage()" id="btn-prev">← 上一页</button>
+                            <button class="btn btn-secondary" onclick="nextPage()" id="btn-next">下一页 →</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 记录详情弹窗 -->
+        <div id="record-detail-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3 id="record-modal-title">📋 记录详情</h3>
+                    <button class="modal-close" onclick="closeRecordModal()">×</button>
+                </div>
+                <div class="modal-body" id="record-modal-content" style="max-height: 70vh; overflow-y: auto;">
+                </div>
+            </div>
+        </div>
+        
+        <!-- 统计信息弹窗 -->
+        <div id="stats-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 900px;">
+                <div class="modal-header">
+                    <h3 id="stats-modal-title">📊 数据统计</h3>
+                    <button class="modal-close" onclick="closeStatsModal()">×</button>
+                </div>
+                <div class="modal-body" id="stats-modal-content" style="max-height: 70vh; overflow-y: auto;">
+                </div>
+            </div>
+        </div>
+        
+        <!-- 审计日志弹窗 -->
+        <div id="audit-log-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 1000px;">
+                <div class="modal-header">
+                    <h3>📋 蒸馏审计日志</h3>
+                    <button class="modal-close" onclick="closeAuditLog()">×</button>
+                </div>
+                <div class="modal-body">
+                    <div id="audit-config" style="margin-bottom: 20px;"></div>
+                    <div id="audit-log-content"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 步骤详情弹窗 -->
+        <div id="step-detail-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3 id="step-modal-title">步骤详情</h3>
+                    <button class="modal-close" onclick="closeStepModal()">×</button>
+                </div>
+                <div class="modal-body" id="step-modal-content">
+                </div>
+            </div>
+        </div>
+        
+        <!-- 通用追踪日志弹窗 -->
+        <div id="trace-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 1100px;">
+                <div class="modal-header">
+                    <h3 id="trace-modal-title">📋 过程追踪</h3>
+                    <button class="modal-close" onclick="closeTraceModal()">×</button>
+                </div>
+                <div class="modal-body" id="trace-modal-content" style="max-height: 70vh; overflow-y: auto;">
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // API 基础地址
+        const API_BASE = '';
+        
+        // 页面切换
+        function switchPage(pageName) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            
+            document.getElementById(`page-${pageName}`).classList.add('active');
+            document.querySelector(`[data-page="${pageName}"]`).classList.add('active');
+        }
+        
+        // 导航标签点击
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => switchPage(tab.dataset.page));
+        });
+        
+        // ============================================================
+        // 客户预测
+        // ============================================================
+        
+        let currentCustomerData = null;
+        let currentPredictionData = null;
+        
+        async function generateAndPredict() {
+            const resultDiv = document.getElementById('prediction-result');
+            resultDiv.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+            document.getElementById('btn-customer-detail').style.display = 'none';
+            
+            const marketScenarios = {
+                boom: { gdp_growth: 0.06, unemployment_rate: 0.04, base_rate: 0.035 },
+                normal: { gdp_growth: 0.03, unemployment_rate: 0.05, base_rate: 0.04 },
+                recession: { gdp_growth: 0.01, unemployment_rate: 0.07, base_rate: 0.045 },
+                depression: { gdp_growth: -0.02, unemployment_rate: 0.10, base_rate: 0.03 }
+            };
+            
+            const policyRates = {
+                loose: 0.03,
+                normal: 0.04,
+                tight: 0.05
+            };
+            
+            const scenario = document.getElementById('market-scenario').value;
+            const policy = document.getElementById('market-policy').value;
+            const market = marketScenarios[scenario];
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/predict`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer_type: document.getElementById('customer-type').value,
+                        risk_profile: document.getElementById('risk-profile').value,
+                        loan: {
+                            amount: parseFloat(document.getElementById('loan-amount').value),
+                            interest_rate: parseFloat(document.getElementById('loan-rate').value),
+                            term_months: parseInt(document.getElementById('loan-term').value)
+                        },
+                        market: {
+                            gdp_growth: market.gdp_growth,
+                            unemployment_rate: market.unemployment_rate,
+                            base_interest_rate: policyRates[policy],
+                            inflation_rate: 0.02,
+                            credit_spread: 0.02
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentCustomerData = data.customer;
+                    currentPredictionData = data.prediction;
+                    
+                    const c = data.customer;
+                    const p = data.prediction;
+                    const l = data.loan;
+                    
+                    document.getElementById('btn-customer-detail').style.display = 'block';
+                    
+                    const riskClass = p.default_probability < 0.05 ? 'positive' : 
+                                     p.default_probability < 0.15 ? 'warning' : 'negative';
+                    const ltvClass = p.expected_ltv > 0 ? 'positive' : 'negative';
+                    const riskPercent = Math.min(100, p.default_probability * 200);
+                    const riskColor = riskPercent < 30 ? '#10b981' : riskPercent < 60 ? '#f59e0b' : '#ef4444';
+                    
+                    // 计算审批建议
+                    let decision = '通过';
+                    let decisionClass = 'positive';
+                    let decisionReasons = [];
+                    
+                    if (p.default_probability > 0.25) {
+                        decision = '拒绝';
+                        decisionClass = 'negative';
+                        decisionReasons.push('违约风险过高');
+                    } else if (p.default_probability > 0.15) {
+                        decision = '人工审核';
+                        decisionClass = 'warning';
+                        decisionReasons.push('风险处于边界');
+                    }
+                    
+                    if (c.debt_ratio > 0.6) {
+                        if (decision === '通过') { decision = '人工审核'; decisionClass = 'warning'; }
+                        decisionReasons.push('负债率偏高');
+                    }
+                    
+                    const monthlyPayment = l.monthly_payment || (l.amount * (l.interest_rate / 12) / (1 - Math.pow(1 + l.interest_rate/12, -l.term_months)));
+                    const paymentRatio = monthlyPayment / c.monthly_income;
+                    
+                    if (paymentRatio > 0.5) {
+                        if (decision === '通过') { decision = '人工审核'; decisionClass = 'warning'; }
+                        decisionReasons.push('月供占收入比过高');
+                    }
+                    
+                    if (decisionReasons.length === 0) {
+                        decisionReasons.push('各项指标正常');
+                    }
+                    
+                    resultDiv.innerHTML = `
+                        <!-- 审批建议 -->
+                        <div class="stat-card" style="margin-bottom: 20px; border-left: 4px solid var(--accent-${decisionClass === 'positive' ? 'success' : decisionClass === 'warning' ? 'warning' : 'danger'});">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div class="stat-label">AI 审批建议</div>
+                                    <div class="stat-value ${decisionClass}" style="font-size: 28px;">${decision}</div>
+                                </div>
+                                <div style="text-align: right;">
+                                    <div style="font-size: 12px; color: var(--text-muted);">决策依据</div>
+                                    <div style="font-size: 13px; color: var(--text-secondary);">${decisionReasons.join('、')}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 核心指标 -->
+                        <div class="grid grid-4" style="margin-bottom: 20px;">
+                            <div class="stat-card">
+                                <div class="stat-label">违约概率</div>
+                                <div class="stat-value ${riskClass}">${(p.default_probability * 100).toFixed(2)}%</div>
+                                <div class="risk-meter">
+                                    <div class="risk-meter-fill" style="width: ${riskPercent}%; background: ${riskColor};"></div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">预期LTV</div>
+                                <div class="stat-value ${ltvClass}">¥${p.expected_ltv.toLocaleString()}</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">流失概率</div>
+                                <div class="stat-value ${p.churn_probability < 0.2 ? 'positive' : 'warning'}">${(p.churn_probability * 100).toFixed(1)}%</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-label">模型置信度</div>
+                                <div class="stat-value">${(p.confidence * 100).toFixed(0)}%</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 客户概要 -->
+                        <h4 style="margin: 16px 0 12px; color: var(--text-secondary); font-size: 14px;">👤 客户概要</h4>
+                        <div class="customer-profile" style="margin-bottom: 16px;">
+                            <div class="profile-item">
+                                <span class="profile-label">客户ID</span>
+                                <span class="profile-value">${c.customer_id}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">类型</span>
+                                <span class="profile-value">${c.customer_type}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">行业</span>
+                                <span class="profile-value">${c.industry}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">年龄</span>
+                                <span class="profile-value">${c.age}岁</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 财务状况 -->
+                        <h4 style="margin: 16px 0 12px; color: var(--text-secondary); font-size: 14px;">💰 财务状况</h4>
+                        <div class="customer-profile" style="margin-bottom: 16px;">
+                            <div class="profile-item">
+                                <span class="profile-label">月收入</span>
+                                <span class="profile-value">¥${c.monthly_income.toLocaleString()}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">负债率</span>
+                                <span class="profile-value ${c.debt_ratio > 0.6 ? 'negative' : c.debt_ratio > 0.4 ? 'warning' : ''}">${(c.debt_ratio * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">月供/收入</span>
+                                <span class="profile-value ${paymentRatio > 0.5 ? 'negative' : paymentRatio > 0.3 ? 'warning' : ''}">${(paymentRatio * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">月供金额</span>
+                                <span class="profile-value">¥${monthlyPayment.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 信用历史 -->
+                        <h4 style="margin: 16px 0 12px; color: var(--text-secondary); font-size: 14px;">📊 信用历史</h4>
+                        <div class="customer-profile">
+                            <div class="profile-item">
+                                <span class="profile-label">风险评分</span>
+                                <span class="profile-value">${c.risk_score.toFixed(2)}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">历史逾期</span>
+                                <span class="profile-value ${c.max_historical_dpd > 30 ? 'negative' : c.max_historical_dpd > 0 ? 'warning' : 'positive'}">${c.max_historical_dpd}天</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">预期逾期</span>
+                                <span class="profile-value">${p.expected_dpd.toFixed(0)}天</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">客户年限</span>
+                                <span class="profile-value">${(c.months_as_customer / 12).toFixed(1)}年</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="loading"><p style="color: var(--accent-danger);">错误: ${error.message}</p></div>`;
+            }
+        }
+        
+        function showCustomerDetail() {
+            if (!currentCustomerData || !currentPredictionData) return;
+            
+            const c = currentCustomerData;
+            const p = currentPredictionData;
+            
+            const content = `
+                <div class="detail-section">
+                    <div class="detail-section-title">👤 基本信息</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">客户ID</div>
+                            <div class="detail-value">${c.customer_id}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">客户类型</div>
+                            <div class="detail-value">${c.customer_type}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">所属行业</div>
+                            <div class="detail-value">${c.industry}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">城市等级</div>
+                            <div class="detail-value">${c.city_tier || '未知'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">年龄</div>
+                            <div class="detail-value">${c.age}岁</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">从业年限</div>
+                            <div class="detail-value">${c.years_in_business?.toFixed(1) || 0}年</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">客户关系</div>
+                            <div class="detail-value">${(c.months_as_customer / 12).toFixed(1)}年</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">历史贷款</div>
+                            <div class="detail-value">${c.previous_loans || 0}笔</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-section-title">💰 财务状况</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">月收入</div>
+                            <div class="detail-value">¥${c.monthly_income?.toLocaleString() || 0}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">收入波动性</div>
+                            <div class="detail-value ${c.income_volatility > 0.3 ? 'warning' : ''}">${((c.income_volatility || 0) * 100).toFixed(1)}%</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">负债率</div>
+                            <div class="detail-value ${c.debt_ratio > 0.6 ? 'negative' : c.debt_ratio > 0.4 ? 'warning' : ''}">${((c.debt_ratio || 0) * 100).toFixed(1)}%</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">债务收入比</div>
+                            <div class="detail-value">${(c.debt_to_income || 0).toFixed(2)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">存款余额</div>
+                            <div class="detail-value">¥${(c.deposit_balance || 0).toLocaleString()}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">存款稳定性</div>
+                            <div class="detail-value">${((c.deposit_stability || 0) * 100).toFixed(0)}%</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">风险评分</div>
+                            <div class="detail-value">${(c.risk_score || 0).toFixed(3)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">历史最大逾期</div>
+                            <div class="detail-value ${c.max_historical_dpd > 30 ? 'negative' : c.max_historical_dpd > 0 ? 'warning' : 'positive'}">${c.max_historical_dpd || 0}天</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-section-title">🎯 AI 预测结果</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">违约概率</div>
+                            <div class="detail-value ${p.default_probability < 0.05 ? 'positive' : p.default_probability < 0.15 ? 'warning' : 'negative'}">${(p.default_probability * 100).toFixed(2)}%</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">预期LTV</div>
+                            <div class="detail-value ${p.expected_ltv > 0 ? 'positive' : 'negative'}">¥${p.expected_ltv.toLocaleString()}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">流失概率</div>
+                            <div class="detail-value">${(p.churn_probability * 100).toFixed(1)}%</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">预期逾期天数</div>
+                            <div class="detail-value">${p.expected_dpd.toFixed(0)}天</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="detail-section">
+                    <div class="detail-section-title">📊 风险因子分析</div>
+                    <div class="analysis-card">
+                        <div class="factor-bar">
+                            <span class="factor-name">客户类型</span>
+                            <div class="factor-bar-bg">
+                                <div class="factor-bar-fill" style="width: ${c.customer_type === '工薪阶层' ? 20 : c.customer_type === '农户' ? 40 : 60}%; background: ${c.customer_type === '工薪阶层' ? '#10b981' : c.customer_type === '农户' ? '#f59e0b' : '#ef4444'};"></div>
+                            </div>
+                            <span class="factor-value" style="color: ${c.customer_type === '工薪阶层' ? '#10b981' : c.customer_type === '农户' ? '#f59e0b' : '#ef4444'};">${c.customer_type === '工薪阶层' ? '低' : c.customer_type === '农户' ? '中' : '高'}</span>
+                        </div>
+                        <div class="factor-bar">
+                            <span class="factor-name">负债率</span>
+                            <div class="factor-bar-bg">
+                                <div class="factor-bar-fill" style="width: ${c.debt_ratio * 100}%; background: ${c.debt_ratio < 0.4 ? '#10b981' : c.debt_ratio < 0.6 ? '#f59e0b' : '#ef4444'};"></div>
+                            </div>
+                            <span class="factor-value">${(c.debt_ratio * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="factor-bar">
+                            <span class="factor-name">收入波动</span>
+                            <div class="factor-bar-bg">
+                                <div class="factor-bar-fill" style="width: ${(c.income_volatility || 0) * 200}%; background: ${c.income_volatility < 0.2 ? '#10b981' : c.income_volatility < 0.4 ? '#f59e0b' : '#ef4444'};"></div>
+                            </div>
+                            <span class="factor-value">${((c.income_volatility || 0) * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="factor-bar">
+                            <span class="factor-name">存款稳定</span>
+                            <div class="factor-bar-bg">
+                                <div class="factor-bar-fill" style="width: ${(c.deposit_stability || 0) * 100}%; background: ${c.deposit_stability > 0.7 ? '#10b981' : c.deposit_stability > 0.5 ? '#f59e0b' : '#ef4444'};"></div>
+                            </div>
+                            <span class="factor-value">${((c.deposit_stability || 0) * 100).toFixed(0)}%</span>
+                        </div>
+                        <div class="factor-bar">
+                            <span class="factor-name">历史逾期</span>
+                            <div class="factor-bar-bg">
+                                <div class="factor-bar-fill" style="width: ${Math.min(100, (c.max_historical_dpd || 0) / 90 * 100)}%; background: ${c.max_historical_dpd === 0 ? '#10b981' : c.max_historical_dpd < 30 ? '#f59e0b' : '#ef4444'};"></div>
+                            </div>
+                            <span class="factor-value">${c.max_historical_dpd || 0}天</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('customer-detail-content').innerHTML = content;
+            document.getElementById('customer-detail-modal').style.display = 'flex';
+        }
+        
+        function closeCustomerDetail() {
+            document.getElementById('customer-detail-modal').style.display = 'none';
+        }
+        
+        // 点击弹窗外部关闭
+        document.getElementById('customer-detail-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeCustomerDetail();
+        });
+        
+        // ============================================================
+        // 经济周期分析
+        // ============================================================
+        
+        let cycleChart = null;
+        let typeChart = null;
+        
+        async function runCycleAnalysis() {
+            const count = parseInt(document.getElementById('analysis-count').value);
+            document.getElementById('analysis-result').style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/analysis/economic-cycle`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ count })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('analysis-result').style.display = 'block';
+                    document.getElementById('btn-cycle-trace').style.display = 'block';
+                    document.getElementById('cycle-run-id').textContent = `运行ID: ${data.run_id || '--'}`;
+                    
+                    // 显示统计卡片
+                    const statsDiv = document.getElementById('cycle-stats');
+                    statsDiv.innerHTML = Object.entries(data.scenarios).map(([name, s]) => `
+                        <div class="stat-card">
+                            <div class="stat-label">${name}</div>
+                            <div class="stat-value ${s.avg_default_rate > 0.15 ? 'negative' : s.avg_default_rate > 0.08 ? 'warning' : 'positive'}">
+                                ${(s.avg_default_rate * 100).toFixed(2)}%
+                            </div>
+                            <div class="stat-change">高风险: ${s.high_risk_count}人 (${(s.high_risk_ratio * 100).toFixed(0)}%)</div>
+                        </div>
+                    `).join('');
+                    
+                    // 绘制周期图表
+                    const cycleCtx = document.getElementById('cycle-chart').getContext('2d');
+                    if (cycleChart) cycleChart.destroy();
+                    
+                    cycleChart = new Chart(cycleCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.keys(data.scenarios),
+                            datasets: [{
+                                label: '平均违约率',
+                                data: Object.values(data.scenarios).map(s => (s.avg_default_rate * 100).toFixed(2)),
+                                backgroundColor: [
+                                    'rgba(0, 212, 170, 0.7)',
+                                    'rgba(59, 130, 246, 0.7)',
+                                    'rgba(245, 158, 11, 0.7)',
+                                    'rgba(239, 68, 68, 0.7)'
+                                ],
+                                borderRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: 'rgba(255,255,255,0.1)' },
+                                    ticks: { color: '#94a3b8' }
+                                },
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: '#94a3b8' }
+                                }
+                            }
+                        }
+                    });
+                    
+                    // 绘制客户类型图表
+                    const typeCtx = document.getElementById('type-chart').getContext('2d');
+                    if (typeChart) typeChart.destroy();
+                    
+                    const sortedTypes = Object.entries(data.by_customer_type).sort((a, b) => b[1] - a[1]);
+                    
+                    typeChart = new Chart(typeCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: sortedTypes.map(([k]) => k),
+                            datasets: [{
+                                data: sortedTypes.map(([, v]) => (v * 100).toFixed(2)),
+                                backgroundColor: [
+                                    'rgba(239, 68, 68, 0.8)',
+                                    'rgba(245, 158, 11, 0.8)',
+                                    'rgba(59, 130, 246, 0.8)',
+                                    'rgba(0, 212, 170, 0.8)'
+                                ]
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                    labels: { color: '#f1f5f9' }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                alert('分析失败: ' + error.message);
+            }
+        }
+        
+        // ============================================================
+        // 银行模拟
+        // ============================================================
+        
+        let simChart = null;
+        
+        async function runSimulation() {
+            const strategy = document.getElementById('sim-strategy').value;
+            document.getElementById('sim-result').style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/simulation/auto-run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ strategy, seed: 42 })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('sim-result').style.display = 'block';
+                    document.getElementById('btn-sim-trace').style.display = 'block';
+                    document.getElementById('sim-run-id').textContent = `运行ID: ${data.run_id || '--'}`;
+                    
+                    const s = data.summary;
+                    document.getElementById('sim-stats').innerHTML = `
+                        <div class="stat-card">
+                            <div class="stat-label">总奖励</div>
+                            <div class="stat-value ${s.total_reward > 0 ? 'positive' : 'negative'}">
+                                ${s.total_reward.toFixed(1)}
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">最终利润</div>
+                            <div class="stat-value ${s.final_profit > 0 ? 'positive' : 'negative'}">
+                                ¥${s.final_profit.toFixed(0)}亿
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">最终资本</div>
+                            <div class="stat-value">¥${s.final_capital.toFixed(0)}亿</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">最终NPL</div>
+                            <div class="stat-value ${s.final_npl > 0.1 ? 'negative' : s.final_npl > 0.05 ? 'warning' : 'positive'}">
+                                ${(s.final_npl * 100).toFixed(2)}%
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 绘制图表
+                    const simCtx = document.getElementById('sim-chart').getContext('2d');
+                    if (simChart) simChart.destroy();
+                    
+                    simChart = new Chart(simCtx, {
+                        type: 'line',
+                        data: {
+                            labels: data.history.map(h => `${Math.floor(h.month/12)+1}年${h.month%12+1}月`),
+                            datasets: [
+                                {
+                                    label: '累计利润 (亿)',
+                                    data: data.history.map(h => h.cumulative_profit),
+                                    borderColor: '#00d4aa',
+                                    backgroundColor: 'rgba(0, 212, 170, 0.1)',
+                                    fill: true,
+                                    tension: 0.4,
+                                    yAxisID: 'y'
+                                },
+                                {
+                                    label: 'NPL率 (%)',
+                                    data: data.history.map(h => h.npl_ratio * 100),
+                                    borderColor: '#ef4444',
+                                    tension: 0.4,
+                                    yAxisID: 'y1'
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false
+                            },
+                            plugins: {
+                                legend: {
+                                    labels: { color: '#f1f5f9' }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    grid: { color: 'rgba(255,255,255,0.05)' },
+                                    ticks: { 
+                                        color: '#64748b',
+                                        maxTicksLimit: 12
+                                    }
+                                },
+                                y: {
+                                    type: 'linear',
+                                    position: 'left',
+                                    grid: { color: 'rgba(255,255,255,0.05)' },
+                                    ticks: { color: '#00d4aa' },
+                                    title: {
+                                        display: true,
+                                        text: '累计利润 (亿)',
+                                        color: '#00d4aa'
+                                    }
+                                },
+                                y1: {
+                                    type: 'linear',
+                                    position: 'right',
+                                    grid: { display: false },
+                                    ticks: { color: '#ef4444' },
+                                    title: {
+                                        display: true,
+                                        text: 'NPL率 (%)',
+                                        color: '#ef4444'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                alert('模拟失败: ' + error.message);
+            }
+        }
+        
+        // ============================================================
+        // 策略对比
+        // ============================================================
+        
+        let comparisonChart = null;
+        
+        async function runComparison() {
+            const episodes = parseInt(document.getElementById('comparison-episodes').value);
+            document.getElementById('comparison-result').style.display = 'none';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/comparison/strategies`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ episodes })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('comparison-result').style.display = 'block';
+                    document.getElementById('btn-comparison-trace').style.display = 'block';
+                    document.getElementById('comparison-run-id').textContent = `运行ID: ${data.run_id || '--'}`;
+                    
+                    // 填充表格
+                    const tbody = document.querySelector('#comparison-table tbody');
+                    tbody.innerHTML = data.results.map((r, i) => `
+                        <tr>
+                            <td><span class="badge ${i === 0 ? 'badge-success' : ''}">#${i + 1}</span></td>
+                            <td><strong>${r.name}</strong></td>
+                            <td class="${r.avg_reward > 0 ? 'positive' : 'negative'}" style="font-family: 'JetBrains Mono'">
+                                ${r.avg_reward.toFixed(2)}
+                            </td>
+                            <td style="font-family: 'JetBrains Mono'">¥${r.avg_profit.toFixed(0)}亿</td>
+                            <td><span class="badge ${r.avg_npl > 0.1 ? 'badge-danger' : r.avg_npl > 0.05 ? 'badge-warning' : 'badge-success'}">
+                                ${(r.avg_npl * 100).toFixed(2)}%
+                            </span></td>
+                            <td><span class="badge ${r.bankruptcy_rate > 0 ? 'badge-danger' : 'badge-success'}">
+                                ${(r.bankruptcy_rate * 100).toFixed(0)}%
+                            </span></td>
+                        </tr>
+                    `).join('');
+                    
+                    // 绘制图表
+                    const ctx = document.getElementById('comparison-chart').getContext('2d');
+                    if (comparisonChart) comparisonChart.destroy();
+                    
+                    comparisonChart = new Chart(ctx, {
+                        type: 'radar',
+                        data: {
+                            labels: ['平均奖励', '累计利润', 'NPL控制', '稳定性'],
+                            datasets: data.results.map((r, i) => ({
+                                label: r.name,
+                                data: [
+                                    Math.max(0, (r.avg_reward + 100) / 2),
+                                    r.avg_profit / 10,
+                                    (1 - r.avg_npl) * 100,
+                                    (1 - r.bankruptcy_rate) * 100
+                                ],
+                                borderColor: ['#00d4aa', '#3b82f6', '#f59e0b', '#ef4444'][i],
+                                backgroundColor: ['rgba(0,212,170,0.1)', 'rgba(59,130,246,0.1)', 'rgba(245,158,11,0.1)', 'rgba(239,68,68,0.1)'][i]
+                            }))
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: { color: '#f1f5f9' }
+                                }
+                            },
+                            scales: {
+                                r: {
+                                    grid: { color: 'rgba(255,255,255,0.1)' },
+                                    angleLines: { color: 'rgba(255,255,255,0.1)' },
+                                    pointLabels: { color: '#94a3b8' },
+                                    ticks: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                alert('对比失败: ' + error.message);
+            }
+        }
+        
+        // ============================================================
+        // 数据蒸馏
+        // ============================================================
+        
+        let distillInterval = null;
+        
+        function updateDistillOptions() {
+            const source = document.getElementById('distill-source').value;
+            const syntheticOptions = document.getElementById('synthetic-options');
+            const realDataOptions = document.getElementById('real-data-options');
+            
+            if (source === 'synthetic') {
+                syntheticOptions.style.display = 'block';
+                realDataOptions.style.display = 'none';
+            } else {
+                syntheticOptions.style.display = 'none';
+                realDataOptions.style.display = 'block';
+                
+                // 检查数据源可用性
+                checkDataSource(source);
+            }
+        }
+        
+        async function checkDataSource(source) {
+            const infoDiv = document.getElementById('data-source-info');
+            infoDiv.innerHTML = '<div style="font-size: 12px; color: var(--text-muted);">正在检查数据源...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/distillation/sources`);
+                const data = await response.json();
+                
+                const sourceMap = {
+                    'test_data': 'data/test_data',
+                    'historical': 'data/historical'
+                };
+                const path = sourceMap[source];
+                const sourceInfo = data.sources.find(s => s.path === path);
+                
+                if (sourceInfo) {
+                    infoDiv.innerHTML = `
+                        <div style="font-size: 13px; color: var(--accent-primary);">✅ 数据源可用</div>
+                        <div style="font-size: 12px; margin-top: 4px;">
+                            📁 ${sourceInfo.name}<br>
+                            👥 ${sourceInfo.customers.toLocaleString()} 客户<br>
+                            💰 ${sourceInfo.loans.toLocaleString()} 贷款记录<br>
+                            💾 ${sourceInfo.size_gb.toFixed(2)} GB
+                        </div>
+                    `;
+                } else {
+                    infoDiv.innerHTML = `
+                        <div style="font-size: 13px; color: var(--accent-warning);">⚠️ 数据源未就绪</div>
+                        <div style="font-size: 12px; margin-top: 4px; color: var(--text-muted);">
+                            请先运行数据生成脚本:<br>
+                            <code style="font-size: 11px;">python scripts/generate_dataset.py</code>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                infoDiv.innerHTML = `<div style="color: var(--accent-danger); font-size: 12px;">❌ 检查失败: ${e.message}</div>`;
+            }
+        }
+        
+        async function runDistillation() {
+            const source = document.getElementById('distill-source').value;
+            const size = parseInt(document.getElementById('distill-size').value);
+            const sampleSize = parseInt(document.getElementById('distill-sample').value) || null;
+            
+            document.getElementById('btn-distill').disabled = true;
+            document.getElementById('distill-progress').style.display = 'block';
+            document.getElementById('distill-logs').innerHTML = '';
+            
+            // 重置步骤状态
+            document.querySelectorAll('#distill-steps .timeline-item').forEach(item => {
+                item.classList.remove('active');
+                item.classList.add('pending');
+            });
+            
+            // 构建请求参数
+            const params = { data_size: size };
+            if (source !== 'synthetic') {
+                params.use_real_data = true;
+                params.data_path = source === 'test_data' ? 'data/test_data' : 'data/historical';
+                if (sampleSize) params.sample_size = sampleSize;
+            }
+            
+            try {
+                await fetch(`${API_BASE}/api/distillation/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(params)
+                });
+                
+                // 轮询状态
+                distillInterval = setInterval(async () => {
+                    const response = await fetch(`${API_BASE}/api/distillation/status`);
+                    const status = await response.json();
+                    
+                    // 更新进度
+                    document.getElementById('distill-progress-bar').style.width = `${status.progress}%`;
+                    document.getElementById('distill-percent').textContent = `${status.progress}%`;
+                    
+                    // 更新日志
+                    if (status.logs.length > 0) {
+                        document.getElementById('distill-logs').innerHTML = status.logs.map(log => 
+                            `<div class="log-entry">${log}</div>`
+                        ).join('');
+                    }
+                    
+                    // 更新步骤状态
+                    const steps = document.querySelectorAll('#distill-steps .timeline-item');
+                    const activeStep = Math.floor(status.progress / 20);
+                    steps.forEach((step, i) => {
+                        step.classList.remove('active', 'pending');
+                        if (i < activeStep) {
+                            // 完成
+                        } else if (i === activeStep) {
+                            step.classList.add('active');
+                        } else {
+                            step.classList.add('pending');
+                        }
+                    });
+                    
+                    // 完成
+                    if (!status.running) {
+                        clearInterval(distillInterval);
+                        document.getElementById('btn-distill').disabled = false;
+                        document.getElementById('btn-audit-log').style.display = 'block';
+                        
+                        if (status.run_id) {
+                            document.getElementById('distill-run-id').textContent = `运行ID: ${status.run_id}`;
+                        }
+                        
+                        if (status.result) {
+                            const r = status.result;
+                            document.getElementById('distill-logs').innerHTML += `
+                                <div class="log-entry" style="color: var(--accent-primary); margin-top: 16px;">
+                                    ━━━━━━ 验证结果 ━━━━━━
+                                </div>
+                                <div class="log-entry">预测违约率: ${(r.predicted_default_rate * 100).toFixed(2)}%</div>
+                                <div class="log-entry">实际违约率: ${(r.actual_default_rate * 100).toFixed(2)}%</div>
+                                <div class="log-entry">偏差: ${(r.deviation * 100).toFixed(2)}%</div>
+                                <div class="log-entry" style="color: ${r.passed ? 'var(--accent-primary)' : 'var(--accent-danger)'}">
+                                    验证${r.passed ? '✅ 通过' : '❌ 未通过'}
+                                </div>
+                            `;
+                            
+                            // 加载详细追踪信息
+                            loadDistillationTrace();
+                        }
+                    }
+                }, 500);
+                
+            } catch (error) {
+                clearInterval(distillInterval);
+                document.getElementById('btn-distill').disabled = false;
+                alert('蒸馏失败: ' + error.message);
+            }
+        }
+        
+        let distillationTraceData = null;
+        
+        async function loadDistillationTrace() {
+            try {
+                const response = await fetch(`${API_BASE}/api/distillation/trace`);
+                const data = await response.json();
+                if (data.success) {
+                    distillationTraceData = data.trace;
+                    updateStepDetails();
+                }
+            } catch (e) {
+                console.error('加载追踪信息失败:', e);
+            }
+        }
+        
+        function updateStepDetails() {
+            if (!distillationTraceData || !distillationTraceData.steps) return;
+            
+            distillationTraceData.steps.forEach(step => {
+                const detailDiv = document.getElementById(`step-detail-${step.step_id}`);
+                if (!detailDiv) return;
+                
+                let html = `<div class="action-time">耗时: ${step.duration_ms}ms</div>`;
+                
+                if (step.actions && step.actions.length > 0) {
+                    html += '<div style="margin-top: 8px;">';
+                    step.actions.forEach(action => {
+                        html += `
+                            <div class="action-item">
+                                <div class="action-icon">📌</div>
+                                <div class="action-content">
+                                    <div class="action-name">${action.action}</div>
+                                    <div class="action-desc">${JSON.stringify(action).replace(/"action":"[^"]+",?/g, '').slice(1, -1) || '无附加信息'}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                }
+                
+                // 添加数据统计
+                if (step.data_stats) {
+                    html += `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                            <strong>数据统计:</strong>
+                            <div style="margin-top: 8px;">
+                                总记录: ${step.data_stats.total_records} | 
+                                违约数: ${step.data_stats.default_count} | 
+                                违约率: ${step.data_stats.default_rate}%
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 添加特征矩阵形状
+                if (step.feature_matrix_shape) {
+                    html += `
+                        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color);">
+                            <strong>特征矩阵:</strong> ${step.feature_matrix_shape[0]} 样本 × ${step.feature_matrix_shape[1]} 特征
+                        </div>
+                    `;
+                }
+                
+                detailDiv.innerHTML = html;
+            });
+        }
+        
+        function showStepDetail(stepId) {
+            if (!distillationTraceData) {
+                alert('请先运行蒸馏任务');
+                return;
+            }
+            
+            const step = distillationTraceData.steps?.find(s => s.step_id === stepId);
+            if (!step) return;
+            
+            const stepNames = ['', '数据准备', '特征工程', '规律建模', '函数封装', '验证校准'];
+            document.getElementById('step-modal-title').textContent = `📋 ${stepNames[stepId]} - 详细过程`;
+            
+            let html = `
+                <div class="detail-section">
+                    <div class="detail-section-title">⏱️ 执行信息</div>
+                    <div class="detail-grid" style="grid-template-columns: repeat(3, 1fr);">
+                        <div class="detail-item">
+                            <div class="detail-label">开始时间</div>
+                            <div class="detail-value">${step.start_time?.split('T')[1]?.split('.')[0] || '--'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">结束时间</div>
+                            <div class="detail-value">${step.end_time?.split('T')[1]?.split('.')[0] || '--'}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">执行耗时</div>
+                            <div class="detail-value">${step.duration_ms} ms</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // 操作列表
+            if (step.actions && step.actions.length > 0) {
+                html += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">📝 执行操作 (${step.actions.length}项)</div>
+                `;
+                step.actions.forEach((action, i) => {
+                    html += `
+                        <div class="action-item">
+                            <div class="action-icon">${i + 1}</div>
+                            <div class="action-content">
+                                <div class="action-name">${action.action}</div>
+                                <div class="action-desc" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; background: var(--bg-secondary); padding: 8px; border-radius: 4px; margin-top: 4px;">
+                                    ${JSON.stringify(action, null, 2).replace(/[{}"]/g, '').trim()}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+            }
+            
+            // 步骤特定内容
+            if (stepId === 1 && distillationTraceData.data_samples?.length > 0) {
+                html += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">📊 数据样本预览 (前5条)</div>
+                        <table class="data-sample-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>年份</th>
+                                    <th>客户类型</th>
+                                    <th>贷款金额</th>
+                                    <th>是否违约</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${distillationTraceData.data_samples.map(s => `
+                                    <tr>
+                                        <td>${s.index + 1}</td>
+                                        <td>${s.year}</td>
+                                        <td>${s.customer_type}</td>
+                                        <td>¥${(s.loan_amount || 0).toLocaleString()}</td>
+                                        <td style="color: ${s.defaulted ? 'var(--accent-danger)' : 'var(--accent-success)'}">
+                                            ${s.defaulted ? '是' : '否'}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+            
+            if (stepId === 2 && distillationTraceData.feature_stats) {
+                const fs = distillationTraceData.feature_stats;
+                html += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">🔢 特征统计</div>
+                        <div class="detail-grid" style="grid-template-columns: repeat(3, 1fr);">
+                            <div class="detail-item">
+                                <div class="detail-label">特征数量</div>
+                                <div class="detail-value">${fs.total_features}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">样本数量</div>
+                                <div class="detail-value">${fs.total_samples}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">正负样本比</div>
+                                <div class="detail-value">${fs.label_distribution?.positive} : ${fs.label_distribution?.negative}</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px;">
+                            <strong>特征列表:</strong><br>
+                            ${fs.feature_names?.map(f => `<span class="feature-chip">${f}</span>`).join('') || ''}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (stepId === 3 && distillationTraceData.model_params?.rules_learned) {
+                html += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">📚 学习到的业务规则</div>
+                        ${distillationTraceData.model_params.rules_learned.map(rule => `
+                            <div class="rule-card">
+                                <div class="rule-name">${rule.rule}</div>
+                                <div class="rule-params">
+                                    ${Object.entries(rule).filter(([k]) => k !== 'rule').map(([k, v]) => `
+                                        <div class="rule-param"><span>${k}:</span> ${v}</div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+            
+            if (stepId === 5 && distillationTraceData.validation_details) {
+                const vd = distillationTraceData.validation_details;
+                html += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">✅ 验证详情</div>
+                        <div class="detail-grid" style="grid-template-columns: repeat(4, 1fr);">
+                            <div class="detail-item">
+                                <div class="detail-label">测试记录</div>
+                                <div class="detail-value">${vd.test_records}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">预测违约率</div>
+                                <div class="detail-value">${(vd.predicted_default_rate * 100).toFixed(2)}%</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">实际违约率</div>
+                                <div class="detail-value">${(vd.actual_default_rate * 100).toFixed(2)}%</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">偏差/阈值</div>
+                                <div class="detail-value ${vd.passed ? 'positive' : 'negative'}">
+                                    ${(vd.deviation * 100).toFixed(2)}% / ${(vd.threshold * 100)}%
+                                </div>
+                            </div>
+                        </div>
+                        ${vd.by_customer_type ? `
+                            <div style="margin-top: 16px;">
+                                <strong>按客户类型分层验证:</strong>
+                                <table class="data-sample-table" style="margin-top: 8px;">
+                                    <thead>
+                                        <tr><th>客户类型</th><th>预测违约率</th><th>实际违约率</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        ${Object.entries(vd.by_customer_type).map(([type, data]) => `
+                                            <tr>
+                                                <td>${type}</td>
+                                                <td>${(data.predicted * 100).toFixed(2)}%</td>
+                                                <td>${(data.actual * 100).toFixed(2)}%</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('step-modal-content').innerHTML = html;
+            document.getElementById('step-detail-modal').style.display = 'flex';
+        }
+        
+        function closeStepModal() {
+            document.getElementById('step-detail-modal').style.display = 'none';
+        }
+        
+        async function showAuditLog() {
+            try {
+                const response = await fetch(`${API_BASE}/api/distillation/audit-log`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 配置信息
+                    let configHtml = '';
+                    if (data.config) {
+                        configHtml = `
+                            <div class="stat-card" style="margin-bottom: 16px;">
+                                <div class="grid grid-4">
+                                    <div>
+                                        <div class="stat-label">运行ID</div>
+                                        <div style="font-family: 'JetBrains Mono'">${data.run_id || '--'}</div>
+                                    </div>
+                                    <div>
+                                        <div class="stat-label">数据模式</div>
+                                        <div>${data.config.data_mode === 'real' ? '真实数据' : '合成数据'}</div>
+                                    </div>
+                                    <div>
+                                        <div class="stat-label">数据来源</div>
+                                        <div>${data.config.data_path || '合成生成'}</div>
+                                    </div>
+                                    <div>
+                                        <div class="stat-label">样本数量</div>
+                                        <div>${data.config.sample_size}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    document.getElementById('audit-config').innerHTML = configHtml;
+                    
+                    // 审计日志
+                    let logHtml = '<div style="max-height: 400px; overflow-y: auto;">';
+                    if (data.audit_log && data.audit_log.length > 0) {
+                        data.audit_log.forEach(entry => {
+                            const time = entry.timestamp?.split('T')[1]?.split('.')[0] || '--';
+                            logHtml += `
+                                <div class="audit-entry">
+                                    <div class="audit-time">${time}</div>
+                                    <div class="audit-action">${entry.action}</div>
+                                    <div class="audit-detail">${entry.details}</div>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        logHtml += '<div style="text-align: center; color: var(--text-muted); padding: 40px;">暂无审计日志</div>';
+                    }
+                    logHtml += '</div>';
+                    document.getElementById('audit-log-content').innerHTML = logHtml;
+                    
+                    document.getElementById('audit-log-modal').style.display = 'flex';
+                }
+            } catch (e) {
+                alert('加载审计日志失败: ' + e.message);
+            }
+        }
+        
+        function closeAuditLog() {
+            document.getElementById('audit-log-modal').style.display = 'none';
+        }
+        
+        // 点击弹窗外部关闭
+        ['audit-log-modal', 'step-detail-modal', 'trace-modal'].forEach(id => {
+            document.getElementById(id)?.addEventListener('click', function(e) {
+                if (e.target === this) this.style.display = 'none';
+            });
+        });
+        
+        function closeTraceModal() {
+            document.getElementById('trace-modal').style.display = 'none';
+        }
+        
+        // ========== 经济周期分析追踪 ==========
+        async function showCycleTrace() {
+            try {
+                const response = await fetch(`${API_BASE}/api/analysis/trace`);
+                const data = await response.json();
+                
+                if (data.success && data.trace) {
+                    const trace = data.trace;
+                    document.getElementById('trace-modal-title').textContent = '📈 经济周期分析 - 过程追踪';
+                    
+                    let html = `
+                        <div class="stat-card" style="margin-bottom: 16px;">
+                            <div class="grid grid-4">
+                                <div>
+                                    <div class="stat-label">运行ID</div>
+                                    <div style="font-family: 'JetBrains Mono'">${trace.run_id || '--'}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">开始时间</div>
+                                    <div>${trace.start_time?.split('T')[1]?.split('.')[0] || '--'}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">样本数量</div>
+                                    <div>${trace.config?.customer_count || '--'}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">分析场景</div>
+                                    <div>4个经济周期</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 步骤详情
+                    if (trace.steps?.length > 0) {
+                        html += '<div class="detail-section"><div class="detail-section-title">📋 执行步骤</div>';
+                        trace.steps.forEach(step => {
+                            html += `
+                                <div class="action-item">
+                                    <div class="action-icon">${step.step_id}</div>
+                                    <div class="action-content">
+                                        <div class="action-name">${step.name}</div>
+                                        <div class="action-desc" style="font-size: 12px; color: var(--text-muted);">
+                                            ${step.duration_ms ? `耗时: ${step.duration_ms}ms | ` : ''}
+                                            ${JSON.stringify(step.details || {}).slice(0, 200)}...
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+                    
+                    // 客户样本
+                    if (trace.customer_samples?.length > 0) {
+                        html += `
+                            <div class="detail-section">
+                                <div class="detail-section-title">👥 客户样本 (前10个)</div>
+                                <table class="data-sample-table">
+                                    <thead><tr><th>ID</th><th>类型</th><th>月收入</th><th>负债率</th></tr></thead>
+                                    <tbody>
+                                        ${trace.customer_samples.map(c => `
+                                            <tr>
+                                                <td>${c.id?.slice(-8) || '--'}</td>
+                                                <td>${c.type}</td>
+                                                <td>¥${(c.income || 0).toLocaleString()}</td>
+                                                <td>${(c.debt_ratio * 100).toFixed(1)}%</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    }
+                    
+                    // 审计日志
+                    html += buildAuditLogHtml(trace.audit_log);
+                    
+                    document.getElementById('trace-modal-content').innerHTML = html;
+                    document.getElementById('trace-modal').style.display = 'flex';
+                }
+            } catch (e) {
+                alert('加载追踪信息失败: ' + e.message);
+            }
+        }
+        
+        // ========== 银行模拟追踪 ==========
+        async function showSimulationTrace() {
+            try {
+                const response = await fetch(`${API_BASE}/api/simulation/trace`);
+                const data = await response.json();
+                
+                if (data.success && data.trace) {
+                    const trace = data.trace;
+                    document.getElementById('trace-modal-title').textContent = '🏦 银行模拟 - 过程追踪';
+                    
+                    let html = `
+                        <div class="stat-card" style="margin-bottom: 16px;">
+                            <div class="grid grid-4">
+                                <div>
+                                    <div class="stat-label">运行ID</div>
+                                    <div style="font-family: 'JetBrains Mono'">${trace.run_id || '--'}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">使用策略</div>
+                                    <div>${trace.config?.strategy_name || '--'}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">模拟月数</div>
+                                    <div>${trace.summary?.total_months || '--'}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">最终结果</div>
+                                    <div style="color: ${trace.summary?.is_bankrupt ? 'var(--accent-danger)' : 'var(--accent-success)'}">
+                                        ${trace.summary?.is_bankrupt ? '破产' : '存活'}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 关键事件
+                    if (trace.key_events?.length > 0) {
+                        html += '<div class="detail-section"><div class="detail-section-title">⚠️ 关键事件</div>';
+                        trace.key_events.forEach(e => {
+                            html += `
+                                <div class="action-item">
+                                    <div class="action-icon" style="background: rgba(239, 68, 68, 0.2); color: var(--accent-danger);">!</div>
+                                    <div class="action-content">
+                                        <div class="action-name">第${e.month}月: ${e.event}</div>
+                                        <div class="action-desc">${e.details}</div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        html += '</div>';
+                    }
+                    
+                    // 月度决策样本
+                    if (trace.monthly_decisions?.length > 0) {
+                        html += `
+                            <div class="detail-section">
+                                <div class="detail-section-title">📊 月度决策记录 (关键月份)</div>
+                                <table class="data-sample-table">
+                                    <thead><tr><th>月份</th><th>经济周期</th><th>决策</th><th>资本变化</th><th>NPL变化</th><th>奖励</th></tr></thead>
+                                    <tbody>
+                                        ${trace.monthly_decisions.slice(0, 15).map(d => `
+                                            <tr>
+                                                <td>${d.month}</td>
+                                                <td>${d.eco_phase}</td>
+                                                <td style="color: ${d.action_name === '批准' ? 'var(--accent-success)' : 'var(--accent-danger)'}">
+                                                    ${d.action_name}
+                                                </td>
+                                                <td style="color: ${d.capital_change >= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'}">
+                                                    ${d.capital_change >= 0 ? '+' : ''}¥${(d.capital_change/1e8).toFixed(2)}亿
+                                                </td>
+                                                <td style="color: ${d.npl_change <= 0 ? 'var(--accent-success)' : 'var(--accent-danger)'}">
+                                                    ${d.npl_change >= 0 ? '+' : ''}${(d.npl_change*100).toFixed(2)}%
+                                                </td>
+                                                <td>${d.reward.toFixed(2)}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                    }
+                    
+                    // 审计日志
+                    html += buildAuditLogHtml(trace.audit_log);
+                    
+                    document.getElementById('trace-modal-content').innerHTML = html;
+                    document.getElementById('trace-modal').style.display = 'flex';
+                }
+            } catch (e) {
+                alert('加载追踪信息失败: ' + e.message);
+            }
+        }
+        
+        // ========== 策略对比追踪 ==========
+        async function showComparisonTrace() {
+            try {
+                const response = await fetch(`${API_BASE}/api/comparison/trace`);
+                const data = await response.json();
+                
+                if (data.success && data.trace) {
+                    const trace = data.trace;
+                    document.getElementById('trace-modal-title').textContent = '⚔️ 策略对比 - 过程追踪';
+                    
+                    let html = `
+                        <div class="stat-card" style="margin-bottom: 16px;">
+                            <div class="grid grid-4">
+                                <div>
+                                    <div class="stat-label">运行ID</div>
+                                    <div style="font-family: 'JetBrains Mono'">${trace.run_id || '--'}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">策略数量</div>
+                                    <div>${trace.strategies?.length || 4}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">每策略回合</div>
+                                    <div>${trace.config?.episodes_per_strategy || '--'}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">胜出策略</div>
+                                    <div style="color: var(--accent-primary)">${trace.winner || '--'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 各策略详细结果
+                    if (trace.episode_details) {
+                        html += '<div class="detail-section"><div class="detail-section-title">📊 各策略回合详情</div>';
+                        for (const [strategy, episodes] of Object.entries(trace.episode_details)) {
+                            const result = trace.results?.find(r => r.name === strategy);
+                            html += `
+                                <div class="rule-card">
+                                    <div class="rule-name">${strategy} ${result ? `(平均奖励: ${result.avg_reward.toFixed(2)})` : ''}</div>
+                                    <table class="data-sample-table" style="margin-top: 8px;">
+                                        <thead><tr><th>回合</th><th>月数</th><th>奖励</th><th>利润</th><th>NPL</th><th>结果</th></tr></thead>
+                                        <tbody>
+                                            ${episodes.map(ep => `
+                                                <tr>
+                                                    <td>${ep.episode}</td>
+                                                    <td>${ep.months}</td>
+                                                    <td>${ep.reward.toFixed(2)}</td>
+                                                    <td>¥${(ep.profit/1e8).toFixed(1)}亿</td>
+                                                    <td>${(ep.npl*100).toFixed(1)}%</td>
+                                                    <td style="color: ${ep.bankrupt ? 'var(--accent-danger)' : 'var(--accent-success)'}">
+                                                        ${ep.bankrupt ? '破产' : '存活'}
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `;
+                        }
+                        html += '</div>';
+                    }
+                    
+                    // 审计日志
+                    html += buildAuditLogHtml(trace.audit_log);
+                    
+                    document.getElementById('trace-modal-content').innerHTML = html;
+                    document.getElementById('trace-modal').style.display = 'flex';
+                }
+            } catch (e) {
+                alert('加载追踪信息失败: ' + e.message);
+            }
+        }
+        
+        // 构建审计日志HTML
+        function buildAuditLogHtml(auditLog) {
+            if (!auditLog || auditLog.length === 0) return '';
+            
+            return `
+                <div class="detail-section">
+                    <div class="detail-section-title">📋 审计日志 (${auditLog.length}条)</div>
+                    <div style="max-height: 250px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+                        ${auditLog.map(entry => `
+                            <div class="audit-entry">
+                                <div class="audit-time">${entry.timestamp?.split('T')[1]?.split('.')[0] || '--'}</div>
+                                <div class="audit-action">${entry.action}</div>
+                                <div class="audit-detail">${entry.details}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+        
+        // ========== 数据浏览器 ==========
+        let currentDataSource = 'test_data';
+        let currentTable = 'customers';
+        let currentPage = 1;
+        let totalPages = 1;
+        
+        async function refreshDataSources() {
+            try {
+                const response = await fetch(`${API_BASE}/api/data/sources`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    let html = '';
+                    data.sources.forEach(source => {
+                        const isActive = source.name === currentDataSource;
+                        html += `
+                            <div class="data-source-item ${isActive ? 'active' : ''}" onclick="selectDataSource('${source.name}')">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <strong>📁 ${source.name}</strong>
+                                    <span style="font-size: 11px; color: var(--text-muted);">
+                                        ${source.summary?.total_customers?.toLocaleString() || '?'} 客户
+                                    </span>
+                                </div>
+                                <div style="margin-top: 8px;">
+                                    ${source.files.map(f => `
+                                        <div class="data-file-item ${f.name.replace('.parquet','') === currentTable && isActive ? 'active' : ''}" 
+                                             onclick="event.stopPropagation(); selectTable('${source.name}', '${f.name.replace('.parquet','')}')">
+                                            <span>📄 ${f.name}</span>
+                                            <span>${f.size_mb} MB</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    document.getElementById('data-sources-list').innerHTML = html;
+                }
+            } catch (e) {
+                document.getElementById('data-sources-list').innerHTML = `
+                    <div style="color: var(--accent-danger); padding: 20px;">加载失败: ${e.message}</div>
+                `;
+            }
+        }
+        
+        function selectDataSource(source) {
+            currentDataSource = source;
+            refreshDataSources();
+        }
+        
+        async function selectTable(source, table) {
+            currentDataSource = source;
+            currentTable = table;
+            currentPage = 1;
+            
+            refreshDataSources();
+            await loadTableSchema();
+            await loadTableData();
+        }
+        
+        async function loadTableSchema() {
+            try {
+                const response = await fetch(`${API_BASE}/api/data/schema`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source: currentDataSource, table: currentTable })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('btn-stats').style.display = 'block';
+                    
+                    let html = `
+                        <div style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted);">
+                            ${data.total_records.toLocaleString()} 条记录 · ${data.total_columns} 个字段
+                        </div>
+                        <div style="max-height: 300px; overflow-y: auto;">
+                            <table class="schema-table">
+                                <thead>
+                                    <tr><th>字段名</th><th>类型</th><th>空值</th><th>唯一值</th></tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    
+                    data.schema.forEach(col => {
+                        const dtypeClass = col.dtype.includes('int') ? 'dtype-int' : 
+                                          col.dtype.includes('float') ? 'dtype-float' :
+                                          col.dtype.includes('bool') ? 'dtype-bool' :
+                                          col.dtype.includes('datetime') ? 'dtype-datetime' : 'dtype-object';
+                        html += `
+                            <tr>
+                                <td><strong>${col.name}</strong></td>
+                                <td><span class="dtype-badge ${dtypeClass}">${col.dtype}</span></td>
+                                <td>${col.null_count}</td>
+                                <td>${col.unique_count}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += '</tbody></table></div>';
+                    document.getElementById('table-schema').innerHTML = html;
+                }
+            } catch (e) {
+                document.getElementById('table-schema').innerHTML = `
+                    <div style="color: var(--accent-danger);">加载失败: ${e.message}</div>
+                `;
+            }
+        }
+        
+        async function loadTableData() {
+            const search = document.getElementById('data-search')?.value || '';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/data/browse`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        source: currentDataSource,
+                        table: currentTable,
+                        page: currentPage,
+                        page_size: 20,
+                        search: search
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    totalPages = data.total_pages;
+                    
+                    if (data.records.length === 0) {
+                        document.getElementById('data-table-container').innerHTML = `
+                            <div style="text-align: center; color: var(--text-muted); padding: 40px;">没有找到记录</div>
+                        `;
+                        document.getElementById('data-pagination').style.display = 'none';
+                        return;
+                    }
+                    
+                    // 构建表格
+                    let html = '<div class="data-grid"><table><thead><tr>';
+                    
+                    // 只显示前8列
+                    const displayCols = data.columns.slice(0, 8);
+                    displayCols.forEach(col => {
+                        html += `<th>${col}</th>`;
+                    });
+                    if (data.columns.length > 8) {
+                        html += `<th style="color: var(--text-muted);">+${data.columns.length - 8} 更多</th>`;
+                    }
+                    html += '</tr></thead><tbody>';
+                    
+                    data.records.forEach(record => {
+                        const recordId = record[data.columns[0]];
+                        html += `<tr onclick="showRecordDetail('${currentDataSource}', '${currentTable}', '${recordId}')">`;
+                        displayCols.forEach(col => {
+                            let val = record[col];
+                            if (val === null) val = '<span style="color:var(--text-muted)">NULL</span>';
+                            else if (typeof val === 'boolean') val = val ? '✓' : '✗';
+                            else if (typeof val === 'number') val = val.toLocaleString();
+                            html += `<td>${val}</td>`;
+                        });
+                        if (data.columns.length > 8) {
+                            html += '<td>...</td>';
+                        }
+                        html += '</tr>';
+                    });
+                    
+                    html += '</tbody></table></div>';
+                    document.getElementById('data-table-container').innerHTML = html;
+                    
+                    // 分页
+                    document.getElementById('data-pagination').style.display = 'flex';
+                    document.getElementById('pagination-info').textContent = 
+                        `第 ${currentPage} / ${totalPages} 页 · 共 ${data.total_records.toLocaleString()} 条记录`;
+                    document.getElementById('btn-prev').disabled = currentPage <= 1;
+                    document.getElementById('btn-next').disabled = currentPage >= totalPages;
+                }
+            } catch (e) {
+                document.getElementById('data-table-container').innerHTML = `
+                    <div style="color: var(--accent-danger); padding: 20px;">加载失败: ${e.message}</div>
+                `;
+            }
+        }
+        
+        function searchData() {
+            currentPage = 1;
+            loadTableData();
+        }
+        
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadTableData();
+            }
+        }
+        
+        function nextPage() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadTableData();
+            }
+        }
+        
+        async function showRecordDetail(source, table, recordId) {
+            try {
+                const response = await fetch(`${API_BASE}/api/data/record/${source}/${table}/${recordId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('record-modal-title').textContent = `📋 记录详情 - ${recordId}`;
+                    
+                    let html = `
+                        <div style="margin-bottom: 16px; padding: 12px; background: var(--bg-secondary); border-radius: 8px;">
+                            <div class="grid grid-3">
+                                <div><span style="color:var(--text-muted)">数据源:</span> ${source}</div>
+                                <div><span style="color:var(--text-muted)">数据表:</span> ${table}</div>
+                                <div><span style="color:var(--text-muted)">字段数:</span> ${data.field_details.length}</div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    data.field_details.forEach(field => {
+                        const dtypeClass = field.dtype.includes('int') ? 'dtype-int' : 
+                                          field.dtype.includes('float') ? 'dtype-float' :
+                                          field.dtype.includes('bool') ? 'dtype-bool' : 'dtype-object';
+                        
+                        let displayVal = field.value;
+                        if (field.is_null) {
+                            displayVal = '<span style="color:var(--text-muted);font-style:italic">NULL</span>';
+                        } else if (typeof field.value === 'boolean') {
+                            displayVal = field.value ? '<span style="color:var(--accent-success)">✓ 是</span>' : '<span style="color:var(--accent-danger)">✗ 否</span>';
+                        } else if (typeof field.value === 'number') {
+                            displayVal = field.value.toLocaleString();
+                        }
+                        
+                        html += `
+                            <div class="record-field">
+                                <div class="field-name">${field.name}</div>
+                                <div class="field-value">${displayVal}</div>
+                                <div class="field-meta">
+                                    <span class="dtype-badge ${dtypeClass}">${field.dtype}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('record-modal-content').innerHTML = html;
+                    document.getElementById('record-detail-modal').style.display = 'flex';
+                }
+            } catch (e) {
+                alert('加载记录失败: ' + e.message);
+            }
+        }
+        
+        function closeRecordModal() {
+            document.getElementById('record-detail-modal').style.display = 'none';
+        }
+        
+        async function showTableStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/data/stats`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ source: currentDataSource, table: currentTable })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('stats-modal-title').textContent = `📊 ${currentTable} 统计信息`;
+                    
+                    let html = `
+                        <div class="stat-card" style="margin-bottom: 16px;">
+                            <div class="grid grid-4">
+                                <div>
+                                    <div class="stat-label">总记录数</div>
+                                    <div class="stat-value">${stats.total_records.toLocaleString()}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">字段数</div>
+                                    <div class="stat-value">${stats.total_columns}</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">内存占用</div>
+                                    <div class="stat-value">${stats.memory_usage_mb} MB</div>
+                                </div>
+                                <div>
+                                    <div class="stat-label">数据源</div>
+                                    <div class="stat-value">${currentDataSource}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-section-title">📋 字段统计</div>
+                            <div style="max-height: 400px; overflow-y: auto;">
+                    `;
+                    
+                    for (const [colName, colStats] of Object.entries(stats.column_stats)) {
+                        const dtypeClass = colStats.dtype.includes('int') ? 'dtype-int' : 
+                                          colStats.dtype.includes('float') ? 'dtype-float' :
+                                          colStats.dtype.includes('bool') ? 'dtype-bool' : 'dtype-object';
+                        
+                        html += `
+                            <div class="rule-card">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div class="rule-name">${colName}</div>
+                                    <span class="dtype-badge ${dtypeClass}">${colStats.dtype}</span>
+                                </div>
+                                <div class="grid grid-4" style="font-size: 12px;">
+                                    <div>
+                                        <span style="color:var(--text-muted)">空值:</span> 
+                                        ${colStats.null_count} (${colStats.null_percent}%)
+                                    </div>
+                                    <div>
+                                        <span style="color:var(--text-muted)">唯一值:</span> 
+                                        ${colStats.unique_count}
+                                    </div>
+                        `;
+                        
+                        if (colStats.min !== undefined) {
+                            html += `
+                                    <div>
+                                        <span style="color:var(--text-muted)">范围:</span> 
+                                        ${colStats.min?.toLocaleString()} ~ ${colStats.max?.toLocaleString()}
+                                    </div>
+                                    <div>
+                                        <span style="color:var(--text-muted)">均值:</span> 
+                                        ${colStats.mean?.toFixed(2)}
+                                    </div>
+                            `;
+                        }
+                        
+                        html += '</div>';
+                        
+                        // 分布条形图
+                        if (colStats.top_values) {
+                            const maxCount = Math.max(...Object.values(colStats.top_values));
+                            html += '<div style="margin-top: 8px;">';
+                            for (const [val, count] of Object.entries(colStats.top_values).slice(0, 5)) {
+                                const pct = (count / maxCount * 100).toFixed(0);
+                                html += `
+                                    <div style="display: flex; align-items: center; margin: 4px 0; font-size: 11px;">
+                                        <div style="width: 100px; overflow: hidden; text-overflow: ellipsis;">${val}</div>
+                                        <div style="flex: 1; margin: 0 8px;">
+                                            <div class="stat-bar">
+                                                <div class="stat-bar-fill" style="width: ${pct}%"></div>
+                                            </div>
+                                        </div>
+                                        <div style="width: 50px; text-align: right;">${count}</div>
+                                    </div>
+                                `;
+                            }
+                            html += '</div>';
+                        }
+                        
+                        html += '</div>';
+                    }
+                    
+                    html += '</div></div>';
+                    
+                    document.getElementById('stats-modal-content').innerHTML = html;
+                    document.getElementById('stats-modal').style.display = 'flex';
+                }
+            } catch (e) {
+                alert('加载统计信息失败: ' + e.message);
+            }
+        }
+        
+        function closeStatsModal() {
+            document.getElementById('stats-modal').style.display = 'none';
+        }
+        
+        // 点击弹窗外部关闭
+        ['record-detail-modal', 'stats-modal'].forEach(id => {
+            document.getElementById(id)?.addEventListener('click', function(e) {
+                if (e.target === this) this.style.display = 'none';
+            });
+        });
+        
+        // 页面切换时加载数据
+        const origSwitchPage = window.switchPage || function(){};
+        window.switchPage = function(pageName) {
+            origSwitchPage(pageName);
+            if (pageName === 'databrowser') {
+                refreshDataSources();
+            }
+        };
+        
+        // 初始化
+        console.log('🎮 Gamium Finance AI 已加载');
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,14 @@
+{
+  "generated_at": "2025-12-07T21:09:49.999484",
+  "total_customers": 5000000,
+  "total_loans": 19999042,
+  "total_repayments": 148036074,
+  "date_range": "2015-01-01 to 2024-12-31",
+  "total_size_gb": 1.87,
+  "files": [
+    "loan_applications.parquet",
+    "repayment_history.parquet",
+    "macro_economics.parquet",
+    "customers.parquet"
+  ]
+}
