@@ -21,6 +21,11 @@ Thumbs.db
 
 # Data files (large)
 data/historical/*.parquet
+data/historical_large/*.parquet
+
+# Temporary files during data generation
+**/temp/
+data/**/temp/
 
 # Logs
 *.log
