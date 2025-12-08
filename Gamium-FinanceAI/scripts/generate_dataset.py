@@ -214,8 +214,8 @@ class DataGenerator:
         applications = []
         
         for _, customer in customers.iterrows():
-            # 每个客户平均申请 2-5 次贷款
-            n_applications = rng.poisson(3) + 1
+            # 每个客户平均申请 8-15 次贷款 (增加数据量以达到10G)
+            n_applications = rng.poisson(10) + 5
             
             customer_since = datetime.strptime(customer['customer_since'], '%Y-%m-%d')
             available_days = (END_DATE - customer_since).days
@@ -507,14 +507,16 @@ def main():
     parser = argparse.ArgumentParser(description='生成大规模历史数据集')
     parser.add_argument('--output', type=str, default='data/historical',
                         help='输出目录')
-    parser.add_argument('--customers', type=int, default=5000000,
-                        help='客户数量 (默认500万)')
+    parser.add_argument('--customers', type=int, default=8000000,
+                        help='客户数量 (默认800万，目标10G数据)')
     parser.add_argument('--batch-size', type=int, default=10000,
                         help='每批处理的客户数')
     parser.add_argument('--workers', type=int, default=None,
                         help='并行工作进程数 (默认: CPU核心数)')
     parser.add_argument('--quick', action='store_true',
                         help='快速模式 (生成少量数据用于测试)')
+    parser.add_argument('--target-size', type=float, default=None,
+                        help='目标数据大小 (GB)，自动计算所需客户数')
     
     args = parser.parse_args()
     
@@ -522,6 +524,12 @@ def main():
         args.customers = 10000
         args.batch_size = 1000
         print("🚀 快速模式: 生成 10,000 客户数据用于测试")
+    elif args.target_size:
+        # 根据目标大小估算客户数
+        # 经验值：每100万客户约产生1.2-1.5GB数据
+        estimated_customers = int(args.target_size * 1000000 / 1.3)
+        args.customers = max(estimated_customers, 1000000)
+        print(f"🎯 目标大小模式: 生成约 {args.target_size}GB 数据，预计需要 {args.customers:,} 客户")
     
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
