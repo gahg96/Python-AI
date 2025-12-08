@@ -106,6 +106,16 @@ def control():
     """操作控制台"""
     return send_from_directory('web', 'index.html')
 
+@app.route('/story')
+def story():
+    """Gamium AI 故事展示页面"""
+    return send_from_directory('docs', 'Gamium-AI-Story.html')
+
+@app.route('/images/<path:filename>')
+def serve_images(filename):
+    """提供图片文件"""
+    return send_from_directory('images', filename)
+
 @app.route('/ops')
 def ops():
     """操作控制台（别名）"""
