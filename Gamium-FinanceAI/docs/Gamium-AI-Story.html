@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gamium AI - 从AlphaZero到金融决策的进化之路</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0066FF;
+            --primary-dark: #0052CC;
+            --accent: #00D4AA;
+            --gold: #FFB800;
+            --dark: #0A0E17;
+            --dark-secondary: #141B2D;
+            --text: #E2E8F0;
+            --text-muted: #94A3B8;
+            --gradient-1: linear-gradient(135deg, #0066FF 0%, #00D4AA 100%);
+            --gradient-2: linear-gradient(135deg, #6366F1 0%, #EC4899 100%);
+            --gradient-3: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', 'Noto Serif SC', sans-serif;
+            background: var(--dark);
+            color: var(--text);
+            line-height: 1.8;
+            overflow-x: hidden;
+        }
+        
+        /* 星空背景 */
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            background: 
+                radial-gradient(1px 1px at 20px 30px, white, transparent),
+                radial-gradient(1px 1px at 40px 70px, rgba(255,255,255,0.8), transparent),
+                radial-gradient(1px 1px at 50px 160px, rgba(255,255,255,0.6), transparent),
+                radial-gradient(1px 1px at 90px 40px, white, transparent),
+                radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.7), transparent),
+                radial-gradient(2px 2px at 160px 120px, white, transparent);
+            background-repeat: repeat;
+            background-size: 200px 200px;
+            animation: twinkle 5s ease-in-out infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            position: relative;
+            padding: 80px 0;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(0,102,255,0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        .hero-badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 50px;
+            font-size: 14px;
+            color: var(--accent);
+            margin-bottom: 24px;
+            letter-spacing: 2px;
+        }
+        
+        .hero h1 {
+            font-family: 'Noto Serif SC', serif;
+            font-size: clamp(2.5rem, 6vw, 4.5rem);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-subtitle {
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto 40px;
+        }
+        
+        .hero-quote {
+            font-style: italic;
+            font-size: 1.1rem;
+            color: var(--gold);
+            padding: 20px 40px;
+            border-left: 3px solid var(--gold);
+            background: rgba(255, 184, 0, 0.05);
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: left;
+        }
+        
+        /* 图片占位符 */
+        .image-placeholder {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(135deg, var(--dark-secondary) 0%, #1e293b 100%);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1px dashed rgba(255,255,255,0.1);
+            margin: 40px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .image-placeholder::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            100% { left: 100%; }
+        }
+        
+        .image-placeholder .icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .image-placeholder .label {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        
+        .image-placeholder .prompt {
+            font-size: 12px;
+            color: var(--accent);
+            max-width: 600px;
+            text-align: center;
+            padding: 12px 24px;
+            background: rgba(0, 212, 170, 0.1);
+            border-radius: 8px;
+            line-height: 1.6;
+        }
+        
+        /* Section 样式 */
+        section {
+            padding: 100px 0;
+            position: relative;
+        }
+        
+        .section-label {
+            display: inline-block;
+            font-size: 12px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 16px;
+        }
+        
+        .section-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 600;
+            margin-bottom: 24px;
+            line-height: 1.3;
+        }
+        
+        .section-desc {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 700px;
+            margin-bottom: 48px;
+        }
+        
+        /* 时间线 */
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 8px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--primary), var(--accent));
+        }
+        
+        .timeline-item {
+            position: relative;
+            margin-bottom: 48px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -36px;
+            top: 8px;
+            width: 16px;
+            height: 16px;
+            background: var(--dark);
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+        }
+        
+        .timeline-year {
+            font-size: 14px;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+        
+        .timeline-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .timeline-desc {
+            color: var(--text-muted);
+        }
+        
+        /* 卡片网格 */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 48px;
+        }
+        
+        .card {
+            background: rgba(20, 27, 45, 0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 32px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,102,255,0.15);
+        }
+        
+        .card-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--gradient-1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 20px;
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .card-desc {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+        
+        /* 架构图 */
+        .architecture {
+            background: rgba(20, 27, 45, 0.9);
+            border-radius: 20px;
+            padding: 48px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .arch-layer {
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+        
+        .arch-layer.layer-1 { background: rgba(0, 102, 255, 0.15); border: 1px solid rgba(0, 102, 255, 0.3); }
+        .arch-layer.layer-2 { background: rgba(0, 212, 170, 0.15); border: 1px solid rgba(0, 212, 170, 0.3); }
+        .arch-layer.layer-3 { background: rgba(255, 184, 0, 0.15); border: 1px solid rgba(255, 184, 0, 0.3); }
+        .arch-layer.layer-4 { background: rgba(236, 72, 153, 0.15); border: 1px solid rgba(236, 72, 153, 0.3); }
+        
+        .arch-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 12px;
+            opacity: 0.8;
+        }
+        
+        .arch-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .arch-modules {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .arch-module {
+            padding: 6px 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            font-size: 12px;
+        }
+        
+        /* 流程图 */
+        .process-flow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 40px 0;
+        }
+        
+        .process-step {
+            flex: 1;
+            min-width: 180px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .process-step::after {
+            content: '→';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 24px;
+            color: var(--accent);
+        }
+        
+        .process-step:last-child::after {
+            display: none;
+        }
+        
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: var(--gradient-1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 20px;
+            margin: 0 auto 16px;
+        }
+        
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .step-desc {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        
+        /* 场景卡片 */
+        .scenario-card {
+            background: linear-gradient(135deg, rgba(20, 27, 45, 0.9), rgba(30, 41, 59, 0.9));
+            border-radius: 20px;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+        
+        .scenario-header {
+            padding: 32px;
+            background: var(--gradient-1);
+            position: relative;
+        }
+        
+        .scenario-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 100%;
+            background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M50 0 L100 50 L50 100 L0 50 Z' fill='rgba(255,255,255,0.1)'/%3E%3C/svg%3E");
+            opacity: 0.3;
+        }
+        
+        .scenario-number {
+            font-size: 48px;
+            font-weight: 700;
+            opacity: 0.3;
+            position: absolute;
+            right: 32px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .scenario-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 1.8rem;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .scenario-body {
+            padding: 32px;
+        }
+        
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+        }
+        
+        .scenario-feature {
+            padding: 20px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+        }
+        
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+        
+        .feature-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .feature-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+        
+        /* 价值指标 */
+        .value-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+            margin: 48px 0;
+        }
+        
+        .metric-card {
+            background: rgba(20, 27, 45, 0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 32px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 3rem;
+            font-weight: 700;
+            background: var(--gradient-1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+        
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        
+        /* 路线图 */
+        .roadmap {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+        
+        @media (max-width: 768px) {
+            .roadmap {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .roadmap-phase {
+            background: rgba(20, 27, 45, 0.8);
+            border-radius: 16px;
+            padding: 32px;
+            position: relative;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .roadmap-phase.current {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px rgba(0, 212, 170, 0.2);
+        }
+        
+        .phase-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: var(--gradient-1);
+            border-radius: 50px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        
+        .phase-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .phase-time {
+            color: var(--accent);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        
+        .phase-list {
+            list-style: none;
+        }
+        
+        .phase-list li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+        
+        .phase-list li::before {
+            content: '✓';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+        
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 100px 0;
+            position: relative;
+        }
+        
+        .cta-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(0, 102, 255, 0.1), transparent 70%);
+            pointer-events: none;
+        }
+        
+        .cta-title {
+            font-family: 'Noto Serif SC', serif;
+            font-size: 2.5rem;
+            margin-bottom: 24px;
+        }
+        
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 16px 32px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 16px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: var(--gradient-1);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 102, 255, 0.4);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        /* Footer */
+        footer {
+            padding: 48px 0;
+            text-align: center;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: var(--text-muted);
+        }
+        
+        /* 动画 */
+        .fade-in {
+            opacity: 0;
+            transform: translateY(30px);
+            animation: fadeIn 0.8s ease forwards;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .delay-1 { animation-delay: 0.2s; }
+        .delay-2 { animation-delay: 0.4s; }
+        .delay-3 { animation-delay: 0.6s; }
+        
+        /* 数据流动画 */
+        .data-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 40px 0;
+            flex-wrap: wrap;
+        }
+        
+        .flow-node {
+            padding: 16px 24px;
+            background: rgba(20, 27, 45, 0.9);
+            border: 1px solid rgba(0, 102, 255, 0.3);
+            border-radius: 8px;
+            font-size: 14px;
+            position: relative;
+        }
+        
+        .flow-arrow {
+            color: var(--accent);
+            font-size: 24px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: translateX(0); }
+            50% { opacity: 1; transform: translateX(5px); }
+        }
+        
+        /* 对比表格 */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 40px 0;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 16px 20px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .comparison-table th {
+            background: rgba(0, 102, 255, 0.1);
+            font-weight: 600;
+        }
+        
+        .comparison-table tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+        
+        .status-good { color: var(--accent); }
+        .status-warning { color: var(--gold); }
+        .status-bad { color: #EF4444; }
+    </style>
+</head>
+<body>
+    <div class="stars"></div>
+    
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-badge fade-in">FROM ALPHAZERO TO FINANCE</div>
+            <h1 class="fade-in delay-1">Gamium AI<br>金融决策的未来演武场</h1>
+            <p class="hero-subtitle fade-in delay-2">
+                将 AlphaZero 的智慧从围棋棋盘带入金融战场，通过 AI 对抗与数字孪生，
+                让银行在虚拟世界中演练百万次决策，找到穿越经济周期的最优策略。
+            </p>
+            <blockquote class="hero-quote fade-in delay-3">
+                "如果 AlphaZero 能在围棋中战胜人类冠军，那么它能否帮助银行在经济周期的博弈中做出更好的决策？"
+            </blockquote>
+        </div>
+    </section>
+    
+    <!-- Part 1: 起源 - AlphaZero 的启示 -->
+    <section id="origin">
+        <div class="container">
+            <span class="section-label">第一章 · 起源</span>
+            <h2 class="section-title">AlphaZero 的启示：从围棋到商业决策</h2>
+            <p class="section-desc">
+                2017年，DeepMind 的 AlphaZero 仅用 4 小时自我对弈，就超越了人类数千年的围棋智慧。
+                这个突破给我们带来了一个深刻的问题：如果 AI 能在完美信息的博弈游戏中找到最优策略，
+                那么它能否帮助企业在充满不确定性的商业世界中做出更好的决策？
+            </p>
+            
+            <!-- 图片占位符 1 -->
+            <div class="image-placeholder">
+                <span class="icon">🎮</span>
+                <span class="label">推荐图片</span>
+                <div class="prompt">
+                    <strong>AI 图片提示词：</strong>
+                    "A futuristic visualization of AlphaZero's neural network, with a Go board transforming into financial charts and economic cycles, 
+                    deep blue and cyan color scheme, digital art style, abstract representation of AI learning, particles flowing between game pieces 
+                    and stock market candlesticks, cinematic lighting, 8k resolution"
+                </div>
+            </div>
+            
+            <div class="timeline">
+                <div class="timeline-item">
+                    <span class="timeline-year">2016</span>
+                    <h3 class="timeline-title">AlphaGo 战胜李世石</h3>
+                    <p class="timeline-desc">深度学习 + 蒙特卡洛树搜索，AI 首次在围棋领域超越人类顶尖选手。</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2017</span>
+                    <h3 class="timeline-title">AlphaZero 的诞生</h3>
+                    <p class="timeline-desc">无需人类知识，纯粹通过自我对弈学习。4小时超越所有前代，展现了"从零学习"的惊人潜力。</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2020-2024</span>
+                    <h3 class="timeline-title">AI 进入决策领域</h3>
+                    <p class="timeline-desc">DeepMind 将类似思想应用于蛋白质折叠（AlphaFold）、芯片设计、数学证明等复杂决策问题。</p>
+                </div>
+                <div class="timeline-item">
+                    <span class="timeline-year">2025</span>
+                    <h3 class="timeline-title">Gamium：金融决策的 AlphaZero</h3>
+                    <p class="timeline-desc">将博弈学习框架引入金融行业，通过数字孪生构建"经营演武场"，让 AI 在虚拟世界中学习穿越周期的智慧。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Part 2: 问题 - 金融决策的困境 -->
+    <section id="problem" style="background: rgba(20, 27, 45, 0.5);">
+        <div class="container">
+            <span class="section-label">第二章 · 困境</span>
+            <h2 class="section-title">金融决策的三大困境</h2>
+            <p class="section-desc">
+                银行每天面临数以万计的信贷决策，每一个决策都关乎风险与收益的平衡。
+                然而，传统决策方式正面临前所未有的挑战。
+            </p>
+            
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-icon">🎯</div>
+                    <h3 class="card-title">策略验证困境</h3>
+                    <p class="card-desc">
+                        新策略只能在生产环境"试错"，一旦失败代价高昂。缺乏安全的沙盒环境进行策略预演和压力测试。
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">📊</div>
+                    <h3 class="card-title">模型评估困境</h3>
+                    <p class="card-desc">
+                        AI 模型选型依赖厂商演示和小规模抽测，难以评估真实业务效果、幻觉风险和合规性。
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="card-icon">🌊</div>
+                    <h3 class="card-title">周期穿越困境</h3>
+                    <p class="card-desc">
+                        经济周期的转换往往让历史经验失效。繁荣期的最优策略在萧条期可能导致灾难。
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 图片占位符 2 -->
+            <div class="image-placeholder">
+                <span class="icon">🏦</span>
+                <span class="label">推荐图片</span>
+                <div class="prompt">
+                    <strong>AI 图片提示词：</strong>
+                    "A dramatic visualization of a bank facing economic storm, split scene showing prosperity on one side and recession on the other, 
+                    data streams flowing through a modern banking headquarters, executives looking at holographic displays showing risk metrics, 
+                    dark moody atmosphere with blue and orange accent lights, corporate sci-fi style, photorealistic, 4k"
+                </div>
+            </div>
+            
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>评估维度</th>
+                        <th>传统方式</th>
+                        <th>Gamium 平台</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>策略验证</td>
+                        <td class="status-bad">生产环境试错，风险高</td>
+                        <td class="status-good">数字孪生沙盒，安全预演</td>
+                    </tr>
+                    <tr>
+                        <td>模型评测</td>
+                        <td class="status-warning">人工抽测，样本有限</td>
+                        <td class="status-good">自动化回合制对抗，全面覆盖</td>
+                    </tr>
+                    <tr>
+                        <td>周期应对</td>
+                        <td class="status-bad">依赖历史经验</td>
+                        <td class="status-good">AI 模拟多周期场景</td>
+                    </tr>
+                    <tr>
+                        <td>可解释性</td>
+                        <td class="status-warning">黑盒决策</td>
+                        <td class="status-good">决策路径可追溯</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+    
+    <!-- Part 3: 解决方案 - Gamium 平台 -->
+    <section id="solution">
+        <div class="container">
+            <span class="section-label">第三章 · 解决方案</span>
+            <h2 class="section-title">Gamium：AI 对抗与基准评测平台</h2>
+            <p class="section-desc">
+                我们构建了一个融合 "AlphaZero 博弈学习" 与 "AI 对抗评测" 的统一平台，
+                让金融机构在虚拟世界中安全地验证策略、评估模型、训练 AI。
+            </p>
+            
+            <!-- 核心架构 -->
+            <div class="architecture">
+                <h3 style="margin-bottom: 32px; font-size: 1.5rem;">🏗️ 平台核心架构</h3>
+                
+                <div class="arch-layer layer-1">
+                    <div class="arch-label">Layer 1 · 展示层</div>
+                    <div class="arch-title">战略演武场仪表盘</div>
+                    <div class="arch-modules">
+                        <span class="arch-module">实时对抗可视化</span>
+                        <span class="arch-module">策略对比分析</span>
+                        <span class="arch-module">决策可解释报告</span>
+                        <span class="arch-module">风险预警大屏</span>
+                    </div>
+                </div>
+                
+                <div class="arch-layer layer-2">
+                    <div class="arch-label">Layer 2 · 评测层</div>
+                    <div class="arch-title">AI 对抗与基准评测引擎</div>
+                    <div class="arch-modules">
+                        <span class="arch-module">回合制对抗引擎</span>
+                        <span class="arch-module">多模型接入网关</span>
+                        <span class="arch-module">正反向样本库</span>
+                        <span class="arch-module">指标计算引擎</span>
+                        <span class="arch-module">AB 测试框架</span>
+                    </div>
+                </div>
+                
+                <div class="arch-layer layer-3">
+                    <div class="arch-label">Layer 3 · 智能层</div>
+                    <div class="arch-title">AlphaZero 博弈学习系统</div>
+                    <div class="arch-modules">
+                        <span class="arch-module">策略-价值双头网络</span>
+                        <span class="arch-module">蒙特卡洛树搜索</span>
+                        <span class="arch-module">自我对弈训练</span>
+                        <span class="arch-module">分布式推理</span>
+                    </div>
+                </div>
+                
+                <div class="arch-layer layer-4">
+                    <div class="arch-label">Layer 4 · 模拟层</div>
+                    <div class="arch-title">金融数字孪生环境</div>
+                    <div class="arch-modules">
+                        <span class="arch-module">客户行为模拟器</span>
+                        <span class="arch-module">经济周期引擎</span>
+                        <span class="arch-module">市场竞争仿真</span>
+                        <span class="arch-module">数据蒸馏管道</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 图片占位符 3 -->
+            <div class="image-placeholder">
+                <span class="icon">🧠</span>
+                <span class="label">推荐图片</span>
+                <div class="prompt">
+                    <strong>AI 图片提示词：</strong>
+                    "A sophisticated AI command center for financial decision making, multiple holographic screens showing neural network architectures, 
+                    Monte Carlo tree search visualizations, and economic simulation graphs, sleek futuristic interior design, 
+                    glowing blue and teal accent lighting, operators in modern attire analyzing data, cinematic wide shot, octane render, 8k"
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Part 4: 应用场景 -->
+    <section id="scenarios" style="background: rgba(20, 27, 45, 0.5);">
+        <div class="container">
+            <span class="section-label">第四章 · 应用场景</span>
+            <h2 class="section-title">从实验室到业务一线</h2>
+            <p class="section-desc">
+                Gamium 平台已在多个金融场景中验证其价值，从 AI 模型评测到策略优化，
+                为金融机构提供全方位的决策支持。
+            </p>
+            
+            <!-- 场景 1: AI 对抗评测 -->
+            <div class="scenario-card">
+                <div class="scenario-header">
+                    <span class="scenario-number">01</span>
+                    <h3 class="scenario-title">🎯 AI 模型对抗评测</h3>
+                </div>
+                <div class="scenario-body">
+                    <p style="margin-bottom: 24px; color: var(--text-muted);">
+                        银行在智能问数、客户咨询、贷款审批、营销沟通等场景中，需要统一评测不同大模型和智能体的表现。
+                        Gamium 提供回合制自动对话和任务执行能力，量化评估关键指标，支持 AB 测试。
+                    </p>
+                    <div class="scenario-grid">
+                        <div class="scenario-feature">
+                            <div class="feature-icon">🤖</div>
+                            <div class="feature-title">多模型接入</div>
+                            <div class="feature-desc">统一网关接入行内外大模型、RAG应用和智能体</div>
+                        </div>
+                        <div class="scenario-feature">
+                            <div class="feature-icon">⚔️</div>
+                            <div class="feature-title">回合制对抗</div>
+                            <div class="feature-desc">自动驱动脚本，与各模型进行多轮对话与任务交互</div>
+                        </div>
+                        <div class="scenario-feature">
+                            <div class="feature-icon">📊</div>
+                            <div class="feature-title">量化指标</div>
+                            <div class="feature-desc">正确率、幻觉率、合规命中率、响应延时等全面评估</div>
+                        </div>
+                        <div class="scenario-feature">
+                            <div class="feature-icon">🔄</div>
+                            <div class="feature-title">样本迭代</div>
+                            <div class="feature-desc">正反向样本库持续沉淀，一键加入新问题</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 场景 2: 信贷策略博弈 -->
+            <div class="scenario-card">
+                <div class="scenario-header" style="background: var(--gradient-2);">
+                    <span class="scenario-number">02</span>
+                    <h3 class="scenario-title">🏦 信贷策略博弈训练</h3>
+                </div>
+                <div class="scenario-body">
+                    <p style="margin-bottom: 24px; color: var(--text-muted);">
+                        基于 AlphaZero 架构，在数字孪生环境中模拟银行 10 年信贷经营。AI 智能体通过自我对弈，
+                        学习在不同经济周期下的最优决策策略，包括利率调整、审批门槛、客群分配等。
+                    </p>
+                    <div class="scenario-grid">
+                        <div class="scenario-feature">
+                            <div class="feature-icon">🌍</div>
+                            <div class="feature-title">经济周期模拟</div>
+                            <div class="feature-desc">繁荣→衰退→萧条→复苏，模拟完整经济周期</div>
+                        </div>
+                        <div class="scenario-feature">
+                            <div class="feature-icon">👥</div>
+                            <div class="feature-title">客户行为建模</div>
+                            <div class="feature-desc">基于历史数据蒸馏客户还款、违约、流失行为</div>
+                        </div>
+                        <div class="scenario-feature">
+                            <div class="feature-icon">🧠</div>
+                            <div class="feature-title">MCTS 决策</div>
+                            <div class="feature-desc">蒙特卡洛树搜索探索策略空间，找到最优路径</div>
+                        </div>
+                        <div class="scenario-feature">
+                            <div class="feature-icon">📈</div>
+                            <div class="feature-title">策略可解释</div>
+                            <div class="feature-desc">决策路径可追溯，理解 AI 背后的逻辑</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 场景 3: 风控压力测试 -->
+            <div class="scenario-card">
+                <div class="scenario-header" style="background: var(--gradient-3);">
+                    <span class="scenario-number">03</span>
+                    <h3 class="scenario-title">⚠️ 风控压力测试</h3>
+                </div>
+                <div class="scenario-body">
+                    <p style="margin-bottom: 24px; color: var(--text-muted);">
+                        在虚拟环境中注入各类"黑天鹅"事件，测试现有策略的韧性和恢复能力。
+                        帮助风控团队提前发现潜在风险，制定应对预案。
+                    </p>
+                    <div class="scenario-grid">
+                        <div class="scenario-feature">
+                            <div class="feature-icon">🦢</div>
+                            <div class="feature-title">黑天鹅注入</div>
+                            <div class="feature-desc">模拟金融危机、疫情冲击、行业暴雷等极端事件</div>
+                        </div>
+                        <div class="scenario-feature">
+                            <div class="feature-icon">🔬</div>
+                            <div class="feature-title">敏感性分析</div>
+                            <div class="feature-desc">评估策略对各参数变化的敏感程度</div>
+                        </div>
+                        <div class="scenario-feature">
+                            <div class="feature-icon">🛡️</div>
+                            <div class="feature-title">韧性评估</div>
+                            <div class="feature-desc">量化策略在极端场景下的最大回撤和恢复速度</div>
+                        </div>
+                        <div class="scenario-feature">
+                            <div class="feature-icon">📋</div>
+                            <div class="feature-title">预案生成</div>
+                            <div class="feature-desc">基于模拟结果自动生成风险应对建议</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 图片占位符 4 -->
+            <div class="image-placeholder">
+                <span class="icon">📊</span>
+                <span class="label">推荐图片</span>
+                <div class="prompt">
+                    <strong>AI 图片提示词：</strong>
+                    "A high-tech financial war room with multiple large curved screens showing real-time trading data, AI model comparison charts, 
+                    and risk assessment dashboards, team of analysts working with holographic interfaces, dramatic lighting with blue and purple hues, 
+                    futuristic control center atmosphere, professional corporate environment, ultrawide format, photorealistic, 8k"
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Part 5: 数据蒸馏 -->
+    <section id="distillation">
+        <div class="container">
+            <span class="section-label">第五章 · 核心技术</span>
+            <h2 class="section-title">数据蒸馏：从历史中提炼"商业物理定律"</h2>
+            <p class="section-desc">
+                数字孪生的核心是让虚拟世界尽可能接近真实世界。通过数据蒸馏技术，
+                我们从历史数据中提炼出客户行为规律，构建能够真实响应 AI 决策的"世界模型"。
+            </p>
+            
+            <!-- 五步流程 -->
+            <div class="process-flow">
+                <div class="process-step">
+                    <div class="step-number">1</div>
+                    <div class="step-title">目标定义</div>
+                    <div class="step-desc">定义违约概率、LTV、流失率等核心预测目标</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="process-step">
+                    <div class="step-number">2</div>
+                    <div class="step-title">特征工程</div>
+                    <div class="step-desc">提取静态、行为、信贷、环境四类特征</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="process-step">
+                    <div class="step-number">3</div>
+                    <div class="step-title">规律建模</div>
+                    <div class="step-desc">训练模型学习数据中的隐藏规律</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="process-step">
+                    <div class="step-number">4</div>
+                    <div class="step-title">函数封装</div>
+                    <div class="step-desc">封装为 predict_customer_future() API</div>
+                </div>
+                <span class="flow-arrow">→</span>
+                <div class="process-step">
+                    <div class="step-number">5</div>
+                    <div class="step-title">验证校准</div>
+                    <div class="step-desc">使用保留数据回测验证精度</div>
+                </div>
+            </div>
+            
+            <!-- 蒸馏出的规律 -->
+            <div style="margin-top: 60px;">
+                <h3 style="margin-bottom: 24px;">🔬 蒸馏出的关键业务规律</h3>
+                <div class="card-grid">
+                    <div class="card">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📈</div>
+                        <h4 class="card-title">经济周期敏感度</h4>
+                        <p class="card-desc">
+                            小微企业主在经济下行时违约率急剧上升 <strong style="color: var(--gold);">3倍</strong>，
+                            需要在繁荣期就开始收缩该客群敞口。
+                        </p>
+                    </div>
+                    <div class="card">
+                        <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+                        <h4 class="card-title">负债率红线</h4>
+                        <p class="card-desc">
+                            负债率超过 <strong style="color: var(--gold);">60%</strong> 是高风险信号，
+                            违约概率提高 2.5 倍，应作为审批硬性门槛。
+                        </p>
+                    </div>
+                    <div class="card">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🍽️</div>
+                        <h4 class="card-title">行业风险系数</h4>
+                        <p class="card-desc">
+                            餐饮业客户风险系数 <strong style="color: var(--gold);">1.4x</strong>，
+                            IT 行业最稳定，农业受季节影响明显。
+                        </p>
+                    </div>
+                    <div class="card">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📊</div>
+                        <h4 class="card-title">历史逾期权重</h4>
+                        <p class="card-desc">
+                            历史逾期 >90 天的客户，未来违约风险提高 <strong style="color: var(--gold);">3倍</strong>，
+                            需要更严格的二次放款评估。
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Part 6: 价值体现 -->
+    <section id="value" style="background: rgba(20, 27, 45, 0.5);">
+        <div class="container">
+            <span class="section-label">第六章 · 价值体现</span>
+            <h2 class="section-title">可量化的业务价值</h2>
+            <p class="section-desc">
+                Gamium 平台已在多家金融机构验证其价值，以下是典型的价值指标。
+            </p>
+            
+            <div class="value-metrics">
+                <div class="metric-card">
+                    <div class="metric-value">20%</div>
+                    <div class="metric-label">智能问数场景正确率提升</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">50%</div>
+                    <div class="metric-label">评测配置时间缩短</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">3x</div>
+                    <div class="metric-label">策略验证效率提升</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">90%</div>
+                    <div class="metric-label">合规违规表述检出率</div>
+                </div>
+            </div>
+            
+            <!-- 图片占位符 5 -->
+            <div class="image-placeholder">
+                <span class="icon">💰</span>
+                <span class="label">推荐图片</span>
+                <div class="prompt">
+                    <strong>AI 图片提示词：</strong>
+                    "A triumphant visualization of AI-powered financial success, upward trending graphs emerging from a digital brain, 
+                    golden light rays representing value creation, modern bank building in background with holographic data flows, 
+                    celebration of technology meeting finance, optimistic and powerful mood, cinematic composition, 8k resolution"
+                </div>
+            </div>
+            
+            <div class="card-grid">
+                <div class="card">
+                    <h3 class="card-title">🏆 对业务条线</h3>
+                    <p class="card-desc">
+                        获得统一的选型、验收和持续评估工具，降低 AI 项目失败风险，加速业务价值实现。
+                    </p>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">🔧 对科技团队</h3>
+                    <p class="card-desc">
+                        标准化接入和评测平台，避免每个项目单独搭环境、写脚本，显著提升研发效率。
+                    </p>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">🛡️ 对风控合规</h3>
+                    <p class="card-desc">
+                        量化评估幻觉、违规话术和决策可追溯性，提供可解释的评估证据，满足监管要求。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Part 7: 落地路径 -->
+    <section id="roadmap">
+        <div class="container">
+            <span class="section-label">第七章 · 落地路径</span>
+            <h2 class="section-title">分阶段实施计划</h2>
+            <p class="section-desc">
+                采用"先评测、后博弈、再融合"的三阶段推进策略，确保每一步都产生可见价值。
+            </p>
+            
+            <div class="roadmap">
+                <div class="roadmap-phase current">
+                    <span class="phase-badge">Phase 1</span>
+                    <h3 class="phase-title">AI 评测基座</h3>
+                    <p class="phase-time">1-2 个月</p>
+                    <ul class="phase-list">
+                        <li>回合制对抗引擎核心功能</li>
+                        <li>多模型统一接入网关</li>
+                        <li>正反向样本库管理</li>
+                        <li>基础指标与报告模块</li>
+                        <li>3 个典型场景模板</li>
+                    </ul>
+                </div>
+                <div class="roadmap-phase">
+                    <span class="phase-badge">Phase 2</span>
+                    <h3 class="phase-title">博弈训练系统</h3>
+                    <p class="phase-time">3-4 个月</p>
+                    <ul class="phase-list">
+                        <li>金融数字孪生环境</li>
+                        <li>AlphaZero 智能体训练</li>
+                        <li>经济周期模拟引擎</li>
+                        <li>策略可视化仪表盘</li>
+                        <li>Web 端演武场界面</li>
+                    </ul>
+                </div>
+                <div class="roadmap-phase">
+                    <span class="phase-badge">Phase 3</span>
+                    <h3 class="phase-title">产品化与推广</h3>
+                    <p class="phase-time">6 个月+</p>
+                    <ul class="phase-list">
+                        <li>分布式训练系统</li>
+                        <li>生产级模拟精度</li>
+                        <li>影子模式部署验证</li>
+                        <li>行业标准参与制定</li>
+                        <li>多行业场景扩展</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Part 8: 团队与愿景 -->
+    <section id="team" style="background: rgba(20, 27, 45, 0.5);">
+        <div class="container">
+            <span class="section-label">第八章 · 团队与愿景</span>
+            <h2 class="section-title">打造金融 AI 评测的标杆方案</h2>
+            
+            <div class="card-grid">
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">👤</div>
+                    <h3 class="card-title">胡刚 · CEO</h3>
+                    <p class="card-desc">
+                        原 IBM 软件服务部华东区负责人，近 20 年企业级市场服务经验，
+                        曾服务工商银行、人民银行等标杆客户。
+                    </p>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">👤</div>
+                    <h3 class="card-title">梅菊花 · CTO</h3>
+                    <p class="card-desc">
+                        华中科技大学硕士，主导研发核心企业级开发框架，
+                        已在外汇交易中心、东方证券等项目落地。
+                    </p>
+                </div>
+                <div class="card" style="text-align: center;">
+                    <div style="font-size: 64px; margin-bottom: 16px;">👤</div>
+                    <h3 class="card-title">王鑫阳 · AI 负责人</h3>
+                    <p class="card-desc">
+                        负责平台 AI 技术底座构建，致力于将前沿 AI 技术
+                        与客户业务场景深度融合。
+                    </p>
+                </div>
+            </div>
+            
+            <!-- 愿景 -->
+            <div style="margin-top: 80px; text-align: center;">
+                <h3 style="font-size: 1.8rem; margin-bottom: 24px;">🌟 我们的愿景</h3>
+                <div style="max-width: 800px; margin: 0 auto;">
+                    <blockquote class="hero-quote" style="text-align: center; border-left: none; border-top: 3px solid var(--gold);">
+                        成为金融 AI 决策的"演武场"和"质检中心"，<br>
+                        让每一个 AI 策略在上线前都经过千锤百炼，<br>
+                        让每一个 AI 模型都能被公正、全面地评估，<br>
+                        让金融机构在 AI 时代做出更明智的决策。
+                    </blockquote>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <div class="container">
+            <h2 class="cta-title">开启您的 AI 决策进化之旅</h2>
+            <p style="color: var(--text-muted); margin-bottom: 32px; max-width: 600px; margin-left: auto; margin-right: auto;">
+                无论您是需要评测 AI 模型、验证业务策略，还是探索 AlphaZero 式的智能决策，
+                Gamium 平台都能为您提供专业的解决方案。
+            </p>
+            <div class="cta-buttons">
+                <a href="#" class="btn btn-primary">🚀 申请试用</a>
+                <a href="#" class="btn btn-secondary">📖 查看文档</a>
+                <a href="https://github.com/gahg96/Python-AI/tree/main/Gamium-FinanceAI" class="btn btn-secondary">💻 GitHub</a>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p>© 2025 Gamium AI · 金融决策的未来演武场</p>
+            <p style="margin-top: 8px; font-size: 14px;">
+                基于 AlphaZero 启发的金融智能决策平台
+            </p>
+        </div>
+    </footer>
+    
+    <script>
+        // 滚动动画
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+        
+        document.querySelectorAll('.card, .scenario-card, .roadmap-phase, .metric-card').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'all 0.6s ease';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
+
