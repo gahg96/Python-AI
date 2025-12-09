@@ -385,18 +385,35 @@ class WorldModel:
         
         # === 3. 计算流失概率 ===
         
+        # 保存流失概率计算因子
+        churn_factors = {}
+        
         # 基础流失率
-        churn_prob = 0.05
+        base_churn = 0.05
+        churn_prob = base_churn
+        churn_factors['base_churn'] = base_churn
         
         # 利率敏感性 (利率越高越可能提前还款)
+        rate_sensitivity = 0.0
         if loan_offer.interest_rate > market.base_interest_rate + 0.04:
-            churn_prob += 0.1
+            rate_sensitivity = 0.1
+            churn_prob += rate_sensitivity
+        churn_factors['rate_sensitivity'] = rate_sensitivity
+        churn_factors['rate_impact'] = f"贷款利率({loan_offer.interest_rate*100:.2f}%) vs 基准利率({market.base_interest_rate*100:.2f}%)"
         
         # 优质客户更可能有更好的选择
+        quality_bonus = 0.0
         if customer.risk_score < 0.2:
-            churn_prob += 0.05
+            quality_bonus = 0.05
+            churn_prob += quality_bonus
+        churn_factors['quality_bonus'] = quality_bonus
+        churn_factors['quality_impact'] = f"风险评分({customer.risk_score:.3f}) < 0.2，优质客户更可能找到更好的融资渠道"
         
         churn_prob = min(0.5, churn_prob)
+        churn_factors['final_churn'] = churn_prob
+        
+        # 将流失因子添加到risk_factors中
+        risk_factors['churn_factors'] = churn_factors
         
         # === 4. 计算预期逾期天数 ===
         
@@ -642,17 +659,34 @@ class WorldModel:
         
         # === 3. 计算流失概率 ===
         
-        churn_prob = 0.08  # 企业客户基础流失率稍高
+        # 保存流失概率计算因子
+        churn_factors = {}
+        
+        base_churn = 0.08  # 企业客户基础流失率稍高
+        churn_prob = base_churn
+        churn_factors['base_churn'] = base_churn
         
         # 利率敏感性
+        rate_sensitivity = 0.0
         if loan_offer.interest_rate > market.base_interest_rate + 0.03:
-            churn_prob += 0.15
+            rate_sensitivity = 0.15
+            churn_prob += rate_sensitivity
+        churn_factors['rate_sensitivity'] = rate_sensitivity
+        churn_factors['rate_impact'] = f"贷款利率({loan_offer.interest_rate*100:.2f}%) vs 基准利率({market.base_interest_rate*100:.2f}%)"
         
         # 优质企业更可能找到更好的融资渠道
+        quality_bonus = 0.0
         if financial_health > 0.8:
-            churn_prob += 0.1
+            quality_bonus = 0.1
+            churn_prob += quality_bonus
+        churn_factors['quality_bonus'] = quality_bonus
+        churn_factors['quality_impact'] = f"财务健康度({financial_health:.3f}) > 0.8，优质企业更可能找到更好的融资渠道"
         
         churn_prob = min(0.6, churn_prob)
+        churn_factors['final_churn'] = churn_prob
+        
+        # 将流失因子添加到risk_factors中
+        risk_factors['churn_factors'] = churn_factors
         
         # === 4. 计算预期逾期天数 ===
         

@@ -79,3 +79,4 @@ if __name__ == '__main__':
     print(f"   贷款: {n_loans:,}")
     print(f"   还款: {n_repayments:,}")
 
+

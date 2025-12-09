@@ -252,3 +252,4 @@ print()
 print("📋 最近提交记录:")
 subprocess.run(['git', 'log', '--oneline', '-5'], cwd=parent_dir)
 
+

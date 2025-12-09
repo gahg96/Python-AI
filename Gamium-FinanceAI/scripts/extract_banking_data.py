@@ -353,3 +353,4 @@ if __name__ == '__main__':
         extractor = BankingDataExtractor(config)
         extractor.run()
 
+

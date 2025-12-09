@@ -9,7 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* 主题变量定义 */
         :root {
+            /* 深色主题（默认） */
             --bg-primary: #0a0e17;
             --bg-secondary: #131a2b;
             --bg-card: #1a2332;
@@ -26,6 +28,46 @@
             --gradient-primary: linear-gradient(135deg, #00d4aa 0%, #7c3aed 100%);
             --gradient-card: linear-gradient(180deg, rgba(26, 35, 50, 0.9) 0%, rgba(19, 26, 43, 0.95) 100%);
             --shadow-glow: 0 0 40px rgba(0, 212, 170, 0.15);
+        }
+        
+        /* 中性主题 */
+        [data-theme="neutral"] {
+            --bg-primary: #1e293b;
+            --bg-secondary: #334155;
+            --bg-card: #475569;
+            --bg-hover: #64748b;
+            --accent-primary: #06b6d4;
+            --accent-secondary: #8b5cf6;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --accent-blue: #3b82f6;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-color: #64748b;
+            --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #8b5cf6 100%);
+            --gradient-card: linear-gradient(180deg, rgba(71, 85, 105, 0.95) 0%, rgba(51, 65, 85, 0.98) 100%);
+            --shadow-glow: 0 0 40px rgba(6, 182, 212, 0.2);
+        }
+        
+        /* 明亮主题 */
+        [data-theme="bright"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-card: #f1f5f9;
+            --bg-hover: #e2e8f0;
+            --accent-primary: #0ea5e9;
+            --accent-secondary: #6366f1;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --accent-blue: #3b82f6;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --border-color: #cbd5e1;
+            --gradient-primary: linear-gradient(135deg, #0ea5e9 0%, #6366f1 100%);
+            --gradient-card: linear-gradient(180deg, rgba(241, 245, 249, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
+            --shadow-glow: 0 0 40px rgba(14, 165, 233, 0.15);
         }
 
         * {
@@ -71,6 +113,16 @@
             align-items: center;
             padding: 0 24px;
             z-index: 1000;
+            overflow: visible;
+            flex-wrap: nowrap;
+        }
+        
+        [data-theme="neutral"] .navbar {
+            background: rgba(30, 41, 59, 0.85);
+        }
+        
+        [data-theme="bright"] .navbar {
+            background: rgba(255, 255, 255, 0.85);
         }
 
         .logo {
@@ -93,6 +145,8 @@
             display: flex;
             gap: 8px;
             margin-left: 48px;
+            flex-shrink: 1;
+            min-width: 0;
         }
 
         .nav-tab {
@@ -116,6 +170,122 @@
             color: var(--accent-primary);
             background: rgba(0, 212, 170, 0.1);
         }
+        
+        /* 主题切换按钮 */
+        .theme-switcher {
+            margin-left: auto !important;
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--bg-card) !important;
+            border: 2px solid var(--accent-primary) !important;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1001;
+            white-space: nowrap;
+            visibility: visible !important;
+            opacity: 1 !important;
+            min-width: 100px;
+            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0, 212, 170, 0.3) !important;
+        }
+        
+        .theme-switcher::before {
+            content: '🎨';
+            margin-right: 4px;
+        }
+        
+        .theme-switcher:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 212, 170, 0.2);
+        }
+        
+        .theme-switcher-icon {
+            font-size: 20px;
+            transition: transform 0.3s ease;
+        }
+        
+        .theme-switcher:hover .theme-switcher-icon {
+            transform: rotate(180deg);
+        }
+        
+        .theme-switcher-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .theme-menu {
+            position: absolute;
+            top: 72px;
+            right: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 8px;
+            min-width: 160px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 1001;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .theme-menu.show {
+            display: block;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .theme-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-primary);
+        }
+        
+        .theme-option:hover {
+            background: var(--bg-hover);
+        }
+        
+        .theme-option.active {
+            background: rgba(0, 212, 170, 0.1);
+            color: var(--accent-primary);
+        }
+        
+        .theme-option-icon {
+            font-size: 18px;
+            width: 24px;
+            text-align: center;
+        }
+        
+        .theme-option-name {
+            flex: 1;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .theme-option-check {
+            font-size: 16px;
+            color: var(--accent-primary);
+        }
 
         /* 主内容区 */
         .main-content {
@@ -137,6 +307,217 @@
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* AI动画效果 */
+        @keyframes aiPulse {
+            0%, 100% { 
+                opacity: 1; 
+                transform: scale(1);
+                box-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
+            }
+            50% { 
+                opacity: 0.8; 
+                transform: scale(1.05);
+                box-shadow: 0 0 40px rgba(0, 212, 170, 0.6);
+            }
+        }
+        
+        @keyframes aiGlow {
+            0%, 100% { 
+                box-shadow: 0 0 10px rgba(0, 212, 170, 0.3),
+                           0 0 20px rgba(124, 58, 237, 0.2);
+            }
+            50% { 
+                box-shadow: 0 0 20px rgba(0, 212, 170, 0.6),
+                           0 0 40px rgba(124, 58, 237, 0.4);
+            }
+        }
+        
+        @keyframes aiThinking {
+            0% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(90deg) scale(1.1); }
+            50% { transform: rotate(180deg) scale(1); }
+            75% { transform: rotate(270deg) scale(1.1); }
+            100% { transform: rotate(360deg) scale(1); }
+        }
+        
+        @keyframes aiScan {
+            0% { 
+                background-position: -100% 0;
+                opacity: 0.3;
+            }
+            50% {
+                opacity: 0.6;
+            }
+            100% { 
+                background-position: 200% 0;
+                opacity: 0.3;
+            }
+        }
+        
+        /* AI标识 */
+        .ai-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.2), rgba(124, 58, 237, 0.2));
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-primary);
+            animation: aiPulse 2s ease-in-out infinite;
+        }
+        
+        .ai-badge::before {
+            content: '🤖';
+            font-size: 14px;
+            animation: aiThinking 3s linear infinite;
+        }
+        
+        /* AI思考过程 */
+        .ai-thinking {
+            position: relative;
+            padding: 16px;
+            background: rgba(0, 212, 170, 0.05);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+        
+        .ai-thinking::before {
+            content: '🤖 AI正在分析...';
+            display: block;
+            font-size: 12px;
+            color: var(--accent-primary);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .ai-thinking::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(0, 212, 170, 0.1) 50%, 
+                transparent 100%);
+            background-size: 200% 100%;
+            animation: aiScan 2s linear infinite;
+            pointer-events: none;
+        }
+        
+        /* AI置信度指示器 */
+        .ai-confidence {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: rgba(0, 212, 170, 0.1);
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        
+        .ai-confidence-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .ai-confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 2px;
+            transition: width 0.5s ease;
+            animation: aiGlow 2s ease-in-out infinite;
+        }
+        
+        /* AI建议卡片 */
+        .ai-suggestion {
+            padding: 16px;
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.1), rgba(124, 58, 237, 0.1));
+            border: 1px solid rgba(0, 212, 170, 0.3);
+            border-radius: 12px;
+            margin: 12px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ai-suggestion::before {
+            content: '💡 AI建议';
+            display: block;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent-primary);
+            margin-bottom: 8px;
+        }
+        
+        .ai-suggestion::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 212, 170, 0.1) 0%, transparent 70%);
+            animation: aiPulse 3s ease-in-out infinite;
+        }
+        
+        /* AI分析步骤 */
+        .ai-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin: 16px 0;
+        }
+        
+        .ai-step {
+            display: flex;
+            align-items: start;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(0, 212, 170, 0.05);
+            border-left: 3px solid var(--accent-primary);
+            border-radius: 8px;
+            opacity: 0;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .ai-step-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            flex-shrink: 0;
+            animation: aiPulse 2s ease-in-out infinite;
+        }
+        
+        .ai-step-content {
+            flex: 1;
+        }
+        
+        .ai-step-title {
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+        
+        .ai-step-desc {
+            font-size: 12px;
+            color: var(--text-muted);
         }
 
         /* 卡片 */
@@ -1071,6 +1452,31 @@
             <button class="nav-tab" data-page="distillation">🔬 数据蒸馏</button>
             <button class="nav-tab" data-page="databrowser">📂 数据浏览</button>
         </div>
+        
+        <!-- 主题切换器 -->
+        <div class="theme-switcher" onclick="toggleThemeMenu()">
+            <span class="theme-switcher-icon">🎨</span>
+            <span class="theme-switcher-label" id="current-theme-label">深色</span>
+        </div>
+        
+        <!-- 主题菜单 -->
+        <div class="theme-menu" id="theme-menu">
+            <div class="theme-option active" onclick="switchTheme('dark')" data-theme="dark">
+                <span class="theme-option-icon">🌙</span>
+                <span class="theme-option-name">深色主题</span>
+                <span class="theme-option-check">✓</span>
+            </div>
+            <div class="theme-option" onclick="switchTheme('neutral')" data-theme="neutral">
+                <span class="theme-option-icon">🌓</span>
+                <span class="theme-option-name">中性主题</span>
+                <span class="theme-option-check" style="display: none;">✓</span>
+            </div>
+            <div class="theme-option" onclick="switchTheme('bright')" data-theme="bright">
+                <span class="theme-option-icon">☀️</span>
+                <span class="theme-option-name">明亮主题</span>
+                <span class="theme-option-check" style="display: none;">✓</span>
+            </div>
+        </div>
     </nav>
 
     <!-- 主内容 -->
@@ -1171,19 +1577,29 @@
                     <div class="grid grid-3">
                         <div class="form-group">
                             <label class="form-label">客户类型</label>
-                            <select id="customer-type" class="form-select" onchange="toggleEnterpriseFields()">
+                            <select id="customer-type" class="form-select" onchange="toggleCustomerTypeFields()">
                                 <option value="">随机</option>
-                                <optgroup label="个人客户">
+                                <optgroup label="👤 个人客户">
                                     <option value="salaried">工薪阶层</option>
                                     <option value="small_business">小微企业主</option>
                                     <option value="freelancer">自由职业</option>
                                     <option value="farmer">农户</option>
+                                    <option value="professional">专业人士</option>
+                                    <option value="entrepreneur">创业者</option>
+                                    <option value="investor">投资者</option>
+                                    <option value="retiree">退休人员</option>
+                                    <option value="student">学生</option>
                                 </optgroup>
-                                <optgroup label="企业客户">
+                                <optgroup label="🏢 企业客户">
                                     <option value="micro_enterprise">微型企业 (年营收 < 1000万)</option>
                                     <option value="small_enterprise">小型企业 (年营收 1000-5000万)</option>
                                     <option value="medium_enterprise">中型企业 (年营收 5000万-2亿)</option>
                                     <option value="large_enterprise">大型企业 (年营收 > 2亿)</option>
+                                    <option value="startup">初创企业</option>
+                                    <option value="tech_startup">科技初创</option>
+                                    <option value="manufacturing">制造企业</option>
+                                    <option value="trade_company">贸易公司</option>
+                                    <option value="service_company">服务企业</option>
                                 </optgroup>
                             </select>
                         </div>
@@ -1249,6 +1665,49 @@
                         </div>
                     </div>
                     
+                    <!-- 个人客户专用字段 -->
+                    <div id="personal-fields" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <h4 style="margin-bottom: 16px; color: var(--accent-primary); font-size: 14px;">👤 个人客户信息（可选，留空将自动生成）</h4>
+                        <div class="grid grid-3">
+                            <div class="form-group">
+                                <label class="form-label">月收入 (元)</label>
+                                <input type="number" id="personal-monthly-income" class="form-input" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">收入波动性 (%)</label>
+                                <input type="number" id="personal-income-volatility" class="form-input" step="0.1" min="0" max="100" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">总资产 (元)</label>
+                                <input type="number" id="personal-total-assets" class="form-input" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">总负债 (元)</label>
+                                <input type="number" id="personal-total-liabilities" class="form-input" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">存款余额 (元)</label>
+                                <input type="number" id="personal-deposit-balance" class="form-input" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">存款稳定性 (%)</label>
+                                <input type="number" id="personal-deposit-stability" class="form-input" step="0.1" min="0" max="100" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">从业年限 (年)</label>
+                                <input type="number" id="personal-years-in-business" class="form-input" step="0.1" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">历史贷款次数</label>
+                                <input type="number" id="personal-previous-loans" class="form-input" min="0" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">历史最大逾期 (天)</label>
+                                <input type="number" id="personal-max-dpd" class="form-input" min="0" placeholder="留空自动生成">
+                            </div>
+                        </div>
+                    </div>
+                    
                     <h4 style="margin: 20px 0 16px; color: var(--accent-primary); font-size: 14px;">💰 贷款条件</h4>
                     <div class="grid grid-3">
                         <div class="form-group">
@@ -1308,23 +1767,39 @@
                     
                     <!-- 企业客户专用字段（默认隐藏） -->
                     <div id="enterprise-fields" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-                        <h4 style="margin-bottom: 16px; color: var(--accent-primary); font-size: 14px;">🏢 企业信息（可选，留空将自动生成）</h4>
-                        <div class="grid grid-2">
+                        <h4 style="margin-bottom: 16px; color: var(--accent-primary); font-size: 14px;">🏢 企业客户信息（可选，留空将自动生成）</h4>
+                        <div class="grid grid-3">
                             <div class="form-group">
                                 <label class="form-label">年营业收入 (元)</label>
                                 <input type="number" id="enterprise-revenue" class="form-input" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">净利润 (元)</label>
+                                <input type="number" id="enterprise-net-profit" class="form-input" placeholder="留空自动生成">
                             </div>
                             <div class="form-group">
                                 <label class="form-label">净利润率 (%)</label>
                                 <input type="number" id="enterprise-profit-margin" class="form-input" step="0.1" placeholder="留空自动生成">
                             </div>
                             <div class="form-group">
+                                <label class="form-label">经营现金流 (元)</label>
+                                <input type="number" id="enterprise-cash-flow" class="form-input" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
                                 <label class="form-label">流动比率</label>
                                 <input type="number" id="enterprise-current-ratio" class="form-input" step="0.1" placeholder="留空自动生成">
                             </div>
                             <div class="form-group">
+                                <label class="form-label">速动比率</label>
+                                <input type="number" id="enterprise-quick-ratio" class="form-input" step="0.1" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
                                 <label class="form-label">资产负债率 (%)</label>
                                 <input type="number" id="enterprise-debt-ratio" class="form-input" step="0.1" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">营收增长率 (%)</label>
+                                <input type="number" id="enterprise-revenue-growth" class="form-input" step="0.1" placeholder="留空自动生成">
                             </div>
                             <div class="form-group">
                                 <label class="form-label">研发费用率 (%)</label>
@@ -1333,6 +1808,14 @@
                             <div class="form-group">
                                 <label class="form-label">专利总数</label>
                                 <input type="number" id="enterprise-patents" class="form-input" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">法律纠纷数量</label>
+                                <input type="number" id="enterprise-legal-disputes" class="form-input" min="0" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">成立年限 (年)</label>
+                                <input type="number" id="enterprise-years" class="form-input" step="0.1" placeholder="留空自动生成">
                             </div>
                         </div>
                     </div>
@@ -1370,6 +1853,70 @@
             </div>
         </div>
         
+        <!-- 历史贷款详情弹窗 -->
+        <div id="loan-history-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 1000px; max-height: 90vh;">
+                <div class="modal-header">
+                    <h3>📊 历史贷款详情</h3>
+                    <button class="modal-close" onclick="closeLoanHistory()">×</button>
+                </div>
+                <div class="modal-body" id="loan-history-content" style="max-height: calc(90vh - 100px); overflow-y: auto;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>加载中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 违约概率详细计算模态框 -->
+        <div id="default-probability-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 1000px; max-height: 90vh;">
+                <div class="modal-header">
+                    <h3>🔍 违约概率详细计算过程</h3>
+                    <button class="modal-close" onclick="closeDefaultProbabilityDetail()">×</button>
+                </div>
+                <div class="modal-body" id="default-probability-content" style="max-height: calc(90vh - 100px); overflow-y: auto;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>计算中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 流失概率详细计算模态框 -->
+        <div id="churn-probability-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 1000px; max-height: 90vh;">
+                <div class="modal-header">
+                    <h3>🔍 流失概率详细计算过程</h3>
+                    <button class="modal-close" onclick="closeChurnProbabilityDetail()">×</button>
+                </div>
+                <div class="modal-body" id="churn-probability-content" style="max-height: calc(90vh - 100px); overflow-y: auto;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>计算中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 风险评分详细计算模态框 -->
+        <div id="risk-score-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 1000px; max-height: 90vh;">
+                <div class="modal-header">
+                    <h3>📊 风险评分详细计算规则</h3>
+                    <button class="modal-close" onclick="closeRiskScoreDetail()">×</button>
+                </div>
+                <div class="modal-body" id="risk-score-content" style="max-height: calc(90vh - 100px); overflow-y: auto;">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>计算中...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- LTV说明模态框 -->
         <div id="ltv-explanation-modal" class="modal" style="display: none;">
             <div class="modal-content" style="max-width: 800px;">
@@ -1380,48 +1927,48 @@
                 <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
                     <div style="padding: 20px;">
                         <h4 style="color: var(--accent-primary); margin-bottom: 15px;">什么是LTV？</h4>
-                        <p style="margin-bottom: 15px; line-height: 1.8;">
-                            <strong>LTV (Lifetime Value)</strong> = <strong>客户生命周期价值</strong><br>
-                            LTV表示银行从某个客户身上预期能获得的<strong>净收益</strong>，即在整个客户关系周期内，银行从这个客户身上赚到的钱减去可能损失的钱。
+                        <p style="margin-bottom: 15px; line-height: 1.8; color: var(--text-primary);">
+                            <strong style="color: var(--text-primary);">LTV (Lifetime Value)</strong> = <strong style="color: var(--text-primary);">客户生命周期价值</strong><br>
+                            <span style="color: var(--text-primary);">LTV表示银行从某个客户身上预期能获得的<strong>净收益</strong>，即在整个客户关系周期内，银行从这个客户身上赚到的钱减去可能损失的钱。</span>
                         </p>
                         
-                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                            <h5 style="margin-bottom: 10px;">📊 计算公式：</h5>
-                            <div style="font-family: monospace; background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                        <div style="background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid rgba(102, 126, 234, 0.2);">
+                            <h5 style="margin-bottom: 10px; color: var(--text-primary);">📊 计算公式：</h5>
+                            <div style="font-family: 'Courier New', monospace; background: rgba(0, 0, 0, 0.3); color: #4facfe; padding: 15px; border-radius: 5px; margin: 10px 0; font-size: 14px; font-weight: bold;">
                                 LTV = 利息收入 - 预期损失 - 运营成本
                             </div>
-                            <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
-                                <li><strong>利息收入</strong>：银行从客户收取的贷款利息</li>
-                                <li><strong>预期损失</strong>：客户违约后可能无法收回的本金（= 贷款本金 × 违约概率 × 60%）</li>
-                                <li><strong>运营成本</strong>：审批、管理、催收等成本（通常为贷款本金的2%）</li>
+                            <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8; color: var(--text-primary);">
+                                <li><strong style="color: var(--text-primary);">利息收入</strong>：银行从客户收取的贷款利息</li>
+                                <li><strong style="color: var(--text-primary);">预期损失</strong>：客户违约后可能无法收回的本金（= 贷款本金 × 违约概率 × 60%）</li>
+                                <li><strong style="color: var(--text-primary);">运营成本</strong>：审批、管理、催收等成本（通常为贷款本金的2%）</li>
                             </ul>
                         </div>
                         
                         <h4 style="color: var(--accent-primary); margin: 25px 0 15px;">如何解读LTV？</h4>
                         <div class="grid grid-2" style="gap: 15px; margin: 15px 0;">
-                            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
-                                <div style="font-weight: bold; color: #10b981; margin-bottom: 8px;">LTV > 0（正值）</div>
-                                <div style="font-size: 13px; color: var(--text-secondary);">
+                            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15)); padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
+                                <div style="font-weight: bold; color: #10b981; margin-bottom: 8px; font-size: 15px;">LTV > 0（正值）</div>
+                                <div style="font-size: 13px; color: var(--text-primary); line-height: 1.6;">
                                     这个客户能为银行带来利润，值得放贷。数值越大，利润越多。
                                 </div>
                             </div>
-                            <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1)); padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444;">
-                                <div style="font-weight: bold; color: #ef4444; margin-bottom: 8px;">LTV < 0（负值）</div>
-                                <div style="font-size: 13px; color: var(--text-secondary);">
+                            <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15)); padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444;">
+                                <div style="font-weight: bold; color: #ef4444; margin-bottom: 8px; font-size: 15px;">LTV < 0（负值）</div>
+                                <div style="font-size: 13px; color: var(--text-primary); line-height: 1.6;">
                                     这个客户可能让银行亏损，需要谨慎考虑。可能需要提高利率或拒绝放贷。
                                 </div>
                             </div>
                         </div>
                         
                         <h4 style="color: var(--accent-primary); margin: 25px 0 15px;">实际示例</h4>
-                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 15px 0;">
-                            <strong>示例：贷款100,000元，年利率6%，期限12个月，违约概率10%</strong>
-                            <div style="margin-top: 10px; font-size: 13px; line-height: 1.8;">
-                                1. 利息收入 = 3,320元<br>
-                                2. 预期损失 = 100,000 × 10% × 60% = 6,000元<br>
-                                3. 运营成本 = 100,000 × 2% = 2,000元<br>
-                                <strong>LTV = 3,320 × 90% - 6,000 - 2,000 = -5,012元</strong><br>
-                                <span style="color: #ef4444;">结果：负值，表示可能亏损</span>
+                        <div style="background: rgba(245, 158, 11, 0.15); padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 15px 0;">
+                            <strong style="color: var(--text-primary);">示例：贷款100,000元，年利率6%，期限12个月，违约概率10%</strong>
+                            <div style="margin-top: 10px; font-size: 13px; line-height: 1.8; color: var(--text-primary);">
+                                1. 利息收入 = <strong style="color: #10b981;">3,320元</strong><br>
+                                2. 预期损失 = 100,000 × 10% × 60% = <strong style="color: #ef4444;">6,000元</strong><br>
+                                3. 运营成本 = 100,000 × 2% = <strong style="color: #f59e0b;">2,000元</strong><br>
+                                <strong style="color: var(--text-primary);">LTV = 3,320 × 90% - 6,000 - 2,000 = <span style="color: #ef4444;">-5,012元</span></strong><br>
+                                <span style="color: #ef4444; font-weight: bold;">结果：负值，表示可能亏损</span>
                             </div>
                         </div>
                         
@@ -1887,6 +2434,87 @@
         // API 基础地址
         const API_BASE = '';
         
+        // ============================================================
+        // 主题切换功能
+        // ============================================================
+        
+        // 初始化主题（从localStorage读取或使用默认深色主题）
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            switchTheme(savedTheme, false);
+        }
+        
+        // 切换主题
+        function switchTheme(theme, save = true) {
+            // 移除所有主题属性
+            document.documentElement.removeAttribute('data-theme');
+            
+            // 应用新主题
+            if (theme !== 'dark') {
+                document.documentElement.setAttribute('data-theme', theme);
+            }
+            
+            // 更新主题菜单
+            document.querySelectorAll('.theme-option').forEach(option => {
+                option.classList.remove('active');
+                const check = option.querySelector('.theme-option-check');
+                if (check) check.style.display = 'none';
+                
+                if (option.dataset.theme === theme) {
+                    option.classList.add('active');
+                    const check = option.querySelector('.theme-option-check');
+                    if (check) check.style.display = 'inline';
+                }
+            });
+            
+            // 更新主题标签
+            const themeLabels = {
+                'dark': '深色',
+                'neutral': '中性',
+                'bright': '明亮'
+            };
+            const labelEl = document.getElementById('current-theme-label');
+            if (labelEl) {
+                labelEl.textContent = themeLabels[theme] || '深色';
+            }
+            
+            // 保存到localStorage
+            if (save) {
+                localStorage.setItem('theme', theme);
+            }
+            
+            // 关闭菜单
+            const menu = document.getElementById('theme-menu');
+            if (menu) {
+                menu.classList.remove('show');
+            }
+        }
+        
+        // 切换主题菜单显示/隐藏
+        function toggleThemeMenu() {
+            const menu = document.getElementById('theme-menu');
+            if (menu) {
+                menu.classList.toggle('show');
+            }
+        }
+        
+        // 点击外部关闭菜单
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('theme-menu');
+            const switcher = document.querySelector('.theme-switcher');
+            
+            if (menu && switcher && !menu.contains(e.target) && !switcher.contains(e.target)) {
+                menu.classList.remove('show');
+            }
+        });
+        
+        // 页面加载时初始化主题
+        initTheme();
+        
+        // ============================================================
+        // 页面切换
+        // ============================================================
+        
         // 页面切换
         function switchPage(pageName) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1904,6 +2532,42 @@
         // ============================================================
         // 客户预测
         // ============================================================
+        
+        // 根据客户类型切换显示不同的字段
+        function toggleCustomerTypeFields() {
+            const customerType = document.getElementById('customer-type').value;
+            const personalFields = document.getElementById('personal-fields');
+            const enterpriseFields = document.getElementById('enterprise-fields');
+            const ageField = document.getElementById('age-field');
+            const yearsField = document.getElementById('years-field');
+            
+            // 判断是否为个人客户
+            const isPersonal = ['salaried', 'small_business', 'freelancer', 'farmer', 
+                               'professional', 'entrepreneur', 'investor', 'retiree', 'student'].includes(customerType);
+            
+            // 判断是否为企业客户
+            const isEnterprise = ['micro_enterprise', 'small_enterprise', 'medium_enterprise', 
+                                'large_enterprise', 'startup', 'tech_startup', 'manufacturing', 
+                                'trade_company', 'service_company'].includes(customerType);
+            
+            // 显示/隐藏个人客户字段
+            if (personalFields) {
+                personalFields.style.display = isPersonal ? 'block' : 'none';
+            }
+            
+            // 显示/隐藏企业客户字段
+            if (enterpriseFields) {
+                enterpriseFields.style.display = isEnterprise ? 'block' : 'none';
+            }
+            
+            // 显示/隐藏年龄字段（个人客户）或成立年限字段（企业客户）
+            if (ageField) {
+                ageField.style.display = isPersonal ? 'block' : 'none';
+            }
+            if (yearsField) {
+                yearsField.style.display = isEnterprise ? 'block' : 'none';
+            }
+        }
         
         let currentCustomerData = null;
         let currentPredictionData = null;
@@ -1930,13 +2594,87 @@
             const policy = document.getElementById('market-policy').value;
             const market = marketScenarios[scenario];
             
+            // 判断客户类型
+            const customerType = document.getElementById('customer-type').value;
+            const isPersonal = ['salaried', 'small_business', 'freelancer', 'farmer', 
+                               'professional', 'entrepreneur', 'investor', 'retiree', 'student'].includes(customerType);
+            const isEnterprise = ['micro_enterprise', 'small_enterprise', 'medium_enterprise', 
+                                'large_enterprise', 'startup', 'tech_startup', 'manufacturing', 
+                                'trade_company', 'service_company'].includes(customerType);
+            
+            // 收集客户数据
+            const customerData = {
+                customer_type: customerType,
+                risk_profile: document.getElementById('risk-profile').value,
+                industry: document.getElementById('customer-industry').value || null,
+                city_tier: document.getElementById('customer-city').value || null,
+            };
+            
+            // 根据客户类型收集不同的字段
+            if (isPersonal) {
+                // 个人客户字段
+                const monthlyIncome = document.getElementById('personal-monthly-income').value;
+                const incomeVolatility = document.getElementById('personal-income-volatility').value;
+                const totalAssets = document.getElementById('personal-total-assets').value;
+                const totalLiabilities = document.getElementById('personal-total-liabilities').value;
+                const depositBalance = document.getElementById('personal-deposit-balance').value;
+                const depositStability = document.getElementById('personal-deposit-stability').value;
+                const yearsInBusiness = document.getElementById('personal-years-in-business').value;
+                const previousLoans = document.getElementById('personal-previous-loans').value;
+                const maxDpd = document.getElementById('personal-max-dpd').value;
+                
+                if (monthlyIncome) customerData.monthly_income = parseFloat(monthlyIncome);
+                if (incomeVolatility) customerData.income_volatility = parseFloat(incomeVolatility) / 100;
+                if (totalAssets) customerData.total_assets = parseFloat(totalAssets);
+                if (totalLiabilities) customerData.total_liabilities = parseFloat(totalLiabilities);
+                if (depositBalance) customerData.deposit_balance = parseFloat(depositBalance);
+                if (depositStability) customerData.deposit_stability = parseFloat(depositStability) / 100;
+                if (yearsInBusiness) customerData.years_in_business = parseFloat(yearsInBusiness);
+                if (previousLoans) customerData.previous_loans = parseInt(previousLoans);
+                if (maxDpd) customerData.max_historical_dpd = parseInt(maxDpd);
+                
+                // 年龄范围
+                const ageRange = document.getElementById('customer-age').value;
+                if (ageRange) customerData.age_range = ageRange;
+            } else if (isEnterprise) {
+                // 企业客户字段
+                const revenue = document.getElementById('enterprise-revenue').value;
+                const netProfit = document.getElementById('enterprise-net-profit').value;
+                const profitMargin = document.getElementById('enterprise-profit-margin').value;
+                const cashFlow = document.getElementById('enterprise-cash-flow').value;
+                const currentRatio = document.getElementById('enterprise-current-ratio').value;
+                const quickRatio = document.getElementById('enterprise-quick-ratio').value;
+                const debtRatio = document.getElementById('enterprise-debt-ratio').value;
+                const revenueGrowth = document.getElementById('enterprise-revenue-growth').value;
+                const rndRatio = document.getElementById('enterprise-rnd-ratio').value;
+                const patents = document.getElementById('enterprise-patents').value;
+                const legalDisputes = document.getElementById('enterprise-legal-disputes').value;
+                const years = document.getElementById('enterprise-years').value;
+                
+                if (revenue) customerData.annual_revenue = parseFloat(revenue);
+                if (netProfit) customerData.net_profit = parseFloat(netProfit);
+                if (profitMargin) customerData.profit_margin = parseFloat(profitMargin) / 100;
+                if (cashFlow) customerData.operating_cash_flow = parseFloat(cashFlow);
+                if (currentRatio) customerData.current_ratio = parseFloat(currentRatio);
+                if (quickRatio) customerData.quick_ratio = parseFloat(quickRatio);
+                if (debtRatio) customerData.debt_ratio = parseFloat(debtRatio) / 100;
+                if (revenueGrowth) customerData.revenue_growth_rate = parseFloat(revenueGrowth) / 100;
+                if (rndRatio) customerData.rnd_expense_ratio = parseFloat(rndRatio) / 100;
+                if (patents) customerData.total_patents = parseInt(patents);
+                if (legalDisputes) customerData.legal_disputes = parseInt(legalDisputes);
+                if (years) customerData.years_in_business = parseFloat(years);
+                
+                // 成立年限范围
+                const yearsRange = document.getElementById('customer-years').value;
+                if (yearsRange) customerData.years_range = yearsRange;
+            }
+            
             try {
                 const response = await fetch(`${API_BASE}/api/predict`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        customer_type: document.getElementById('customer-type').value,
-                        risk_profile: document.getElementById('risk-profile').value,
+                        customer: customerData,
                         loan: {
                             amount: parseFloat(document.getElementById('loan-amount').value),
                             interest_rate: parseFloat(document.getElementById('loan-rate').value),
@@ -2402,7 +3140,10 @@
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">历史贷款</div>
-                            <div class="detail-value">${c.previous_loans || 0}笔</div>
+                            <div class="detail-value" style="cursor: pointer; color: var(--accent-primary); text-decoration: underline;" 
+                                 onclick="showLoanHistory('${c.customer_id}', ${c.previous_loans || 0})">
+                                ${c.previous_loans || 0}笔 <span style="font-size: 12px;">🔍 查看详情</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2435,8 +3176,17 @@
                             <div class="detail-value">${((c.deposit_stability || 0) * 100).toFixed(0)}%</div>
                         </div>
                         <div class="detail-item">
-                            <div class="detail-label">风险评分</div>
-                            <div class="detail-value">${(c.risk_score || 0).toFixed(3)}</div>
+                            <div class="detail-label" style="display: flex; align-items: center; gap: 6px;">
+                                风险评分
+                                <span style="cursor: pointer; color: var(--accent-primary); font-size: 14px;" 
+                                      onclick="showRiskScoreDetail()" 
+                                      title="点击查看详细计算规则">🔍</span>
+                            </div>
+                            <div class="detail-value ${c.risk_score > 0.6 ? 'negative' : c.risk_score > 0.3 ? 'warning' : ''}" 
+                                 style="cursor: pointer; text-decoration: underline;" 
+                                 onclick="showRiskScoreDetail()">
+                                ${(c.risk_score || 0).toFixed(3)}
+                            </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">历史最大逾期</div>
@@ -2446,11 +3196,65 @@
                 </div>
                 
                 <div class="detail-section">
-                    <div class="detail-section-title">🎯 AI 预测结果</div>
+                    <div class="detail-section-title" style="display: flex; align-items: center; gap: 8px;">
+                        <span class="ai-badge">AI</span>
+                        🎯 AI 预测结果
+                        <span class="ai-confidence" style="margin-left: auto;">
+                            <span>置信度</span>
+                            <div class="ai-confidence-bar">
+                                <div class="ai-confidence-fill" style="width: ${(p.confidence || 0.7) * 100}%;"></div>
+                            </div>
+                            <span style="font-weight: 600;">${((p.confidence || 0.7) * 100).toFixed(0)}%</span>
+                        </span>
+                    </div>
+                    
+                    <!-- AI思考过程 -->
+                    <div class="ai-thinking" style="margin-bottom: 16px;">
+                        <div class="ai-steps">
+                            <div class="ai-step" style="animation-delay: 0s;">
+                                <div class="ai-step-icon">1</div>
+                                <div class="ai-step-content">
+                                    <div class="ai-step-title">数据特征提取</div>
+                                    <div class="ai-step-desc">分析客户${c.customer_type}的${Object.keys(c).length}个特征维度</div>
+                                </div>
+                            </div>
+                            <div class="ai-step" style="animation-delay: 0.2s;">
+                                <div class="ai-step-icon">2</div>
+                                <div class="ai-step-content">
+                                    <div class="ai-step-title">风险因子计算</div>
+                                    <div class="ai-step-desc">评估${c.risk_score > 0.5 ? '高风险' : c.risk_score > 0.3 ? '中风险' : '低风险'}客户的风险因子</div>
+                                </div>
+                            </div>
+                            <div class="ai-step" style="animation-delay: 0.4s;">
+                                <div class="ai-step-icon">3</div>
+                                <div class="ai-step-content">
+                                    <div class="ai-step-title">世界模型推理</div>
+                                    <div class="ai-step-desc">基于历史数据蒸馏的"商业物理定律"进行预测</div>
+                                </div>
+                            </div>
+                            <div class="ai-step" style="animation-delay: 0.6s;">
+                                <div class="ai-step-icon">✓</div>
+                                <div class="ai-step-content">
+                                    <div class="ai-step-title">预测结果生成</div>
+                                    <div class="ai-step-desc">综合${p.confidence > 0.8 ? '高' : p.confidence > 0.6 ? '中' : '低'}置信度生成最终预测</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="detail-grid">
                         <div class="detail-item">
-                            <div class="detail-label">违约概率</div>
-                            <div class="detail-value ${p.default_probability < 0.05 ? 'positive' : p.default_probability < 0.15 ? 'warning' : 'negative'}">${(p.default_probability * 100).toFixed(2)}%</div>
+                            <div class="detail-label" style="display: flex; align-items: center; gap: 6px;">
+                                违约概率
+                                <span style="cursor: pointer; color: var(--accent-primary); font-size: 14px;" 
+                                      onclick="showDefaultProbabilityDetail()" 
+                                      title="点击查看详细计算过程">🔍</span>
+                            </div>
+                            <div class="detail-value ${p.default_probability < 0.05 ? 'positive' : p.default_probability < 0.15 ? 'warning' : 'negative'}" 
+                                 style="cursor: pointer; text-decoration: underline;" 
+                                 onclick="showDefaultProbabilityDetail()">
+                                ${(p.default_probability * 100).toFixed(2)}%
+                            </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label" style="display: flex; align-items: center; gap: 6px;">
@@ -2465,8 +3269,17 @@
                             </div>
                         </div>
                         <div class="detail-item">
-                            <div class="detail-label">流失概率</div>
-                            <div class="detail-value">${(p.churn_probability * 100).toFixed(1)}%</div>
+                            <div class="detail-label" style="display: flex; align-items: center; gap: 6px;">
+                                流失概率
+                                <span style="cursor: pointer; color: var(--accent-primary); font-size: 14px;" 
+                                      onclick="showChurnProbabilityDetail()" 
+                                      title="点击查看详细计算过程">🔍</span>
+                            </div>
+                            <div class="detail-value ${p.churn_probability < 0.1 ? 'positive' : p.churn_probability < 0.25 ? 'warning' : 'negative'}" 
+                                 style="cursor: pointer; text-decoration: underline;" 
+                                 onclick="showChurnProbabilityDetail()">
+                                ${(p.churn_probability * 100).toFixed(1)}%
+                            </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">预期逾期天数</div>
@@ -2515,6 +3328,17 @@
                         </div>
                     </div>
                 </div>
+                
+                <!-- AI智能建议 -->
+                <div class="detail-section">
+                    <div class="detail-section-title">
+                        <span class="ai-badge">AI</span>
+                        💡 AI智能建议
+                    </div>
+                    <div class="ai-suggestion">
+                        ${generateAISuggestions(c, p)}
+                    </div>
+                </div>
             `;
             
             document.getElementById('customer-detail-content').innerHTML = content;
@@ -2525,12 +3349,891 @@
             document.getElementById('customer-detail-modal').style.display = 'none';
         }
         
+        // AI智能建议生成函数
+        function generateAISuggestions(customer, prediction) {
+            const suggestions = [];
+            
+            // 基于违约概率的建议
+            if (prediction.default_probability > 0.25) {
+                suggestions.push({
+                    type: 'warning',
+                    icon: '⚠️',
+                    title: '高风险客户',
+                    content: `违约概率${(prediction.default_probability * 100).toFixed(1)}%较高，建议：提高利率至${(parseFloat(document.getElementById('loan-rate')?.value || 0.08) + 0.02).toFixed(2)}%或拒绝放贷`
+                });
+            } else if (prediction.default_probability > 0.15) {
+                suggestions.push({
+                    type: 'warning',
+                    icon: '⚠️',
+                    title: '中风险客户',
+                    content: `违约概率${(prediction.default_probability * 100).toFixed(1)}%中等，建议：适当提高利率或要求提供担保`
+                });
+            } else if (prediction.default_probability < 0.05) {
+                suggestions.push({
+                    type: 'success',
+                    icon: '✅',
+                    title: '优质客户',
+                    content: `违约概率仅${(prediction.default_probability * 100).toFixed(1)}%，建议：可提供优惠利率或增加授信额度`
+                });
+            }
+            
+            // 基于LTV的建议
+            if (prediction.expected_ltv > 10000) {
+                suggestions.push({
+                    type: 'success',
+                    icon: '💰',
+                    title: '高价值客户',
+                    content: `预期LTV为¥${prediction.expected_ltv.toLocaleString()}，建议：优先审批，可考虑建立长期合作关系`
+                });
+            } else if (prediction.expected_ltv < -5000) {
+                suggestions.push({
+                    type: 'danger',
+                    icon: '❌',
+                    title: '亏损风险',
+                    content: `预期LTV为负值¥${prediction.expected_ltv.toLocaleString()}，建议：拒绝放贷或大幅提高利率`
+                });
+            }
+            
+            // 基于流失概率的建议
+            if (prediction.churn_probability > 0.3) {
+                suggestions.push({
+                    type: 'warning',
+                    icon: '📉',
+                    title: '高流失风险',
+                    content: `流失概率${(prediction.churn_probability * 100).toFixed(1)}%较高，建议：提供更具竞争力的利率或增值服务`
+                });
+            }
+            
+            // 基于风险评分的建议
+            if (customer.risk_score > 0.6) {
+                suggestions.push({
+                    type: 'danger',
+                    icon: '🔴',
+                    title: '高风险评分',
+                    content: `风险评分${customer.risk_score.toFixed(3)}较高，建议：要求提供抵押物或担保人`
+                });
+            } else if (customer.risk_score < 0.2) {
+                suggestions.push({
+                    type: 'success',
+                    icon: '🟢',
+                    title: '低风险评分',
+                    content: `风险评分${customer.risk_score.toFixed(3)}较低，建议：可提供快速审批通道`
+                });
+            }
+            
+            // 基于负债率的建议
+            if (customer.debt_ratio > 0.7) {
+                suggestions.push({
+                    type: 'warning',
+                    icon: '📊',
+                    title: '高负债率',
+                    content: `负债率${(customer.debt_ratio * 100).toFixed(1)}%过高，建议：降低贷款额度或延长还款期限`
+                });
+            }
+            
+            // 如果没有建议，提供默认建议
+            if (suggestions.length === 0) {
+                suggestions.push({
+                    type: 'info',
+                    icon: 'ℹ️',
+                    title: '标准客户',
+                    content: `客户风险水平正常，建议：按照标准流程审批，利率可参考市场平均水平`
+                });
+            }
+            
+            // 生成HTML
+            let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+            suggestions.forEach((suggestion, index) => {
+                const colorMap = {
+                    'success': '#10b981',
+                    'warning': '#f59e0b',
+                    'danger': '#ef4444',
+                    'info': '#3b82f6'
+                };
+                const bgMap = {
+                    'success': 'rgba(16, 185, 129, 0.1)',
+                    'warning': 'rgba(245, 158, 11, 0.1)',
+                    'danger': 'rgba(239, 68, 68, 0.1)',
+                    'info': 'rgba(59, 130, 246, 0.1)'
+                };
+                
+                html += `
+                    <div style="padding: 12px; background: ${bgMap[suggestion.type]}; border-left: 4px solid ${colorMap[suggestion.type]}; border-radius: 8px; animation: fadeIn 0.5s ease ${index * 0.1}s both;">
+                        <div style="display: flex; align-items: start; gap: 10px;">
+                            <span style="font-size: 20px;">${suggestion.icon}</span>
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: ${colorMap[suggestion.type]}; margin-bottom: 4px; font-size: 13px;">
+                                    ${suggestion.title}
+                                </div>
+                                <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.5;">
+                                    ${suggestion.content}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            return html;
+        }
+        
+        async function showLoanHistory(customerId, numLoans) {
+            const modal = document.getElementById('loan-history-modal');
+            const content = document.getElementById('loan-history-content');
+            
+            modal.style.display = 'flex';
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><p>加载中...</p></div>';
+            
+            try {
+                // 传递客户数据，确保能生成逾期贷款
+                const response = await fetch(`${API_BASE}/api/customer/loan-history`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer_id: customerId,
+                        num_loans: numLoans,
+                        customer_data: currentCustomerData  // 传递当前客户数据
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const loans = data.loan_history || [];
+                    
+                    if (loans.length === 0) {
+                        content.innerHTML = `
+                            <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+                                <p>该客户暂无历史贷款记录</p>
+                            </div>
+                        `;
+                    } else {
+                        // 统计信息
+                        const approved = loans.filter(l => l.approval_status === 'approved').length;
+                        const completed = loans.filter(l => l.repayment_status === 'completed').length;
+                        const overdue = loans.filter(l => l.repayment_status === 'overdue' || l.repayment_status === 'defaulted').length;
+                        const totalAmount = loans.reduce((sum, l) => sum + (l.loan_amount || 0), 0);
+                        const totalPaid = loans.reduce((sum, l) => sum + (l.total_paid || 0), 0);
+                        const totalRemaining = loans.reduce((sum, l) => sum + (l.remaining_amount || 0), 0);
+                        
+                        let html = `
+                            <div style="margin-bottom: 24px;">
+                                <div class="grid grid-4" style="gap: 12px;">
+                                    <div style="padding: 16px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border-radius: 8px; border-left: 4px solid #667eea;">
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">总贷款数</div>
+                                        <div style="font-size: 24px; font-weight: bold; color: #667eea;">${loans.length}笔</div>
+                                    </div>
+                                    <div style="padding: 16px; background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(0, 242, 254, 0.1)); border-radius: 8px; border-left: 4px solid #4facfe;">
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">已批准</div>
+                                        <div style="font-size: 24px; font-weight: bold; color: #4facfe;">${approved}笔</div>
+                                    </div>
+                                    <div style="padding: 16px; background: linear-gradient(135deg, rgba(250, 112, 154, 0.1), rgba(254, 225, 64, 0.1)); border-radius: 8px; border-left: 4px solid #fa709a;">
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">总贷款额</div>
+                                        <div style="font-size: 20px; font-weight: bold; color: #fa709a;">¥${(totalAmount / 10000).toFixed(1)}万</div>
+                                    </div>
+                                    <div style="padding: 16px; background: linear-gradient(135deg, rgba(240, 147, 251, 0.1), rgba(245, 87, 108, 0.1)); border-radius: 8px; border-left: 4px solid #f5576c;">
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">逾期/违约</div>
+                                        <div style="font-size: 24px; font-weight: bold; color: ${overdue > 0 ? '#f5576c' : '#10b981'};">${overdue}笔</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-bottom: 16px; padding: 16px; background: rgba(102, 126, 234, 0.05); border-radius: 8px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <strong style="color: var(--text-secondary);">还款统计</strong>
+                                </div>
+                                <div class="grid grid-3" style="gap: 12px; margin-top: 12px;">
+                                    <div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">已还金额</div>
+                                        <div style="font-size: 18px; font-weight: bold; color: #10b981;">¥${(totalPaid / 10000).toFixed(2)}万</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">剩余金额</div>
+                                        <div style="font-size: 18px; font-weight: bold; color: ${totalRemaining > 0 ? '#f59e0b' : '#10b981'};">¥${(totalRemaining / 10000).toFixed(2)}万</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 12px; color: var(--text-muted);">完成率</div>
+                                        <div style="font-size: 18px; font-weight: bold; color: #4facfe;">${completed}/${approved} (${approved > 0 ? ((completed / approved) * 100).toFixed(0) : 0}%)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <h4 style="margin: 24px 0 16px; color: var(--text-secondary); font-size: 16px;">📋 贷款明细</h4>
+                            <div style="overflow-x: auto;">
+                                <table class="data-sample-table" style="width: 100%; font-size: 13px;">
+                                    <thead>
+                                        <tr>
+                                            <th>贷款ID</th>
+                                            <th>申请日期</th>
+                                            <th>审批状态</th>
+                                            <th>贷款金额</th>
+                                            <th>期限</th>
+                                            <th>利率</th>
+                                            <th>还款状态</th>
+                                            <th>逾期天数</th>
+                                            <th>已还/剩余</th>
+                                            <th>用途</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                        `;
+                        
+                        loans.forEach(loan => {
+                            const approvalColor = loan.approval_status === 'approved' ? '#10b981' : 
+                                                  loan.approval_status === 'rejected' ? '#ef4444' : '#f59e0b';
+                            const repaymentColor = loan.repayment_status === 'completed' ? '#10b981' :
+                                                   loan.repayment_status === 'overdue' ? '#f59e0b' :
+                                                   loan.repayment_status === 'defaulted' ? '#ef4444' : '#4facfe';
+                            
+                            html += `
+                                <tr>
+                                    <td><code style="font-size: 11px;">${loan.loan_id}</code></td>
+                                    <td>${loan.apply_date}</td>
+                                    <td>
+                                        <span style="padding: 4px 8px; border-radius: 4px; background: ${approvalColor}20; color: ${approvalColor}; font-size: 11px;">
+                                            ${loan.approval_status === 'approved' ? '✓ 已批准' : 
+                                              loan.approval_status === 'rejected' ? '✗ 已拒绝' : '⏳ 待审批'}
+                                        </span>
+                                    </td>
+                                    <td><strong>¥${(loan.loan_amount / 10000).toFixed(2)}万</strong></td>
+                                    <td>${loan.term_months}个月</td>
+                                    <td>${(loan.interest_rate * 100).toFixed(2)}%</td>
+                                    <td>
+                                        <span style="padding: 4px 8px; border-radius: 4px; background: ${repaymentColor}20; color: ${repaymentColor}; font-size: 11px;">
+                                            ${loan.repayment_status === 'completed' ? '✓ 已完成' :
+                                              loan.repayment_status === 'ongoing' ? '🔄 进行中' :
+                                              loan.repayment_status === 'overdue' ? '⚠️ 逾期' :
+                                              loan.repayment_status === 'defaulted' ? '❌ 违约' : 'N/A'}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        ${loan.overdue_days > 0 ? 
+                                          `<span style="color: #ef4444; font-weight: bold;">${loan.overdue_days}天</span>` : 
+                                          '<span style="color: #10b981;">0天</span>'}
+                                    </td>
+                                    <td style="font-size: 11px;">
+                                        <div>已还: ¥${(loan.total_paid / 10000).toFixed(2)}万</div>
+                                        ${loan.remaining_amount > 0 ? 
+                                          `<div style="color: #f59e0b;">剩余: ¥${(loan.remaining_amount / 10000).toFixed(2)}万</div>` : 
+                                          '<div style="color: #10b981;">已结清</div>'}
+                                    </td>
+                                    <td>${loan.purpose}</td>
+                                </tr>
+                                ${loan.overdue_info ? `
+                                <tr style="background: rgba(239, 68, 68, 0.05);">
+                                    <td colspan="10" style="padding: 16px;">
+                                        <div style="padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; border-left: 4px solid #ef4444;">
+                                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                                <span style="font-size: 18px;">⚠️</span>
+                                                <strong style="color: #ef4444; font-size: 14px;">逾期详细信息</strong>
+                                                <span style="padding: 2px 8px; background: #ef4444; color: white; border-radius: 12px; font-size: 11px;">
+                                                    ${loan.overdue_info.overdue_severity}
+                                                </span>
+                                            </div>
+                                            <div class="grid grid-4" style="gap: 12px; margin-bottom: 12px;">
+                                                <div>
+                                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">逾期开始日期</div>
+                                                    <div style="font-size: 13px; font-weight: bold; color: var(--text-primary);">${loan.overdue_info.overdue_start_date}</div>
+                                                </div>
+                                                <div>
+                                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">逾期期数</div>
+                                                    <div style="font-size: 13px; font-weight: bold; color: var(--text-primary);">${loan.overdue_info.months_overdue}期</div>
+                                                </div>
+                                                <div>
+                                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">逾期本金</div>
+                                                    <div style="font-size: 13px; font-weight: bold; color: #f59e0b;">¥${(loan.overdue_info.overdue_principal / 10000).toFixed(2)}万</div>
+                                                </div>
+                                                <div>
+                                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">逾期利息</div>
+                                                    <div style="font-size: 13px; font-weight: bold; color: #f59e0b;">¥${(loan.overdue_info.overdue_interest / 10000).toFixed(2)}万</div>
+                                                </div>
+                                            </div>
+                                            <div class="grid grid-3" style="gap: 12px;">
+                                                <div>
+                                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">罚息金额</div>
+                                                    <div style="font-size: 13px; font-weight: bold; color: #ef4444;">¥${(loan.overdue_info.overdue_penalty / 10000).toFixed(2)}万</div>
+                                                </div>
+                                                <div>
+                                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">逾期总金额</div>
+                                                    <div style="font-size: 16px; font-weight: bold; color: #ef4444;">¥${(loan.overdue_info.total_overdue_amount / 10000).toFixed(2)}万</div>
+                                                </div>
+                                                <div>
+                                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">逾期天数</div>
+                                                    <div style="font-size: 16px; font-weight: bold; color: ${loan.overdue_info.overdue_days > 90 ? '#ef4444' : loan.overdue_info.overdue_days > 30 ? '#f59e0b' : '#fbbf24'};">
+                                                        ${loan.overdue_info.overdue_days}天
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                ` : ''}
+                            `;
+                        });
+                        
+                        html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        `;
+                        
+                        content.innerHTML = html;
+                    }
+                } else {
+                    content.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-danger);">
+                            <p>加载失败: ${data.error || '未知错误'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-danger);">
+                        <p>加载失败: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function closeLoanHistory() {
+            document.getElementById('loan-history-modal').style.display = 'none';
+        }
+        
+        async function showDefaultProbabilityDetail() {
+            console.log('showDefaultProbabilityDetail called');
+            if (!currentCustomerData || !currentPredictionData) {
+                alert('请先生成客户并预测');
+                return;
+            }
+            
+            const modal = document.getElementById('default-probability-modal');
+            const content = document.getElementById('default-probability-content');
+            
+            if (!modal) {
+                console.error('Modal not found: default-probability-modal');
+                alert('模态框未找到，请刷新页面');
+                return;
+            }
+            
+            if (!content) {
+                console.error('Content not found: default-probability-content');
+                alert('内容区域未找到，请刷新页面');
+                return;
+            }
+            
+            modal.style.display = 'flex';
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><p>计算中...</p></div>';
+            
+            try {
+                // 获取当前贷款和市场数据
+                const loanAmount = parseFloat(document.getElementById('loan-amount')?.value || 100000);
+                const loanRate = parseFloat(document.getElementById('loan-rate')?.value || 0.08);
+                const loanTerm = parseInt(document.getElementById('loan-term')?.value || 24);
+                
+                const scenario = document.getElementById('market-scenario')?.value || 'normal';
+                const policy = document.getElementById('market-policy')?.value || 'normal';
+                
+                const marketScenarios = {
+                    boom: { gdp_growth: 0.06, unemployment_rate: 0.04, base_rate: 0.035 },
+                    normal: { gdp_growth: 0.03, unemployment_rate: 0.05, base_rate: 0.04 },
+                    recession: { gdp_growth: 0.01, unemployment_rate: 0.07, base_rate: 0.045 },
+                    depression: { gdp_growth: -0.02, unemployment_rate: 0.10, base_rate: 0.03 }
+                };
+                const policyRates = {
+                    loose: 0.03,
+                    normal: 0.04,
+                    tight: 0.05
+                };
+                
+                const market = marketScenarios[scenario];
+                
+                const response = await fetch(`${API_BASE}/api/customer/default-probability-detail`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer: currentCustomerData,
+                        prediction: currentPredictionData,
+                        loan: {
+                            amount: loanAmount,
+                            interest_rate: loanRate,
+                            term_months: loanTerm
+                        },
+                        market: {
+                            gdp_growth: market.gdp_growth,
+                            unemployment_rate: market.unemployment_rate,
+                            base_interest_rate: policyRates[policy],
+                            inflation_rate: 0.02,
+                            credit_spread: 0.02
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const steps = data.calculation_steps || [];
+                    const summary = data.summary || {};
+                    
+                    let html = `
+                        <div style="margin-bottom: 24px;">
+                            <div style="padding: 20px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border-radius: 12px; border-left: 4px solid #667eea;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                    <div>
+                                        <h4 style="margin: 0 0 8px; color: var(--text-secondary); font-size: 16px;">📊 计算结果摘要</h4>
+                                        <div style="font-size: 24px; font-weight: bold; color: ${summary.risk_level === '高风险' ? '#ef4444' : summary.risk_level === '中风险' ? '#f59e0b' : '#10b981'};">
+                                            ${(data.final_probability * 100).toFixed(2)}%
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                            风险等级: <strong style="color: ${summary.risk_level === '高风险' ? '#ef4444' : summary.risk_level === '中风险' ? '#f59e0b' : '#10b981'};">${summary.risk_level}</strong>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 12px; color: var(--text-muted);">风险倍数</div>
+                                        <div style="font-size: 20px; font-weight: bold; color: #667eea;">${summary.risk_multiplier.toFixed(2)}×</div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-3" style="gap: 12px; margin-top: 16px;">
+                                    <div style="padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                                        <div style="font-size: 11px; color: var(--text-muted);">基础违约率</div>
+                                        <div style="font-size: 18px; font-weight: bold; color: #4facfe;">${(summary.base_risk * 100).toFixed(2)}%</div>
+                                    </div>
+                                    <div style="padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                                        <div style="font-size: 11px; color: var(--text-muted);">调整后风险</div>
+                                        <div style="font-size: 18px; font-weight: bold; color: #fa709a;">${(summary.adjusted_risk * 100).toFixed(2)}%</div>
+                                    </div>
+                                    <div style="padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
+                                        <div style="font-size: 11px; color: var(--text-muted);">风险因子数</div>
+                                        <div style="font-size: 18px; font-weight: bold; color: #667eea;">${data.total_factors}个</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 16px; padding: 16px; background: rgba(102, 126, 234, 0.05); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <span style="font-size: 18px;">📐</span>
+                                <strong style="color: var(--text-secondary);">计算公式</strong>
+                            </div>
+                            <div style="font-family: 'Courier New', monospace; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 6px; font-size: 13px; color: #4facfe;">
+                                ${data.formula}
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin: 24px 0 16px; color: var(--text-secondary); font-size: 16px;">🔢 计算步骤</h4>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                    `;
+                    
+                    steps.forEach((step, index) => {
+                        const isBase = step.step === 1;
+                        const factorValue = step.value;
+                        const isIncrease = factorValue > 1.0;
+                        const isDecrease = factorValue < 1.0;
+                        
+                        html += `
+                            <div style="padding: 16px; background: ${isBase ? 'rgba(102, 126, 234, 0.1)' : 'rgba(255, 255, 255, 0.03)'}; border-radius: 8px; border-left: 4px solid ${isBase ? '#667eea' : isIncrease ? '#f59e0b' : isDecrease ? '#10b981' : '#4facfe'};">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                            <span style="font-size: 12px; padding: 2px 8px; background: ${isBase ? '#667eea' : '#4facfe'}; color: white; border-radius: 12px;">步骤 ${step.step}</span>
+                                            <strong style="color: var(--text-secondary); font-size: 14px;">${step.name}</strong>
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${step.description}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 18px; font-weight: bold; color: ${isIncrease ? '#f59e0b' : isDecrease ? '#10b981' : '#4facfe'};">
+                                            ${isBase ? (step.value * 100).toFixed(2) + '%' : step.value.toFixed(4)}
+                                        </div>
+                                        ${!isBase ? `
+                                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                                ${step.impact}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                                <div style="margin-top: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 6px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">计算过程:</div>
+                                    <div style="font-family: 'Courier New', monospace; font-size: 12px; color: #4facfe;">
+                                        ${step.formula}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                        </div>
+                        
+                        <div style="margin-top: 24px; padding: 16px; background: rgba(79, 172, 254, 0.1); border-radius: 8px; border-left: 4px solid #4facfe;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <span style="font-size: 18px;">✅</span>
+                                <strong style="color: var(--text-secondary);">最终结果</strong>
+                            </div>
+                            <div style="font-size: 20px; font-weight: bold; color: ${data.final_probability > 0.25 ? '#ef4444' : data.final_probability > 0.10 ? '#f59e0b' : '#10b981'};">
+                                违约概率 = ${(data.final_probability * 100).toFixed(2)}%
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                                经过 ${data.total_factors} 个风险因子的调整，从基础违约率 ${(summary.base_risk * 100).toFixed(2)}% 
+                                调整为 ${(data.final_probability * 100).toFixed(2)}%，风险倍数 ${summary.risk_multiplier.toFixed(2)}×
+                            </div>
+                        </div>
+                    `;
+                    
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-danger);">
+                            <p>计算失败: ${data.error || '未知错误'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('违约概率详情加载错误:', error);
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-danger);">
+                        <p>计算失败: ${error.message}</p>
+                        <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px;">请检查浏览器控制台查看详细错误信息</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function closeDefaultProbabilityDetail() {
+            document.getElementById('default-probability-modal').style.display = 'none';
+        }
+        
         function showLTVExplanation() {
             document.getElementById('ltv-explanation-modal').style.display = 'flex';
         }
         
         function closeLTVExplanation() {
             document.getElementById('ltv-explanation-modal').style.display = 'none';
+        }
+        
+        async function showChurnProbabilityDetail() {
+            console.log('showChurnProbabilityDetail called');
+            if (!currentCustomerData || !currentPredictionData) {
+                alert('请先生成客户并预测');
+                return;
+            }
+            
+            const modal = document.getElementById('churn-probability-modal');
+            const content = document.getElementById('churn-probability-content');
+            
+            if (!modal || !content) {
+                alert('模态框未找到，请刷新页面');
+                return;
+            }
+            
+            modal.style.display = 'flex';
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><p>计算中...</p></div>';
+            
+            try {
+                const loanAmount = parseFloat(document.getElementById('loan-amount')?.value || 100000);
+                const loanRate = parseFloat(document.getElementById('loan-rate')?.value || 0.08);
+                const loanTerm = parseInt(document.getElementById('loan-term')?.value || 24);
+                
+                const scenario = document.getElementById('market-scenario')?.value || 'normal';
+                const policy = document.getElementById('market-policy')?.value || 'normal';
+                
+                const marketScenarios = {
+                    boom: { gdp_growth: 0.06, unemployment_rate: 0.04, base_rate: 0.035 },
+                    normal: { gdp_growth: 0.03, unemployment_rate: 0.05, base_rate: 0.04 },
+                    recession: { gdp_growth: 0.01, unemployment_rate: 0.07, base_rate: 0.045 },
+                    depression: { gdp_growth: -0.02, unemployment_rate: 0.10, base_rate: 0.03 }
+                };
+                const policyRates = {
+                    loose: 0.03,
+                    normal: 0.04,
+                    tight: 0.05
+                };
+                
+                const market = marketScenarios[scenario];
+                
+                const response = await fetch(`${API_BASE}/api/customer/churn-probability-detail`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer: currentCustomerData,
+                        prediction: currentPredictionData,
+                        loan: {
+                            amount: loanAmount,
+                            interest_rate: loanRate,
+                            term_months: loanTerm
+                        },
+                        market: {
+                            gdp_growth: market.gdp_growth,
+                            unemployment_rate: market.unemployment_rate,
+                            base_interest_rate: policyRates[policy],
+                            inflation_rate: 0.02,
+                            credit_spread: 0.02
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const steps = data.calculation_steps || [];
+                    const summary = data.summary || {};
+                    
+                    let html = `
+                        <div style="margin-bottom: 24px;">
+                            <div style="padding: 20px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border-radius: 12px; border-left: 4px solid #667eea;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                    <div>
+                                        <h4 style="margin: 0 0 8px; color: var(--text-secondary); font-size: 16px;">📊 计算结果摘要</h4>
+                                        <div style="font-size: 24px; font-weight: bold; color: ${summary.risk_level === '高风险' ? '#ef4444' : summary.risk_level === '中风险' ? '#f59e0b' : '#10b981'};">
+                                            ${(data.final_probability * 100).toFixed(2)}%
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                            风险等级: <strong style="color: ${summary.risk_level === '高风险' ? '#ef4444' : summary.risk_level === '中风险' ? '#f59e0b' : '#10b981'};">${summary.risk_level}</strong>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 12px; color: var(--text-muted);">流失倍数</div>
+                                        <div style="font-size: 20px; font-weight: bold; color: #667eea;">${summary.churn_multiplier.toFixed(2)}×</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 16px; padding: 16px; background: rgba(102, 126, 234, 0.05); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <span style="font-size: 18px;">📐</span>
+                                <strong style="color: var(--text-secondary);">计算公式</strong>
+                            </div>
+                            <div style="font-family: 'Courier New', monospace; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 6px; font-size: 13px; color: #4facfe;">
+                                ${data.formula}
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin: 24px 0 16px; color: var(--text-secondary); font-size: 16px;">🔢 计算步骤</h4>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                    `;
+                    
+                    steps.forEach((step, index) => {
+                        const isBase = step.step === 1;
+                        const stepValue = step.value;
+                        const isIncrease = stepValue > 0;
+                        
+                        html += `
+                            <div style="padding: 16px; background: ${isBase ? 'rgba(102, 126, 234, 0.1)' : 'rgba(255, 255, 255, 0.03)'}; border-radius: 8px; border-left: 4px solid ${isBase ? '#667eea' : isIncrease ? '#f59e0b' : '#10b981'};">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                            <span style="font-size: 12px; padding: 2px 8px; background: ${isBase ? '#667eea' : '#4facfe'}; color: white; border-radius: 12px;">步骤 ${step.step}</span>
+                                            <strong style="color: var(--text-secondary); font-size: 14px;">${step.name}</strong>
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${step.description}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 18px; font-weight: bold; color: ${isIncrease ? '#f59e0b' : '#10b981'};">
+                                            ${isBase ? (step.value * 100).toFixed(2) + '%' : '+' + (step.value * 100).toFixed(2) + '%'}
+                                        </div>
+                                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                            ${step.impact}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 6px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">计算过程:</div>
+                                    <div style="font-family: 'Courier New', monospace; font-size: 12px; color: #4facfe;">
+                                        ${step.formula}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                        </div>
+                        
+                        <div style="margin-top: 24px; padding: 16px; background: rgba(79, 172, 254, 0.1); border-radius: 8px; border-left: 4px solid #4facfe;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <span style="font-size: 18px;">✅</span>
+                                <strong style="color: var(--text-secondary);">最终结果</strong>
+                            </div>
+                            <div style="font-size: 20px; font-weight: bold; color: ${data.final_probability > 0.3 ? '#ef4444' : data.final_probability > 0.15 ? '#f59e0b' : '#10b981'};">
+                                流失概率 = ${(data.final_probability * 100).toFixed(2)}%
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                                从基础流失率 ${(summary.base_churn * 100).toFixed(2)}% 
+                                调整为 ${(data.final_probability * 100).toFixed(2)}%，流失倍数 ${summary.churn_multiplier.toFixed(2)}×
+                            </div>
+                        </div>
+                    `;
+                    
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-danger);">
+                            <p>计算失败: ${data.error || '未知错误'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('流失概率详情加载错误:', error);
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-danger);">
+                        <p>计算失败: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function closeChurnProbabilityDetail() {
+            document.getElementById('churn-probability-modal').style.display = 'none';
+        }
+        
+        async function showRiskScoreDetail() {
+            console.log('showRiskScoreDetail called');
+            if (!currentCustomerData) {
+                alert('请先生成客户');
+                return;
+            }
+            
+            const modal = document.getElementById('risk-score-modal');
+            const content = document.getElementById('risk-score-content');
+            
+            if (!modal || !content) {
+                alert('模态框未找到，请刷新页面');
+                return;
+            }
+            
+            modal.style.display = 'flex';
+            content.innerHTML = '<div class="loading"><div class="spinner"></div><p>计算中...</p></div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/customer/risk-score-detail`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        customer: currentCustomerData
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const steps = data.calculation_steps || [];
+                    const summary = data.summary || {};
+                    
+                    let html = `
+                        <div style="margin-bottom: 24px;">
+                            <div style="padding: 20px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); border-radius: 12px; border-left: 4px solid #667eea;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                    <div>
+                                        <h4 style="margin: 0 0 8px; color: var(--text-secondary); font-size: 16px;">📊 风险评分结果</h4>
+                                        <div style="font-size: 32px; font-weight: bold; color: ${summary.risk_level === '高风险' ? '#ef4444' : summary.risk_level === '中风险' ? '#f59e0b' : '#10b981'};">
+                                            ${data.final_score.toFixed(3)}
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">
+                                            风险等级: <strong style="color: ${summary.risk_level === '高风险' ? '#ef4444' : summary.risk_level === '中风险' ? '#f59e0b' : '#10b981'};">${summary.risk_level}</strong>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 12px; color: var(--text-muted);">评分范围</div>
+                                        <div style="font-size: 16px; font-weight: bold; color: #667eea;">0.0 - 1.0</div>
+                                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                                            共${summary.total_factors}个因子
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-bottom: 16px; padding: 16px; background: rgba(102, 126, 234, 0.05); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <span style="font-size: 18px;">📐</span>
+                                <strong style="color: var(--text-secondary);">计算公式</strong>
+                            </div>
+                            <div style="font-family: 'Courier New', monospace; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 6px; font-size: 13px; color: #4facfe;">
+                                ${data.formula}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                                注：风险评分越高，表示客户风险越大。评分范围0-1，最终结果限制在0-1之间。
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin: 24px 0 16px; color: var(--text-secondary); font-size: 16px;">🔢 计算步骤</h4>
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                    `;
+                    
+                    let cumulativeScore = 0.0;
+                    steps.forEach((step, index) => {
+                        cumulativeScore += step.value;
+                        const isPositive = step.value > 0;
+                        
+                        html += `
+                            <div style="padding: 16px; background: rgba(255, 255, 255, 0.03); border-radius: 8px; border-left: 4px solid ${isPositive ? '#f59e0b' : '#10b981'};">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                    <div style="flex: 1;">
+                                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                                            <span style="font-size: 12px; padding: 2px 8px; background: #4facfe; color: white; border-radius: 12px;">步骤 ${step.step}</span>
+                                            <strong style="color: var(--text-secondary); font-size: 14px;">${step.name}</strong>
+                                            <span style="font-size: 11px; padding: 2px 6px; background: rgba(102, 126, 234, 0.2); color: #667eea; border-radius: 8px;">权重 ${(step.weight * 100).toFixed(0)}%</span>
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">${step.description}</div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 18px; font-weight: bold; color: ${isPositive ? '#f59e0b' : '#10b981'};">
+                                            ${isPositive ? '+' : ''}${step.value.toFixed(4)}
+                                        </div>
+                                        <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+                                            累计: ${cumulativeScore.toFixed(4)}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 12px; padding: 10px; background: rgba(0, 0, 0, 0.2); border-radius: 6px;">
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">计算过程:</div>
+                                    <div style="font-family: 'Courier New', monospace; font-size: 12px; color: #4facfe;">
+                                        ${step.formula}
+                                    </div>
+                                    <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">${step.impact}</div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                        </div>
+                        
+                        <div style="margin-top: 24px; padding: 16px; background: rgba(79, 172, 254, 0.1); border-radius: 8px; border-left: 4px solid #4facfe;">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                                <span style="font-size: 18px;">✅</span>
+                                <strong style="color: var(--text-secondary);">最终结果</strong>
+                            </div>
+                            <div style="font-size: 20px; font-weight: bold; color: ${data.final_score > 0.6 ? '#ef4444' : data.final_score > 0.3 ? '#f59e0b' : '#10b981'};">
+                                风险评分 = ${data.final_score.toFixed(3)}
+                            </div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+                                原始评分: ${data.raw_score.toFixed(4)}，限制后: ${data.final_score.toFixed(3)} (范围: 0.0 - 1.0)
+                            </div>
+                        </div>
+                    `;
+                    
+                    content.innerHTML = html;
+                } else {
+                    content.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: var(--text-danger);">
+                            <p>计算失败: ${data.error || '未知错误'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('风险评分详情加载错误:', error);
+                content.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: var(--text-danger);">
+                        <p>计算失败: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function closeRiskScoreDetail() {
+            document.getElementById('risk-score-modal').style.display = 'none';
         }
         
         function toggleMetricsExplanation() {
@@ -2552,6 +4255,22 @@
         
         document.getElementById('ltv-explanation-modal')?.addEventListener('click', function(e) {
             if (e.target === this) closeLTVExplanation();
+        });
+        
+        document.getElementById('loan-history-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeLoanHistory();
+        });
+        
+        document.getElementById('default-probability-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeDefaultProbabilityDetail();
+        });
+        
+        document.getElementById('churn-probability-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeChurnProbabilityDetail();
+        });
+        
+        document.getElementById('risk-score-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeRiskScoreDetail();
         });
         
         // ============================================================

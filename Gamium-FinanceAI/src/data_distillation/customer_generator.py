@@ -36,15 +36,27 @@ class CityTier(Enum):
 
 class CustomerType(Enum):
     """客户类型"""
+    # 个人客户类型
     SALARIED = "工薪阶层"
     SMALL_BUSINESS = "小微企业主"
     FREELANCER = "自由职业"
     FARMER = "农户"
+    PROFESSIONAL = "专业人士"  # 医生、律师、会计师等
+    ENTREPRENEUR = "创业者"    # 初创企业创始人
+    INVESTOR = "投资者"        # 股票、房产投资者
+    RETIREE = "退休人员"      # 退休人员
+    STUDENT = "学生"          # 学生群体
+    
     # 企业客户类型
     MICRO_ENTERPRISE = "微型企业"      # 年营收 < 1000万
     SMALL_ENTERPRISE = "小型企业"      # 年营收 1000万 - 5000万
     MEDIUM_ENTERPRISE = "中型企业"     # 年营收 5000万 - 2亿
     LARGE_ENTERPRISE = "大型企业"      # 年营收 > 2亿
+    STARTUP = "初创企业"               # 成立3年内的新企业
+    TECH_STARTUP = "科技初创"          # 科技类初创企业
+    MANUFACTURING = "制造企业"         # 制造业企业
+    TRADE_COMPANY = "贸易公司"         # 贸易类企业
+    SERVICE_COMPANY = "服务企业"       # 服务类企业
 
 
 @dataclass
@@ -578,6 +590,41 @@ class CustomerGenerator:
             'assets_std': 300000,
             'default_base_rate': 0.03,
         },
+        CustomerType.PROFESSIONAL: {
+            'income_mean': 30000,
+            'income_std': 15000,
+            'assets_mean': 1000000,
+            'assets_std': 500000,
+            'default_base_rate': 0.015,
+        },
+        CustomerType.ENTREPRENEUR: {
+            'income_mean': 20000,
+            'income_std': 25000,
+            'assets_mean': 500000,
+            'assets_std': 400000,
+            'default_base_rate': 0.06,
+        },
+        CustomerType.INVESTOR: {
+            'income_mean': 50000,
+            'income_std': 30000,
+            'assets_mean': 5000000,
+            'assets_std': 3000000,
+            'default_base_rate': 0.02,
+        },
+        CustomerType.RETIREE: {
+            'income_mean': 8000,
+            'income_std': 3000,
+            'assets_mean': 600000,
+            'assets_std': 400000,
+            'default_base_rate': 0.025,
+        },
+        CustomerType.STUDENT: {
+            'income_mean': 3000,
+            'income_std': 2000,
+            'assets_mean': 50000,
+            'assets_std': 30000,
+            'default_base_rate': 0.08,
+        },
         # 企业客户
         CustomerType.MICRO_ENTERPRISE: {
             'revenue_mean': 5e6,      # 500万
@@ -606,6 +653,41 @@ class CustomerGenerator:
             'assets_mean': 1000e6,    # 10亿
             'assets_std': 500e6,
             'default_base_rate': 0.03,
+        },
+        CustomerType.STARTUP: {
+            'revenue_mean': 2e6,      # 200万
+            'revenue_std': 1.5e6,
+            'assets_mean': 3e6,       # 300万
+            'assets_std': 2e6,
+            'default_base_rate': 0.10,
+        },
+        CustomerType.TECH_STARTUP: {
+            'revenue_mean': 5e6,      # 500万
+            'revenue_std': 3e6,
+            'assets_mean': 8e6,       # 800万
+            'assets_std': 5e6,
+            'default_base_rate': 0.08,
+        },
+        CustomerType.MANUFACTURING: {
+            'revenue_mean': 50e6,     # 5000万
+            'revenue_std': 30e6,
+            'assets_mean': 100e6,     # 1亿
+            'assets_std': 50e6,
+            'default_base_rate': 0.05,
+        },
+        CustomerType.TRADE_COMPANY: {
+            'revenue_mean': 20e6,     # 2000万
+            'revenue_std': 15e6,
+            'assets_mean': 30e6,      # 3000万
+            'assets_std': 20e6,
+            'default_base_rate': 0.06,
+        },
+        CustomerType.SERVICE_COMPANY: {
+            'revenue_mean': 15e6,     # 1500万
+            'revenue_std': 10e6,
+            'assets_mean': 20e6,      # 2000万
+            'assets_std': 15e6,
+            'default_base_rate': 0.05,
         },
     }
     
@@ -649,7 +731,12 @@ class CustomerGenerator:
             CustomerType.MICRO_ENTERPRISE,
             CustomerType.SMALL_ENTERPRISE,
             CustomerType.MEDIUM_ENTERPRISE,
-            CustomerType.LARGE_ENTERPRISE
+            CustomerType.LARGE_ENTERPRISE,
+            CustomerType.STARTUP,
+            CustomerType.TECH_STARTUP,
+            CustomerType.MANUFACTURING,
+            CustomerType.TRADE_COMPANY,
+            CustomerType.SERVICE_COMPANY
         ]
         
         params = self.DISTRIBUTION_PARAMS.get(customer_type, self.DISTRIBUTION_PARAMS[CustomerType.SALARIED])
@@ -674,14 +761,24 @@ class CustomerGenerator:
             return self._generate_enterprise_customer(customer_type, city_tier, industry, risk_profile)
         else:
             # 个人客户生成逻辑（原有逻辑）
-            # 年龄
+            # 年龄（根据客户类型调整）
             if customer_type == CustomerType.FARMER:
                 age = int(self.rng.normal(45, 12))
             elif customer_type == CustomerType.SMALL_BUSINESS:
                 age = int(self.rng.normal(40, 10))
+            elif customer_type == CustomerType.PROFESSIONAL:
+                age = int(self.rng.normal(38, 8))  # 专业人士年龄稍大
+            elif customer_type == CustomerType.ENTREPRENEUR:
+                age = int(self.rng.normal(32, 8))  # 创业者年龄较小
+            elif customer_type == CustomerType.INVESTOR:
+                age = int(self.rng.normal(42, 10))  # 投资者年龄较大
+            elif customer_type == CustomerType.RETIREE:
+                age = int(self.rng.normal(62, 5))  # 退休人员
+            elif customer_type == CustomerType.STUDENT:
+                age = int(self.rng.normal(22, 3))  # 学生
             else:
                 age = int(self.rng.normal(35, 10))
-            age = max(22, min(65, age))
+            age = max(18, min(70, age))  # 放宽年龄范围以支持学生和退休人员
             
             # 行业已在上面定义
             
@@ -721,8 +818,8 @@ class CustomerGenerator:
             total_liabilities = total_assets * debt_ratio
             
             # 从业年限
-            max_years = (age - 22) * 0.8
-            years_in_business = max(0.5, self.rng.exponential(max_years / 3))
+            max_years = max(1.0, (age - 18) * 0.8)  # 确保至少1年，且从18岁开始计算
+            years_in_business = max(0.5, self.rng.exponential(max(max_years / 3, 0.5)))
             years_in_business = min(years_in_business, max_years)
             
             # 存款
@@ -782,17 +879,21 @@ class CustomerGenerator:
         if industry is None:
             industry = self.rng.choice(list(Industry))
         
-        # 年营收
+        # 年营收（根据企业类型调整）
         revenue_factor = 1.0
         if risk_profile == "low":
             revenue_factor = 1.3
         elif risk_profile == "high":
             revenue_factor = 0.7
         
-        annual_revenue = max(1e6, self.rng.normal(
-            params['revenue_mean'] * revenue_factor,
-            params['revenue_std']
-        ))
+        # 初创企业营收通常较低且波动大
+        if customer_type in [CustomerType.STARTUP, CustomerType.TECH_STARTUP]:
+            annual_revenue = max(0.5e6, self.rng.exponential(params['revenue_mean'] * revenue_factor / 2))
+        else:
+            annual_revenue = max(1e6, self.rng.normal(
+                params['revenue_mean'] * revenue_factor,
+                params['revenue_std']
+            ))
         
         # 资产
         total_assets = max(1e6, self.rng.normal(

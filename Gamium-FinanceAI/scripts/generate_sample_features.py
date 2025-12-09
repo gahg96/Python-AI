@@ -223,3 +223,4 @@ if __name__ == '__main__':
     print(features['defaulted'].value_counts())
     print(f"违约率: {features['defaulted'].mean():.2%}")
 
+

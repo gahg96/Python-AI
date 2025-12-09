@@ -1,0 +1,35 @@
+# 数据源配置
+# 支持从云存储（Google Drive、Dropbox等）或本地文件加载数据
+
+# 客户数据
+customers:
+  type: google_drive  # 或 dropbox, url, local
+  file_id: "YOUR_GOOGLE_DRIVE_FILE_ID"  # Google Drive文件ID
+  # share_link: "https://dropbox.com/s/xxx/customers.parquet?dl=0"  # Dropbox分享链接
+  # url: "https://example.com/data/customers.parquet"  # 直接下载链接
+  description: "客户数据文件 (~582MB)"
+
+# 贷款申请数据
+loan_applications:
+  type: google_drive
+  file_id: "YOUR_GOOGLE_DRIVE_FILE_ID"
+  description: "贷款申请数据文件 (~3.06GB)"
+
+# 还款历史数据
+repayment_history:
+  type: google_drive
+  file_id: "YOUR_GOOGLE_DRIVE_FILE_ID"
+  description: "还款历史数据文件 (~1.22GB)"
+
+# 宏观经济数据
+macro_economics:
+  type: local  # 小文件，使用本地
+  path: "data/historical_backup/macro_economics.parquet"
+  description: "宏观经济数据文件（小文件，已包含在仓库中）"
+
+# 使用说明：
+# 1. 将大文件上传到Google Drive或Dropbox
+# 2. 获取文件ID或分享链接
+# 3. 更新上面的配置
+# 4. 代码会自动下载并缓存文件
+

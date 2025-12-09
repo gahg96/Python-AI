@@ -38,3 +38,4 @@ echo "4. 如果服务未运行，可以使用以下命令启动:"
 echo "   cd /Users/carrot/Python-AI/Gamium-FinanceAI"
 echo "   python3 app.py"
 
+

@@ -1,0 +1,39 @@
+# 数据文件来源配置
+# 复制此文件为 data_sources.yaml 并填入实际链接
+
+files:
+  # 示例1: 直接URL下载
+  - filename: customers.parquet
+    source_type: url
+    source: "https://example.com/data/customers.parquet"
+    hash: "abc123..."  # 可选：MD5哈希值，用于验证文件完整性
+    description: "客户数据文件"
+  
+  # 示例2: Google Drive
+  - filename: loan_applications.parquet
+    source_type: google_drive
+    source: "1ABC123xyz..."  # Google Drive文件ID
+    hash: "def456..."  # 可选
+    description: "贷款申请数据文件"
+  
+  # 示例3: Dropbox
+  - filename: repayment_history.parquet
+    source_type: dropbox
+    source: "https://www.dropbox.com/s/xxxxx/repayment_history.parquet?dl=0"
+    hash: "ghi789..."  # 可选
+    description: "还款历史数据文件"
+  
+  # 示例4: 其他云存储（使用直接URL）
+  - filename: macro_economics.parquet
+    source_type: url
+    source: "https://your-cloud-storage.com/data/macro_economics.parquet"
+    description: "宏观经济数据文件"
+
+# 配置说明:
+# - filename: 下载后的文件名
+# - source_type: 来源类型 (url, google_drive, dropbox)
+# - source: 文件来源（URL、Google Drive文件ID或Dropbox分享链接）
+# - hash: 可选，文件的MD5哈希值，用于验证文件完整性
+# - description: 文件描述
+
+

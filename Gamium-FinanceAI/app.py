@@ -160,6 +160,23 @@ def generate_customer():
             'small_business': CustomerType.SMALL_BUSINESS,
             'freelancer': CustomerType.FREELANCER,
             'farmer': CustomerType.FARMER,
+            'professional': CustomerType.PROFESSIONAL,
+            'entrepreneur': CustomerType.ENTREPRENEUR,
+            'investor': CustomerType.INVESTOR,
+            'retiree': CustomerType.RETIREE,
+            'student': CustomerType.STUDENT,
+            # 企业客户
+            'micro_enterprise': CustomerType.MICRO_ENTERPRISE,
+            'small_enterprise': CustomerType.SMALL_ENTERPRISE,
+            'medium_enterprise': CustomerType.MEDIUM_ENTERPRISE,
+            'large_enterprise': CustomerType.LARGE_ENTERPRISE,
+            'startup': CustomerType.STARTUP,
+            'tech_startup': CustomerType.TECH_STARTUP,
+            'manufacturing': CustomerType.MANUFACTURING,
+            'trade_company': CustomerType.TRADE_COMPANY,
+            'service_company': CustomerType.SERVICE_COMPANY,
+            'freelancer': CustomerType.FREELANCER,
+            'farmer': CustomerType.FARMER,
             # 企业客户
             'micro_enterprise': CustomerType.MICRO_ENTERPRISE,
             'small_enterprise': CustomerType.SMALL_ENTERPRISE,
@@ -178,6 +195,871 @@ def generate_customer():
     return jsonify({
         'success': True,
         'customer': customer.to_dict()
+    })
+
+@app.route('/api/customer/default-probability-detail', methods=['POST'])
+def get_default_probability_detail():
+    """获取违约概率详细计算过程"""
+    data = request.json or {}
+    
+    # 获取客户和预测数据
+    customer_data = data.get('customer')
+    prediction_data = data.get('prediction')
+    loan_data = data.get('loan', {})
+    market_data = data.get('market', {})
+    
+    if not customer_data or not prediction_data:
+        return jsonify({'success': False, 'error': 'Missing customer or prediction data'}), 400
+    
+    # 重新计算以获取详细过程（不添加噪声，便于展示）
+    from data_distillation.customer_generator import CustomerGenerator, CustomerType
+    from data_distillation.world_model import WorldModel, LoanOffer, MarketConditions
+    
+    # 重建客户对象
+    type_map = {
+        # 个人客户
+        '工薪阶层': CustomerType.SALARIED,
+        '小微企业主': CustomerType.SMALL_BUSINESS,
+        '自由职业': CustomerType.FREELANCER,
+        '农户': CustomerType.FARMER,
+        '专业人士': CustomerType.PROFESSIONAL,
+        '创业者': CustomerType.ENTREPRENEUR,
+        '投资者': CustomerType.INVESTOR,
+        '退休人员': CustomerType.RETIREE,
+        '学生': CustomerType.STUDENT,
+        # 企业客户
+        '微型企业': CustomerType.MICRO_ENTERPRISE,
+        '小型企业': CustomerType.SMALL_ENTERPRISE,
+        '中型企业': CustomerType.MEDIUM_ENTERPRISE,
+        '大型企业': CustomerType.LARGE_ENTERPRISE,
+        '初创企业': CustomerType.STARTUP,
+        '科技初创': CustomerType.TECH_STARTUP,
+        '制造企业': CustomerType.MANUFACTURING,
+        '贸易公司': CustomerType.TRADE_COMPANY,
+        '服务企业': CustomerType.SERVICE_COMPANY,
+    }
+    
+    customer_type = type_map.get(customer_data.get('customer_type'), CustomerType.SALARIED)
+    customer = generator.generate_one(customer_type=customer_type)
+    
+    # 覆盖关键字段（跳过只读属性）
+    readonly_props = {'debt_ratio', 'debt_to_income', 'risk_score', 'financial_health_score', 
+                      'innovation_score', 'enterprise_size_score', 'is_enterprise'}
+    
+    for key, value in customer_data.items():
+        if key not in readonly_props and hasattr(customer, key):
+            try:
+                # 尝试设置属性
+                attr = getattr(type(customer), key, None)
+                if not isinstance(attr, property) or attr.fset is not None:
+                    setattr(customer, key, value)
+            except (AttributeError, TypeError):
+                # 如果是只读属性，跳过
+                pass
+    
+    # 特殊处理：通过设置总资产和总负债来间接设置负债率
+    if 'debt_ratio' in customer_data:
+        debt_ratio = float(customer_data['debt_ratio'])
+        if hasattr(customer, 'total_assets') and customer.total_assets > 0:
+            customer.total_liabilities = customer.total_assets * debt_ratio
+    
+    # 重建贷款对象
+    loan = LoanOffer(
+        amount=float(loan_data.get('amount', 100000)),
+        interest_rate=float(loan_data.get('interest_rate', 0.08)),
+        term_months=int(loan_data.get('term_months', 24)),
+    )
+    
+    # 重建市场环境
+    market = MarketConditions(
+        gdp_growth=float(market_data.get('gdp_growth', 0.03)),
+        base_interest_rate=float(market_data.get('base_interest_rate', 0.04)),
+        unemployment_rate=float(market_data.get('unemployment_rate', 0.05)),
+        inflation_rate=float(market_data.get('inflation_rate', 0.02)),
+        credit_spread=float(market_data.get('credit_spread', 0.02)),
+    )
+    
+    # 重新预测（不添加噪声）
+    future = world_model.predict_customer_future(customer, loan, market, add_noise=False)
+    
+    # 构建详细计算过程
+    risk_factors = future.risk_factors or {}
+    
+    # 计算步骤
+    calculation_steps = []
+    
+    # 步骤1: 基础违约率
+    base_rate = risk_factors.get('base_rate', 0.03)
+    customer_type_name = customer.customer_type.value if hasattr(customer.customer_type, 'value') else str(customer.customer_type)
+    calculation_steps.append({
+        'step': 1,
+        'name': '基础违约率',
+        'description': f'根据客户类型({customer_type_name})确定的基础违约率',
+        'value': base_rate,
+        'formula': f'base_rate = {base_rate:.4f}',
+        'impact': '基础风险水平'
+    })
+    
+    # 步骤2-8: 各个风险因子
+    factor_descriptions = {
+        'industry_factor': ('行业风险系数', '根据客户所属行业评估的风险调整系数'),
+        'city_factor': ('城市风险系数', '根据客户所在城市等级评估的风险调整系数'),
+        'debt_factor': ('负债率影响', '客户负债率对违约风险的影响'),
+        'payment_factor': ('还款能力', '月供占收入比例对违约风险的影响'),
+        'history_factor': ('历史信用', '客户历史贷款表现对违约风险的影响'),
+        'volatility_factor': ('收入稳定性', '客户收入波动性对违约风险的影响'),
+        'economic_factor': ('宏观经济', '当前宏观经济环境对违约风险的影响'),
+    }
+    
+    # 企业客户额外的风险因子
+    enterprise_factors = {
+        'financial_health_factor': ('财务健康度', '企业财务健康状况对违约风险的影响'),
+        'profit_factor': ('盈利能力', '企业盈利能力对违约风险的影响'),
+        'cashflow_factor': ('现金流', '企业现金流状况对违约风险的影响'),
+        'liquidity_factor': ('流动性', '企业流动性比率对违约风险的影响'),
+        'payment_coverage_factor': ('还款覆盖能力', '企业营收覆盖还款能力的影响'),
+        'years_factor': ('经营年限', '企业成立年限对违约风险的影响'),
+        'innovation_factor': ('创新能力', '企业创新能力对违约风险的影响'),
+        'legal_factor': ('法律风险', '企业法律纠纷对违约风险的影响'),
+        'tax_factor': ('税务合规', '企业税务合规性对违约风险的影响'),
+        'credit_rating_factor': ('信用评级', '企业信用评级对违约风险的影响'),
+    }
+    
+    step_num = 2
+    intermediate_result = base_rate
+    
+    # 个人客户风险因子
+    if not customer.is_enterprise:
+        for factor_key, (name, desc) in factor_descriptions.items():
+            if factor_key in risk_factors:
+                factor_value = risk_factors[factor_key]
+                old_result = intermediate_result
+                intermediate_result *= factor_value
+                
+                calculation_steps.append({
+                    'step': step_num,
+                    'name': name,
+                    'description': desc,
+                    'value': factor_value,
+                    'formula': f'{old_result:.6f} × {factor_value:.4f} = {intermediate_result:.6f}',
+                    'impact': f'{"增加" if factor_value > 1.0 else "降低" if factor_value < 1.0 else "不变"}风险',
+                    'contribution': abs(factor_value - 1.0) * 100
+                })
+                step_num += 1
+    else:
+        # 企业客户风险因子
+        for factor_key, (name, desc) in enterprise_factors.items():
+            if factor_key in risk_factors:
+                factor_value = risk_factors[factor_key]
+                old_result = intermediate_result
+                intermediate_result *= factor_value
+                
+                calculation_steps.append({
+                    'step': step_num,
+                    'name': name,
+                    'description': desc,
+                    'value': factor_value,
+                    'formula': f'{old_result:.6f} × {factor_value:.4f} = {intermediate_result:.6f}',
+                    'impact': f'{"增加" if factor_value > 1.0 else "降低" if factor_value < 1.0 else "不变"}风险',
+                    'contribution': abs(factor_value - 1.0) * 100
+                })
+                step_num += 1
+        
+        # 企业客户也包含行业因子
+        if 'industry_factor' in risk_factors:
+            factor_value = risk_factors['industry_factor']
+            old_result = intermediate_result
+            intermediate_result *= factor_value
+            
+            calculation_steps.append({
+                'step': step_num,
+                'name': '行业风险系数',
+                'description': '根据客户所属行业评估的风险调整系数',
+                'value': factor_value,
+                'formula': f'{old_result:.6f} × {factor_value:.4f} = {intermediate_result:.6f}',
+                'impact': f'{"增加" if factor_value > 1.0 else "降低" if factor_value < 1.0 else "不变"}风险',
+                'contribution': abs(factor_value - 1.0) * 100
+            })
+            step_num += 1
+    
+    # 最终结果
+    final_prob = min(0.95, max(0.001, intermediate_result))
+    
+    # 计算各因子的贡献度（相对于基础违约率）
+    total_contribution = sum(step.get('contribution', 0) for step in calculation_steps[1:])
+    
+    return jsonify({
+        'success': True,
+        'customer_id': customer_data.get('customer_id'),
+        'customer_type': customer_data.get('customer_type'),
+        'is_enterprise': customer.is_enterprise,
+        'calculation_steps': calculation_steps,
+        'final_probability': final_prob,
+        'base_rate': base_rate,
+        'total_factors': len(calculation_steps) - 1,
+        'risk_factors': risk_factors,
+        'formula': '违约概率 = 基础违约率 × 风险因子1 × 风险因子2 × ... × 风险因子N',
+        'summary': {
+            'base_risk': base_rate,
+            'adjusted_risk': final_prob,
+            'risk_multiplier': final_prob / base_rate if base_rate > 0 else 1.0,
+            'risk_level': '高风险' if final_prob > 0.25 else '中风险' if final_prob > 0.10 else '低风险'
+        }
+    })
+
+@app.route('/api/customer/churn-probability-detail', methods=['POST'])
+def get_churn_probability_detail():
+    """获取流失概率详细计算过程"""
+    data = request.json or {}
+    
+    # 获取客户和预测数据
+    customer_data = data.get('customer')
+    prediction_data = data.get('prediction')
+    loan_data = data.get('loan', {})
+    market_data = data.get('market', {})
+    
+    if not customer_data or not prediction_data:
+        return jsonify({'success': False, 'error': 'Missing customer or prediction data'}), 400
+    
+    # 重新计算以获取详细过程（不添加噪声，便于展示）
+    from data_distillation.customer_generator import CustomerGenerator, CustomerType
+    from data_distillation.world_model import WorldModel, LoanOffer, MarketConditions
+    
+    # 重建客户对象
+    type_map = {
+        # 个人客户
+        '工薪阶层': CustomerType.SALARIED,
+        '小微企业主': CustomerType.SMALL_BUSINESS,
+        '自由职业': CustomerType.FREELANCER,
+        '农户': CustomerType.FARMER,
+        '专业人士': CustomerType.PROFESSIONAL,
+        '创业者': CustomerType.ENTREPRENEUR,
+        '投资者': CustomerType.INVESTOR,
+        '退休人员': CustomerType.RETIREE,
+        '学生': CustomerType.STUDENT,
+        # 企业客户
+        '微型企业': CustomerType.MICRO_ENTERPRISE,
+        '小型企业': CustomerType.SMALL_ENTERPRISE,
+        '中型企业': CustomerType.MEDIUM_ENTERPRISE,
+        '大型企业': CustomerType.LARGE_ENTERPRISE,
+        '初创企业': CustomerType.STARTUP,
+        '科技初创': CustomerType.TECH_STARTUP,
+        '制造企业': CustomerType.MANUFACTURING,
+        '贸易公司': CustomerType.TRADE_COMPANY,
+        '服务企业': CustomerType.SERVICE_COMPANY,
+    }
+    
+    customer_type = type_map.get(customer_data.get('customer_type'), CustomerType.SALARIED)
+    customer = generator.generate_one(customer_type=customer_type)
+    
+    # 覆盖关键字段（跳过只读属性）
+    readonly_props = {'debt_ratio', 'debt_to_income', 'risk_score', 'financial_health_score', 
+                      'innovation_score', 'enterprise_size_score', 'is_enterprise'}
+    
+    for key, value in customer_data.items():
+        if key not in readonly_props and hasattr(customer, key):
+            try:
+                attr = getattr(type(customer), key, None)
+                if not isinstance(attr, property) or attr.fset is not None:
+                    setattr(customer, key, value)
+            except (AttributeError, TypeError):
+                pass
+    
+    # 重建贷款对象
+    loan = LoanOffer(
+        amount=float(loan_data.get('amount', 100000)),
+        interest_rate=float(loan_data.get('interest_rate', 0.08)),
+        term_months=int(loan_data.get('term_months', 24)),
+    )
+    
+    # 重建市场环境
+    market = MarketConditions(
+        gdp_growth=float(market_data.get('gdp_growth', 0.03)),
+        base_interest_rate=float(market_data.get('base_interest_rate', 0.04)),
+        unemployment_rate=float(market_data.get('unemployment_rate', 0.05)),
+        inflation_rate=float(market_data.get('inflation_rate', 0.02)),
+        credit_spread=float(market_data.get('credit_spread', 0.02)),
+    )
+    
+    # 重新预测（不添加噪声）
+    future = world_model.predict_customer_future(customer, loan, market, add_noise=False)
+    
+    # 获取流失概率计算因子
+    risk_factors = future.risk_factors or {}
+    churn_factors = risk_factors.get('churn_factors', {})
+    
+    # 构建计算步骤
+    calculation_steps = []
+    
+    # 步骤1: 基础流失率
+    base_churn = churn_factors.get('base_churn', 0.05 if not customer.is_enterprise else 0.08)
+    calculation_steps.append({
+        'step': 1,
+        'name': '基础流失率',
+        'description': f'根据客户类型({customer.customer_type.value if hasattr(customer.customer_type, "value") else str(customer.customer_type)})确定的基础流失率',
+        'value': base_churn,
+        'formula': f'base_churn = {base_churn:.4f}',
+        'impact': '基础流失风险水平'
+    })
+    
+    # 步骤2: 利率敏感性
+    rate_sensitivity = churn_factors.get('rate_sensitivity', 0.0)
+    rate_impact = churn_factors.get('rate_impact', '')
+    if rate_sensitivity > 0:
+        intermediate_result = base_churn + rate_sensitivity
+        calculation_steps.append({
+            'step': 2,
+            'name': '利率敏感性',
+            'description': rate_impact,
+            'value': rate_sensitivity,
+            'formula': f'{base_churn:.4f} + {rate_sensitivity:.4f} = {intermediate_result:.4f}',
+            'impact': '利率过高会增加客户提前还款或转投其他银行的概率'
+        })
+    else:
+        calculation_steps.append({
+            'step': 2,
+            'name': '利率敏感性',
+            'description': rate_impact if rate_impact else '贷款利率在可接受范围内',
+            'value': 0.0,
+            'formula': f'{base_churn:.4f} + 0.0 = {base_churn:.4f}',
+            'impact': '利率合理，不会显著增加流失风险'
+        })
+    
+    # 步骤3: 客户质量影响
+    quality_bonus = churn_factors.get('quality_bonus', 0.0)
+    quality_impact = churn_factors.get('quality_impact', '')
+    if quality_bonus > 0:
+        prev_result = base_churn + rate_sensitivity
+        intermediate_result = prev_result + quality_bonus
+        calculation_steps.append({
+            'step': 3,
+            'name': '客户质量影响',
+            'description': quality_impact,
+            'value': quality_bonus,
+            'formula': f'{prev_result:.4f} + {quality_bonus:.4f} = {intermediate_result:.4f}',
+            'impact': '优质客户更可能找到更好的融资渠道或提前还款'
+        })
+    else:
+        prev_result = base_churn + rate_sensitivity
+        calculation_steps.append({
+            'step': 3,
+            'name': '客户质量影响',
+            'description': quality_impact if quality_impact else '客户质量一般，不会显著增加流失风险',
+            'value': 0.0,
+            'formula': f'{prev_result:.4f} + 0.0 = {prev_result:.4f}',
+            'impact': '客户质量一般，流失风险正常'
+        })
+    
+    # 最终结果
+    final_churn = churn_factors.get('final_churn', future.churn_probability)
+    max_churn = 0.5 if not customer.is_enterprise else 0.6
+    
+    # 计算摘要
+    summary = {
+        'base_churn': base_churn,
+        'final_churn': final_churn,
+        'churn_multiplier': final_churn / base_churn if base_churn > 0 else 1.0,
+        'risk_level': '高风险' if final_churn > 0.3 else '中风险' if final_churn > 0.15 else '低风险',
+        'max_churn_limit': max_churn
+    }
+    
+    return jsonify({
+        'success': True,
+        'customer_id': customer_data.get('customer_id'),
+        'customer_type': customer_data.get('customer_type'),
+        'is_enterprise': customer.is_enterprise,
+        'calculation_steps': calculation_steps,
+        'final_probability': final_churn,
+        'base_churn': base_churn,
+        'total_factors': len(calculation_steps) - 1,
+        'churn_factors': churn_factors,
+        'formula': '流失概率 = 基础流失率 + 利率敏感性 + 客户质量影响',
+        'summary': summary
+    })
+
+@app.route('/api/customer/risk-score-detail', methods=['POST'])
+def get_risk_score_detail():
+    """获取风险评分详细计算过程"""
+    data = request.json or {}
+    customer_data = data.get('customer')
+    
+    if not customer_data:
+        return jsonify({'success': False, 'error': 'Missing customer data'}), 400
+    
+    # 重建客户对象
+    from data_distillation.customer_generator import CustomerGenerator, CustomerType
+    
+    type_map = {
+        # 个人客户
+        '工薪阶层': CustomerType.SALARIED,
+        '小微企业主': CustomerType.SMALL_BUSINESS,
+        '自由职业': CustomerType.FREELANCER,
+        '农户': CustomerType.FARMER,
+        '专业人士': CustomerType.PROFESSIONAL,
+        '创业者': CustomerType.ENTREPRENEUR,
+        '投资者': CustomerType.INVESTOR,
+        '退休人员': CustomerType.RETIREE,
+        '学生': CustomerType.STUDENT,
+        # 企业客户
+        '微型企业': CustomerType.MICRO_ENTERPRISE,
+        '小型企业': CustomerType.SMALL_ENTERPRISE,
+        '中型企业': CustomerType.MEDIUM_ENTERPRISE,
+        '大型企业': CustomerType.LARGE_ENTERPRISE,
+        '初创企业': CustomerType.STARTUP,
+        '科技初创': CustomerType.TECH_STARTUP,
+        '制造企业': CustomerType.MANUFACTURING,
+        '贸易公司': CustomerType.TRADE_COMPANY,
+        '服务企业': CustomerType.SERVICE_COMPANY,
+    }
+    
+    customer_type = type_map.get(customer_data.get('customer_type'), CustomerType.SALARIED)
+    customer = generator.generate_one(customer_type=customer_type)
+    
+    # 覆盖关键字段
+    readonly_props = {'debt_ratio', 'debt_to_income', 'risk_score', 'financial_health_score', 
+                      'innovation_score', 'enterprise_size_score', 'is_enterprise'}
+    
+    for key, value in customer_data.items():
+        if key not in readonly_props and hasattr(customer, key):
+            try:
+                attr = getattr(type(customer), key, None)
+                if not isinstance(attr, property) or attr.fset is not None:
+                    setattr(customer, key, value)
+            except (AttributeError, TypeError):
+                pass
+    
+    # 计算风险评分并记录步骤
+    calculation_steps = []
+    score = 0.0
+    
+    if customer.is_enterprise:
+        # 企业客户风险评分
+        # 1. 财务健康度（反向）
+        financial_health = customer.financial_health_score
+        financial_contribution = (1 - financial_health) * 0.3
+        score += financial_contribution
+        calculation_steps.append({
+            'step': 1,
+            'name': '财务健康度影响',
+            'description': f'财务健康度评分: {financial_health:.3f} (反向计算)',
+            'value': financial_contribution,
+            'formula': f'(1 - {financial_health:.3f}) × 0.3 = {financial_contribution:.4f}',
+            'impact': '财务健康度越低，风险越高',
+            'weight': 0.3
+        })
+        
+        # 2. 负债率
+        debt_contribution = customer.debt_ratio * 0.2
+        score += debt_contribution
+        calculation_steps.append({
+            'step': 2,
+            'name': '负债率影响',
+            'description': f'负债率: {customer.debt_ratio*100:.1f}%',
+            'value': debt_contribution,
+            'formula': f'{customer.debt_ratio:.3f} × 0.2 = {debt_contribution:.4f}',
+            'impact': '负债率越高，风险越高',
+            'weight': 0.2
+        })
+        
+        # 3. 流动性风险
+        liquidity_contribution = 0.0
+        if customer.current_ratio < 1.0:
+            liquidity_contribution = 0.15
+        elif customer.current_ratio < 1.2:
+            liquidity_contribution = 0.10
+        if liquidity_contribution > 0:
+            score += liquidity_contribution
+            calculation_steps.append({
+                'step': len(calculation_steps) + 1,
+                'name': '流动性风险',
+                'description': f'流动比率: {customer.current_ratio:.2f}',
+                'value': liquidity_contribution,
+                'formula': f'流动比率 < 1.2，增加风险 {liquidity_contribution:.4f}',
+                'impact': '流动比率过低，偿债能力不足',
+                'weight': liquidity_contribution
+            })
+        
+        # 4. 现金流风险
+        cashflow_contribution = 0.0
+        if customer.operating_cash_flow < 0:
+            cashflow_contribution = 0.15
+            score += cashflow_contribution
+            calculation_steps.append({
+                'step': len(calculation_steps) + 1,
+                'name': '现金流风险',
+                'description': f'经营现金流: ¥{customer.operating_cash_flow:,.0f}',
+                'value': cashflow_contribution,
+                'formula': f'经营现金流为负，增加风险 {cashflow_contribution:.4f}',
+                'impact': '现金流为负，经营困难',
+                'weight': cashflow_contribution
+            })
+        
+        # 5. 历史信用
+        history_contribution = 0.0
+        if customer.max_historical_dpd > 0:
+            history_contribution = min(0.2, customer.max_historical_dpd / 90 * 0.2)
+            score += history_contribution
+            calculation_steps.append({
+                'step': len(calculation_steps) + 1,
+                'name': '历史信用影响',
+                'description': f'历史最大逾期: {customer.max_historical_dpd}天',
+                'value': history_contribution,
+                'formula': f'min(0.2, {customer.max_historical_dpd}/90 × 0.2) = {history_contribution:.4f}',
+                'impact': '历史逾期会增加风险评分',
+                'weight': history_contribution
+            })
+        
+        # 6. 经营年限
+        years_contribution = 0.0
+        if customer.years_in_business < 3:
+            years_contribution = 0.10
+        elif customer.years_in_business < 5:
+            years_contribution = 0.05
+        if years_contribution > 0:
+            score += years_contribution
+            calculation_steps.append({
+                'step': len(calculation_steps) + 1,
+                'name': '经营年限影响',
+                'description': f'经营年限: {customer.years_in_business:.1f}年',
+                'value': years_contribution,
+                'formula': f'经营年限 < 5年，增加风险 {years_contribution:.4f}',
+                'impact': '经营年限短，经验不足',
+                'weight': years_contribution
+            })
+        
+        # 7. 法律纠纷
+        legal_contribution = 0.0
+        if customer.has_legal_disputes:
+            legal_contribution = 0.10
+            score += legal_contribution
+            calculation_steps.append({
+                'step': len(calculation_steps) + 1,
+                'name': '法律纠纷影响',
+                'description': f'法律纠纷数量: {customer.legal_dispute_count}',
+                'value': legal_contribution,
+                'formula': f'存在法律纠纷，增加风险 {legal_contribution:.4f}',
+                'impact': '法律纠纷增加经营风险',
+                'weight': legal_contribution
+            })
+    else:
+        # 个人客户风险评分
+        # 1. 年龄因素
+        age_contribution = 0.0
+        if customer.age < 25 or customer.age > 60:
+            age_contribution = 0.1
+            score += age_contribution
+            calculation_steps.append({
+                'step': 1,
+                'name': '年龄因素',
+                'description': f'年龄: {customer.age}岁',
+                'value': age_contribution,
+                'formula': f'年龄 < 25 或 > 60，增加风险 {age_contribution:.4f}',
+                'impact': '年龄过小或过大，收入稳定性较差',
+                'weight': 0.1
+            })
+        else:
+            calculation_steps.append({
+                'step': 1,
+                'name': '年龄因素',
+                'description': f'年龄: {customer.age}岁',
+                'value': 0.0,
+                'formula': f'年龄在25-60岁之间，风险正常',
+                'impact': '年龄适中，收入稳定性较好',
+                'weight': 0.0
+            })
+        
+        # 2. 收入稳定性
+        volatility_contribution = customer.income_volatility * 0.2
+        score += volatility_contribution
+        calculation_steps.append({
+            'step': 2,
+            'name': '收入稳定性',
+            'description': f'收入波动性: {customer.income_volatility*100:.1f}%',
+            'value': volatility_contribution,
+            'formula': f'{customer.income_volatility:.3f} × 0.2 = {volatility_contribution:.4f}',
+            'impact': '收入波动性越高，风险越高',
+            'weight': 0.2
+        })
+        
+        # 3. 负债率
+        debt_contribution = customer.debt_ratio * 0.25
+        score += debt_contribution
+        calculation_steps.append({
+            'step': 3,
+            'name': '负债率影响',
+            'description': f'负债率: {customer.debt_ratio*100:.1f}%',
+            'value': debt_contribution,
+            'formula': f'{customer.debt_ratio:.3f} × 0.25 = {debt_contribution:.4f}',
+            'impact': '负债率越高，风险越高',
+            'weight': 0.25
+        })
+        
+        # 4. 历史信用
+        history_contribution = 0.0
+        if customer.max_historical_dpd > 0:
+            history_contribution = min(0.3, customer.max_historical_dpd / 90 * 0.3)
+            score += history_contribution
+            calculation_steps.append({
+                'step': 4,
+                'name': '历史信用影响',
+                'description': f'历史最大逾期: {customer.max_historical_dpd}天',
+                'value': history_contribution,
+                'formula': f'min(0.3, {customer.max_historical_dpd}/90 × 0.3) = {history_contribution:.4f}',
+                'impact': '历史逾期会增加风险评分',
+                'weight': history_contribution
+            })
+        else:
+            calculation_steps.append({
+                'step': 4,
+                'name': '历史信用影响',
+                'description': '历史最大逾期: 0天',
+                'value': 0.0,
+                'formula': '无历史逾期记录',
+                'impact': '无逾期记录，风险正常',
+                'weight': 0.0
+            })
+        
+        # 5. 从业年限
+        years_contribution = 0.0
+        if customer.years_in_business < 2:
+            years_contribution = 0.1
+            score += years_contribution
+            calculation_steps.append({
+                'step': 5,
+                'name': '从业年限影响',
+                'description': f'从业年限: {customer.years_in_business:.1f}年',
+                'value': years_contribution,
+                'formula': f'从业年限 < 2年，增加风险 {years_contribution:.4f}',
+                'impact': '从业年限短，收入稳定性较差',
+                'weight': 0.1
+            })
+        else:
+            calculation_steps.append({
+                'step': 5,
+                'name': '从业年限影响',
+                'description': f'从业年限: {customer.years_in_business:.1f}年',
+                'value': 0.0,
+                'formula': f'从业年限 ≥ 2年，风险正常',
+                'impact': '从业年限充足，收入稳定性较好',
+                'weight': 0.0
+            })
+    
+    # 最终结果（限制在0-1之间）
+    final_score = min(1.0, score)
+    
+    return jsonify({
+        'success': True,
+        'customer_id': customer_data.get('customer_id'),
+        'customer_type': customer_data.get('customer_type'),
+        'is_enterprise': customer.is_enterprise,
+        'calculation_steps': calculation_steps,
+        'final_score': final_score,
+        'raw_score': score,
+        'formula': '风险评分 = Σ(各因子贡献值)，最终限制在0-1之间',
+        'summary': {
+            'risk_level': '高风险' if final_score > 0.6 else '中风险' if final_score > 0.3 else '低风险',
+            'total_factors': len(calculation_steps),
+            'max_possible_score': 1.0
+        }
+    })
+
+@app.route('/api/customer/loan-history', methods=['POST'])
+def get_loan_history():
+    """获取客户历史贷款详情"""
+    data = request.json or {}
+    customer_id = data.get('customer_id')
+    
+    if not customer_id:
+        return jsonify({'success': False, 'error': 'Missing customer_id'}), 400
+    
+    # 生成模拟历史贷款数据
+    import random
+    from datetime import datetime, timedelta
+    
+    # 从客户数据中获取信息
+    customer = None
+    customer_data_from_request = data.get('customer_data')  # 从前端传来的客户数据
+    if customer_data_from_request:
+        # 如果有客户数据，尝试重建客户对象
+        from data_distillation.customer_generator import CustomerType
+        type_map = {
+            '工薪阶层': CustomerType.SALARIED,
+            '小微企业主': CustomerType.SMALL_BUSINESS,
+            '自由职业': CustomerType.FREELANCER,
+            '农户': CustomerType.FARMER,
+            '微型企业': CustomerType.MICRO_ENTERPRISE,
+            '小型企业': CustomerType.SMALL_ENTERPRISE,
+            '中型企业': CustomerType.MEDIUM_ENTERPRISE,
+            '大型企业': CustomerType.LARGE_ENTERPRISE,
+        }
+        customer_type = type_map.get(customer_data_from_request.get('customer_type'), CustomerType.SALARIED)
+        customer = generator.generate_one(customer_type=customer_type)
+        # 覆盖关键字段
+        if 'max_historical_dpd' in customer_data_from_request:
+            customer.max_historical_dpd = customer_data_from_request['max_historical_dpd']
+        if 'previous_loans' in customer_data_from_request:
+            customer.previous_loans = customer_data_from_request['previous_loans']
+    elif hasattr(generator, '_customers_cache') and customer_id in generator._customers_cache:
+        customer = generator._customers_cache[customer_id]
+    else:
+        # 如果没有缓存，生成一个临时客户来获取previous_loans数量
+        customer = generator.generate_one()
+    
+    num_loans = data.get('num_loans', customer.previous_loans if customer else random.randint(1, 10))
+    # 确保至少有一条贷款
+    num_loans = max(1, num_loans)
+    
+    # 如果客户有历史逾期记录，确保至少生成一条逾期贷款
+    has_historical_overdue = customer and customer.max_historical_dpd > 0
+    overdue_loan_generated = False
+    
+    loan_history = []
+    base_date = datetime.now() - timedelta(days=365 * 3)  # 3年前开始
+    
+    for i in range(num_loans):
+        # 贷款时间（从旧到新）
+        days_ago = random.randint(30, 365 * 3)
+        apply_date = base_date + timedelta(days=random.randint(0, 365 * 3 - days_ago))
+        
+        # 贷款金额（根据客户类型调整）
+        if customer and customer.is_enterprise:
+            loan_amount = random.uniform(500000, 5000000)
+        else:
+            loan_amount = random.uniform(10000, 500000)
+        
+        # 贷款期限
+        term_months = random.choice([6, 12, 24, 36, 48, 60])
+        
+        # 利率
+        interest_rate = random.uniform(0.05, 0.12)
+        
+        # 审批结果
+        # 如果有历史逾期且需要生成逾期贷款，确保审批通过
+        if has_historical_overdue and not overdue_loan_generated and i == num_loans - 1:
+            approval_status = 'approved'  # 强制批准最后一条贷款
+        else:
+            approval_status = random.choices(
+                ['approved', 'rejected', 'pending'],
+                weights=[0.7, 0.2, 0.1]
+            )[0]
+        
+        # 如果批准，生成还款信息
+        repayment_status = 'N/A'
+        overdue_days = 0
+        total_paid = 0
+        remaining_amount = 0
+        
+        if approval_status == 'approved':
+            # 还款状态
+            # 如果客户有历史逾期且还没有生成逾期贷款，提高逾期概率
+            if has_historical_overdue and not overdue_loan_generated:
+                # 有历史逾期的客户，提高逾期贷款概率
+                if i == num_loans - 1:
+                    # 最后一条贷款强制为逾期
+                    repayment_status = random.choice(['overdue', 'defaulted'])
+                    overdue_loan_generated = True
+                else:
+                    # 提高逾期概率到40%
+                    repayment_status = random.choices(
+                        ['completed', 'ongoing', 'overdue', 'defaulted'],
+                        weights=[0.3, 0.3, 0.3, 0.1]
+                    )[0]
+                    if repayment_status in ['overdue', 'defaulted']:
+                        overdue_loan_generated = True
+            else:
+                repayment_status = random.choices(
+                    ['completed', 'ongoing', 'overdue', 'defaulted'],
+                    weights=[0.5, 0.3, 0.15, 0.05]
+                )[0]
+                if repayment_status in ['overdue', 'defaulted']:
+                    overdue_loan_generated = True
+            
+            # 逾期天数
+            overdue_info = None
+            if repayment_status in ['overdue', 'defaulted']:
+                overdue_days = random.randint(1, 180)
+                
+                # 计算详细的逾期信息
+                approval_date = apply_date + timedelta(days=random.randint(1, 7))
+                monthly_payment = loan_amount * (interest_rate / 12) / (1 - (1 + interest_rate / 12) ** (-term_months))
+                
+                # 计算应该还清的期数
+                months_should_paid = min(term_months, int(overdue_days / 30) + 1)
+                months_actually_paid = max(0, months_should_paid - 1)
+                
+                # 逾期开始时间（最后一次正常还款后的下一个月）
+                overdue_start_date = approval_date + timedelta(days=months_actually_paid * 30)
+                
+                # 逾期金额（包括本金和利息）
+                overdue_principal = monthly_payment * (months_should_paid - months_actually_paid)
+                overdue_interest = overdue_principal * (interest_rate / 12) * (overdue_days / 30)
+                overdue_penalty = overdue_principal * 0.0005 * overdue_days  # 每日0.05%的罚息
+                total_overdue_amount = overdue_principal + overdue_interest + overdue_penalty
+                
+                overdue_info = {
+                    'overdue_days': overdue_days,
+                    'overdue_start_date': overdue_start_date.strftime('%Y-%m-%d'),
+                    'overdue_principal': round(overdue_principal, 2),
+                    'overdue_interest': round(overdue_interest, 2),
+                    'overdue_penalty': round(overdue_penalty, 2),
+                    'total_overdue_amount': round(total_overdue_amount, 2),
+                    'overdue_severity': '严重' if overdue_days > 90 else '中等' if overdue_days > 30 else '轻微',
+                    'months_overdue': months_should_paid - months_actually_paid
+                }
+            else:
+                overdue_days = 0
+            
+            # 已还金额和剩余金额
+            if repayment_status == 'completed':
+                total_paid = loan_amount * (1 + interest_rate * term_months / 12)
+                remaining_amount = 0
+            elif repayment_status == 'defaulted':
+                # 违约通常只还了部分
+                paid_ratio = random.uniform(0.1, 0.6)
+                total_paid = loan_amount * paid_ratio
+                remaining_amount = loan_amount * (1 + interest_rate * term_months / 12) - total_paid
+            else:
+                # 进行中
+                months_paid = random.randint(1, term_months - 1)
+                monthly_payment = loan_amount * (interest_rate / 12) / (1 - (1 + interest_rate / 12) ** (-term_months))
+                total_paid = monthly_payment * months_paid
+                remaining_amount = loan_amount * (1 + interest_rate * term_months / 12) - total_paid
+        
+        loan_record = {
+            'loan_id': f'LOAN_{customer_id}_{i+1:03d}',
+            'apply_date': apply_date.strftime('%Y-%m-%d'),
+            'approval_date': (apply_date + timedelta(days=random.randint(1, 7))).strftime('%Y-%m-%d') if approval_status == 'approved' else None,
+            'loan_amount': round(loan_amount, 2),
+            'term_months': term_months,
+            'interest_rate': round(interest_rate, 4),
+            'approval_status': approval_status,
+            'repayment_status': repayment_status,
+            'overdue_days': overdue_days,
+            'total_paid': round(total_paid, 2),
+            'remaining_amount': round(remaining_amount, 2),
+            'purpose': random.choice(['消费', '经营周转', '购房', '购车', '教育', '其他']),
+            'collateral_type': random.choice(['信用', '抵押', '担保', '质押']),
+        }
+        
+        # 如果有逾期信息，添加到记录中
+        if overdue_info:
+            loan_record['overdue_info'] = overdue_info
+        
+        loan_history.append(loan_record)
+    
+    # 按申请时间倒序排列（最新的在前）
+    loan_history.sort(key=lambda x: x['apply_date'], reverse=True)
+    
+    # 统计逾期贷款数量
+    overdue_count = sum(1 for loan in loan_history if loan.get('overdue_info'))
+    
+    return jsonify({
+        'success': True,
+        'customer_id': customer_id,
+        'total_loans': len(loan_history),
+        'overdue_count': overdue_count,
+        'has_historical_overdue': has_historical_overdue,
+        'loan_history': loan_history
     })
 
 @app.route('/api/customer/batch', methods=['POST'])
@@ -214,39 +1096,137 @@ def predict():
         if data is None:
             return jsonify({'success': False, 'error': 'Invalid JSON data'}), 400
     
-        # 生成或使用提供的客户
-        customer_type_str = data.get('customer_type', 'salaried')
-        risk_profile = data.get('risk_profile', 'medium')
+        # 获取客户数据
+        customer_data = data.get('customer', {})
+        customer_type_str = customer_data.get('customer_type', 'salaried')
+        risk_profile = customer_data.get('risk_profile', 'medium')
         
         # 解析客户类型
         type_map = {
+            # 个人客户
             'salaried': CustomerType.SALARIED,
             'small_business': CustomerType.SMALL_BUSINESS,
             'freelancer': CustomerType.FREELANCER,
             'farmer': CustomerType.FARMER,
+            'professional': CustomerType.PROFESSIONAL,
+            'entrepreneur': CustomerType.ENTREPRENEUR,
+            'investor': CustomerType.INVESTOR,
+            'retiree': CustomerType.RETIREE,
+            'student': CustomerType.STUDENT,
+            # 企业客户
             'micro_enterprise': CustomerType.MICRO_ENTERPRISE,
             'small_enterprise': CustomerType.SMALL_ENTERPRISE,
             'medium_enterprise': CustomerType.MEDIUM_ENTERPRISE,
             'large_enterprise': CustomerType.LARGE_ENTERPRISE,
+            'startup': CustomerType.STARTUP,
+            'tech_startup': CustomerType.TECH_STARTUP,
+            'manufacturing': CustomerType.MANUFACTURING,
+            'trade_company': CustomerType.TRADE_COMPANY,
+            'service_company': CustomerType.SERVICE_COMPANY,
         }
         customer_type = type_map.get(customer_type_str, CustomerType.SALARIED)
         
-        if data.get('customer'):
-            # 从提供的数据创建客户 (简化处理，使用生成器)
-            customer = generator.generate_one(
-                customer_type=customer_type,
-                risk_profile=risk_profile
-            )
-            # 覆盖关键字段
-            if data['customer'].get('monthly_income'):
-                customer.monthly_income = float(data['customer']['monthly_income'])
-            if data['customer'].get('debt_ratio'):
-                customer.total_liabilities = customer.total_assets * float(data['customer']['debt_ratio'])
+        # 判断是否为企业客户
+        is_enterprise = customer_type in [
+            CustomerType.MICRO_ENTERPRISE, CustomerType.SMALL_ENTERPRISE,
+            CustomerType.MEDIUM_ENTERPRISE, CustomerType.LARGE_ENTERPRISE,
+            CustomerType.STARTUP, CustomerType.TECH_STARTUP,
+            CustomerType.MANUFACTURING, CustomerType.TRADE_COMPANY,
+            CustomerType.SERVICE_COMPANY
+        ]
+        
+        # 生成客户
+        from data_distillation.customer_generator import CityTier, Industry
+        
+        # 解析城市等级和行业
+        city_tier = None
+        if customer_data.get('city_tier'):
+            city_tier_map = {
+                'tier_1': CityTier.TIER_1,
+                'tier_2': CityTier.TIER_2,
+                'tier_3': CityTier.TIER_3,
+                'tier_4': CityTier.TIER_4,
+            }
+            city_tier = city_tier_map.get(customer_data['city_tier'])
+        
+        industry = None
+        if customer_data.get('industry'):
+            industry_map = {
+                'manufacturing': Industry.MANUFACTURING,
+                'service': Industry.SERVICE,
+                'retail': Industry.RETAIL,
+                'catering': Industry.CATERING,
+                'it': Industry.IT,
+                'construction': Industry.CONSTRUCTION,
+                'agriculture': Industry.AGRICULTURE,
+            }
+            industry = industry_map.get(customer_data['industry'])
+        
+        customer = generator.generate_one(
+            customer_type=customer_type,
+            city_tier=city_tier,
+            industry=industry,
+            risk_profile=risk_profile
+        )
+        
+        # 覆盖用户提供的字段
+        if is_enterprise:
+            # 企业客户字段
+            if customer_data.get('annual_revenue'):
+                customer.annual_revenue = float(customer_data['annual_revenue'])
+            if customer_data.get('net_profit'):
+                customer.net_profit = float(customer_data['net_profit'])
+            if customer_data.get('profit_margin'):
+                customer.net_profit = customer.annual_revenue * float(customer_data['profit_margin'])
+            if customer_data.get('operating_cash_flow'):
+                customer.operating_cash_flow = float(customer_data['operating_cash_flow'])
+            if customer_data.get('current_ratio'):
+                customer.current_ratio = float(customer_data['current_ratio'])
+            if customer_data.get('quick_ratio'):
+                customer.quick_ratio = float(customer_data['quick_ratio'])
+            if customer_data.get('debt_ratio'):
+                customer.total_liabilities = customer.total_assets * float(customer_data['debt_ratio'])
+            if customer_data.get('revenue_growth_rate'):
+                customer.revenue_growth_rate = float(customer_data['revenue_growth_rate'])
+            if customer_data.get('rnd_expense_ratio'):
+                customer.rnd_expense = customer.annual_revenue * float(customer_data['rnd_expense_ratio'])
+            if customer_data.get('total_patents'):
+                customer.total_patents = int(customer_data['total_patents'])
+            if customer_data.get('legal_disputes'):
+                customer.legal_disputes = int(customer_data['legal_disputes'])
+            if customer_data.get('years_in_business'):
+                customer.years_in_business = float(customer_data['years_in_business'])
         else:
-            customer = generator.generate_one(
-                customer_type=customer_type,
-                risk_profile=risk_profile
-            )
+            # 个人客户字段
+            if customer_data.get('monthly_income'):
+                customer.monthly_income = float(customer_data['monthly_income'])
+            if customer_data.get('income_volatility'):
+                customer.income_volatility = float(customer_data['income_volatility'])
+            if customer_data.get('total_assets'):
+                customer.total_assets = float(customer_data['total_assets'])
+            if customer_data.get('total_liabilities'):
+                customer.total_liabilities = float(customer_data['total_liabilities'])
+            if customer_data.get('deposit_balance'):
+                customer.deposit_balance = float(customer_data['deposit_balance'])
+            if customer_data.get('deposit_stability'):
+                customer.deposit_stability = float(customer_data['deposit_stability'])
+            if customer_data.get('years_in_business'):
+                customer.years_in_business = float(customer_data['years_in_business'])
+            if customer_data.get('previous_loans'):
+                customer.previous_loans = int(customer_data['previous_loans'])
+            if customer_data.get('max_historical_dpd'):
+                customer.max_historical_dpd = int(customer_data['max_historical_dpd'])
+            
+            # 年龄范围处理
+            if customer_data.get('age_range'):
+                age_range = customer_data['age_range']
+                if age_range == 'young':
+                    customer.age = int(generator.rng.normal(28, 4))
+                elif age_range == 'middle':
+                    customer.age = int(generator.rng.normal(42, 5))
+                elif age_range == 'senior':
+                    customer.age = int(generator.rng.normal(58, 5))
+                customer.age = max(18, min(70, customer.age))
         
         # 贷款条件
         loan_data = data.get('loan', {})
