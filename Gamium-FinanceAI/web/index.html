@@ -1171,12 +1171,20 @@
                     <div class="grid grid-3">
                         <div class="form-group">
                             <label class="form-label">客户类型</label>
-                            <select id="customer-type" class="form-select">
+                            <select id="customer-type" class="form-select" onchange="toggleEnterpriseFields()">
                                 <option value="">随机</option>
-                                <option value="salaried">工薪阶层</option>
-                                <option value="small_business">小微企业主</option>
-                                <option value="freelancer">自由职业</option>
-                                <option value="farmer">农户</option>
+                                <optgroup label="个人客户">
+                                    <option value="salaried">工薪阶层</option>
+                                    <option value="small_business">小微企业主</option>
+                                    <option value="freelancer">自由职业</option>
+                                    <option value="farmer">农户</option>
+                                </optgroup>
+                                <optgroup label="企业客户">
+                                    <option value="micro_enterprise">微型企业 (年营收 < 1000万)</option>
+                                    <option value="small_enterprise">小型企业 (年营收 1000-5000万)</option>
+                                    <option value="medium_enterprise">中型企业 (年营收 5000万-2亿)</option>
+                                    <option value="large_enterprise">大型企业 (年营收 > 2亿)</option>
+                                </optgroup>
                             </select>
                         </div>
                         <div class="form-group">
@@ -1213,13 +1221,22 @@
                                 <option value="tier_4">四线及以下</option>
                             </select>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" id="age-field">
                             <label class="form-label">年龄范围</label>
                             <select id="customer-age" class="form-select">
                                 <option value="">随机</option>
                                 <option value="young">青年 (22-35)</option>
                                 <option value="middle">中年 (35-50)</option>
                                 <option value="senior">中老年 (50+)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="years-field" style="display: none;">
+                            <label class="form-label">成立年限</label>
+                            <select id="customer-years" class="form-select">
+                                <option value="">随机</option>
+                                <option value="new">新企业 (0-3年)</option>
+                                <option value="established">成熟企业 (3-10年)</option>
+                                <option value="old">老企业 (10年以上)</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -1286,6 +1303,37 @@
                                 <option value="normal" selected>中性</option>
                                 <option value="tight">紧缩 (高利率)</option>
                             </select>
+                        </div>
+                    </div>
+                    
+                    <!-- 企业客户专用字段（默认隐藏） -->
+                    <div id="enterprise-fields" style="display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        <h4 style="margin-bottom: 16px; color: var(--accent-primary); font-size: 14px;">🏢 企业信息（可选，留空将自动生成）</h4>
+                        <div class="grid grid-2">
+                            <div class="form-group">
+                                <label class="form-label">年营业收入 (元)</label>
+                                <input type="number" id="enterprise-revenue" class="form-input" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">净利润率 (%)</label>
+                                <input type="number" id="enterprise-profit-margin" class="form-input" step="0.1" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">流动比率</label>
+                                <input type="number" id="enterprise-current-ratio" class="form-input" step="0.1" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">资产负债率 (%)</label>
+                                <input type="number" id="enterprise-debt-ratio" class="form-input" step="0.1" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">研发费用率 (%)</label>
+                                <input type="number" id="enterprise-rnd-ratio" class="form-input" step="0.1" placeholder="留空自动生成">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">专利总数</label>
+                                <input type="number" id="enterprise-patents" class="form-input" placeholder="留空自动生成">
+                            </div>
                         </div>
                     </div>
                     
@@ -1411,8 +1459,18 @@
             </div>
             
             <div id="analysis-result" style="display: none;">
+                <!-- 摘要统计 -->
                 <div class="grid grid-4" id="cycle-stats"></div>
                 
+                <!-- 预警信号 -->
+                <div class="card" style="margin-top: 20px; display: none;" id="warnings-card">
+                    <div class="card-header">
+                        <div class="card-title">⚠️ 风险预警信号</div>
+                    </div>
+                    <div id="warnings-content"></div>
+                </div>
+                
+                <!-- 主要图表 -->
                 <div class="grid grid-2" style="margin-top: 20px;">
                     <div class="card">
                         <div class="card-header">
@@ -1430,6 +1488,45 @@
                             <canvas id="type-chart"></canvas>
                         </div>
                     </div>
+                </div>
+                
+                <!-- 经济指标详细展示 -->
+                <div class="card" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <div class="card-title">📈 宏观经济指标详情</div>
+                    </div>
+                    <div class="grid grid-2" id="economic-indicators-grid"></div>
+                </div>
+                
+                <!-- 行业风险分析 -->
+                <div class="card" style="margin-top: 20px; display: none;" id="industry-analysis-card">
+                    <div class="card-header">
+                        <div class="card-title">🏭 行业风险分析</div>
+                    </div>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="industry-chart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- 风险分布 -->
+                <div class="card" style="margin-top: 20px; display: none;" id="risk-distribution-card">
+                    <div class="card-header">
+                        <div class="card-title">📊 风险分布分析</div>
+                    </div>
+                    <div class="grid grid-2">
+                        <div class="chart-container" style="height: 300px;">
+                            <canvas id="risk-distribution-chart"></canvas>
+                        </div>
+                        <div id="risk-distribution-stats"></div>
+                    </div>
+                </div>
+                
+                <!-- 指标相关性分析 -->
+                <div class="card" style="margin-top: 20px; display: none;" id="correlation-card">
+                    <div class="card-header">
+                        <div class="card-title">🔗 指标相关性分析</div>
+                    </div>
+                    <div id="correlation-content"></div>
                 </div>
             </div>
         </div>
@@ -1944,7 +2041,7 @@
                         </div>
                         
                         <!-- 客户概要 -->
-                        <h4 style="margin: 16px 0 12px; color: var(--text-secondary); font-size: 14px;">👤 客户概要</h4>
+                        <h4 style="margin: 16px 0 12px; color: var(--text-secondary); font-size: 14px;">${c.is_enterprise ? '🏢 企业概要' : '👤 客户概要'}</h4>
                         <div class="customer-profile" style="margin-bottom: 16px;">
                             <div class="profile-item">
                                 <span class="profile-label">客户ID</span>
@@ -1958,18 +2055,55 @@
                                 <span class="profile-label">行业</span>
                                 <span class="profile-value">${c.industry}</span>
                             </div>
+                            ${c.is_enterprise ? `
+                            <div class="profile-item">
+                                <span class="profile-label">成立年限</span>
+                                <span class="profile-value">${c.years_in_business}年</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">员工数</span>
+                                <span class="profile-value">${c.employee_count ? c.employee_count.toLocaleString() : '--'}人</span>
+                            </div>
+                            ` : `
                             <div class="profile-item">
                                 <span class="profile-label">年龄</span>
                                 <span class="profile-value">${c.age}岁</span>
                             </div>
+                            `}
                         </div>
                         
                         <!-- 财务状况 -->
-                        <h4 style="margin: 16px 0 12px; color: var(--text-secondary); font-size: 14px;">💰 财务状况</h4>
+                        <h4 style="margin: 16px 0 12px; color: var(--text-secondary); font-size: 14px;">💰 ${c.is_enterprise ? '企业财务' : '个人财务'}</h4>
                         <div class="customer-profile" style="margin-bottom: 16px;">
+                            ${c.is_enterprise ? `
+                            <div class="profile-item">
+                                <span class="profile-label">年营业收入</span>
+                                <span class="profile-value">¥${(c.annual_revenue / 1e6).toFixed(2)}百万</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">净利润</span>
+                                <span class="profile-value ${c.net_profit < 0 ? 'negative' : ''}">¥${(c.net_profit / 1e6).toFixed(2)}百万</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">净利润率</span>
+                                <span class="profile-value ${c.profit_margin < 0.05 ? 'negative' : c.profit_margin < 0.1 ? 'warning' : ''}">${(c.profit_margin * 100).toFixed(2)}%</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">流动比率</span>
+                                <span class="profile-value ${c.current_ratio < 1.2 ? 'negative' : c.current_ratio < 1.5 ? 'warning' : ''}">${c.current_ratio.toFixed(2)}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">资产负债率</span>
+                                <span class="profile-value ${c.debt_ratio > 0.65 ? 'negative' : c.debt_ratio > 0.5 ? 'warning' : ''}">${(c.debt_ratio * 100).toFixed(1)}%</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">经营现金流</span>
+                                <span class="profile-value ${c.operating_cash_flow < 0 ? 'negative' : ''}">¥${(c.operating_cash_flow / 1e6).toFixed(2)}百万</span>
+                            </div>
+                            ` : `
                             <div class="profile-item">
                                 <span class="profile-label">月收入</span>
-                                <span class="profile-value">¥${c.monthly_income.toLocaleString()}</span>
+                                <span class="profile-value">¥${c.monthly_income ? c.monthly_income.toLocaleString() : '--'}</span>
                             </div>
                             <div class="profile-item">
                                 <span class="profile-label">负债率</span>
@@ -1983,7 +2117,69 @@
                                 <span class="profile-label">月供金额</span>
                                 <span class="profile-value">¥${monthlyPayment.toLocaleString()}</span>
                             </div>
+                            `}
                         </div>
+                        
+                        ${c.is_enterprise ? `
+                        <!-- 企业专用信息 -->
+                        <h4 style="margin: 16px 0 12px; color: var(--text-secondary); font-size: 14px;">🔬 创新能力</h4>
+                        <div class="customer-profile" style="margin-bottom: 16px;">
+                            <div class="profile-item">
+                                <span class="profile-label">研发费用</span>
+                                <span class="profile-value">¥${(c.rnd_expense / 1e6).toFixed(2)}百万</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">研发费用率</span>
+                                <span class="profile-value">${(c.rnd_expense_ratio * 100).toFixed(2)}%</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">专利总数</span>
+                                <span class="profile-value">${c.total_patents || 0}项</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">发明专利</span>
+                                <span class="profile-value">${c.invention_patents || 0}项</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">创新能力评分</span>
+                                <span class="profile-value ${c.innovation_score > 0.6 ? 'positive' : c.innovation_score > 0.3 ? 'warning' : 'negative'}">${(c.innovation_score * 100).toFixed(0)}</span>
+                            </div>
+                        </div>
+                        
+                        <h4 style="margin: 16px 0 12px; color: var(--text-secondary); font-size: 14px;">📊 市场信息</h4>
+                        <div class="customer-profile" style="margin-bottom: 16px;">
+                            <div class="profile-item">
+                                <span class="profile-label">是否上市</span>
+                                <span class="profile-value">${c.is_listed ? '是' : '否'}</span>
+                            </div>
+                            ${c.is_listed ? `
+                            <div class="profile-item">
+                                <span class="profile-label">市值</span>
+                                <span class="profile-value">¥${(c.market_cap / 1e8).toFixed(2)}亿</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">股价</span>
+                                <span class="profile-value">¥${c.stock_price.toFixed(2)}</span>
+                            </div>
+                            ` : ''}
+                            <div class="profile-item">
+                                <span class="profile-label">信用评级</span>
+                                <span class="profile-value ${c.credit_rating && c.credit_rating.startsWith('AAA') ? 'positive' : c.credit_rating && ['AA', 'A'].some(r => c.credit_rating.startsWith(r)) ? 'warning' : 'negative'}">${c.credit_rating || '--'}</span>
+                            </div>
+                            ${c.industry_ranking > 0 ? `
+                            <div class="profile-item">
+                                <span class="profile-label">行业排名</span>
+                                <span class="profile-value">第${c.industry_ranking}名</span>
+                            </div>
+                            ` : ''}
+                            ${c.market_share > 0 ? `
+                            <div class="profile-item">
+                                <span class="profile-label">市场份额</span>
+                                <span class="profile-value">${c.market_share.toFixed(2)}%</span>
+                            </div>
+                            ` : ''}
+                        </div>
+                        ` : ''}
                         
                         <!-- 信用历史 -->
                         <h4 style="margin: 16px 0 12px; color: var(--text-secondary); font-size: 14px;">📊 信用历史</h4>
@@ -2364,6 +2560,8 @@
         
         let cycleChart = null;
         let typeChart = null;
+        let industryChart = null;
+        let riskDistributionChart = null;
         
         async function runCycleAnalysis() {
             const count = parseInt(document.getElementById('analysis-count').value);
@@ -2383,17 +2581,63 @@
                     document.getElementById('btn-cycle-trace').style.display = 'block';
                     document.getElementById('cycle-run-id').textContent = `运行ID: ${data.run_id || '--'}`;
                     
-                    // 显示统计卡片
+                    // 显示统计卡片 - 扩展版
                     const statsDiv = document.getElementById('cycle-stats');
-                    statsDiv.innerHTML = Object.entries(data.scenarios).map(([name, s]) => `
+                    statsDiv.innerHTML = Object.entries(data.scenarios).map(([name, s]) => {
+                        const indicators = s.economic_indicators || {};
+                        return `
                         <div class="stat-card">
                             <div class="stat-label">${name}</div>
                             <div class="stat-value ${s.avg_default_rate > 0.15 ? 'negative' : s.avg_default_rate > 0.08 ? 'warning' : 'positive'}">
                                 ${(s.avg_default_rate * 100).toFixed(2)}%
                             </div>
-                            <div class="stat-change">高风险: ${s.high_risk_count}人 (${(s.high_risk_ratio * 100).toFixed(0)}%)</div>
+                            <div class="stat-change">
+                                高风险: ${s.high_risk_count}人 (${(s.high_risk_ratio * 100).toFixed(0)}%)<br>
+                                健康度: ${indicators.economic_health_score ? indicators.economic_health_score.toFixed(1) : '--'}
+                            </div>
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
+                    
+                    // 显示预警信号
+                    if (data.warnings && data.warnings.length > 0) {
+                        document.getElementById('warnings-card').style.display = 'block';
+                        const warningsContent = document.getElementById('warnings-content');
+                        warningsContent.innerHTML = data.warnings.map(w => `
+                            <div class="alert ${w.level === 'critical' ? 'alert-danger' : w.level === 'high' ? 'alert-warning' : 'alert-info'}" style="margin-bottom: 12px;">
+                                <strong>${w.scenario}</strong>: ${w.message}
+                            </div>
+                        `).join('');
+                    }
+                    
+                    // 显示经济指标详情
+                    const indicatorsGrid = document.getElementById('economic-indicators-grid');
+                    indicatorsGrid.innerHTML = Object.entries(data.scenarios).map(([name, s]) => {
+                        const ind = s.economic_indicators || {};
+                        return `
+                            <div class="card" style="padding: 16px;">
+                                <h4 style="margin-bottom: 12px; color: var(--accent);">${name}</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                                    <div><strong>GDP增长率:</strong> ${(ind.gdp_growth * 100).toFixed(2)}%</div>
+                                    <div><strong>失业率:</strong> ${(ind.unemployment_rate * 100).toFixed(2)}%</div>
+                                    <div><strong>通胀率:</strong> ${(ind.inflation_rate * 100).toFixed(2)}%</div>
+                                    <div><strong>基准利率:</strong> ${(ind.base_interest_rate * 100).toFixed(2)}%</div>
+                                    <div><strong>消费者信心:</strong> ${(ind.consumer_confidence * 100).toFixed(0)}</div>
+                                    <div><strong>制造业PMI:</strong> ${ind.manufacturing_pmi ? ind.manufacturing_pmi.toFixed(1) : '--'}</div>
+                                    <div><strong>房价指数:</strong> ${ind.housing_price_index ? ind.housing_price_index.toFixed(1) : '--'}</div>
+                                    <div><strong>股市指数:</strong> ${ind.stock_index ? ind.stock_index.toFixed(0) : '--'}</div>
+                                    <div><strong>M2增长率:</strong> ${(ind.m2_growth * 100).toFixed(2)}%</div>
+                                    <div><strong>汇率:</strong> ${ind.exchange_rate ? ind.exchange_rate.toFixed(2) : '--'}</div>
+                                    <div><strong>贸易余额:</strong> ${ind.trade_balance ? ind.trade_balance.toFixed(0) : '--'}亿美元</div>
+                                    <div><strong>风险偏好:</strong> ${(ind.risk_appetite * 100).toFixed(0)}</div>
+                                    <div><strong>流动性:</strong> ${(ind.liquidity_index * 100).toFixed(0)}</div>
+                                    <div><strong>市场波动:</strong> ${(ind.market_volatility * 100).toFixed(2)}%</div>
+                                    <div><strong>政策刺激:</strong> ${(ind.policy_stimulus_level * 100).toFixed(0)}</div>
+                                    <div><strong>经济压力:</strong> ${(ind.economic_stress * 100).toFixed(1)}</div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
                     
                     // 绘制周期图表
                     const cycleCtx = document.getElementById('cycle-chart').getContext('2d');
@@ -2466,9 +2710,170 @@
                             }
                         }
                     });
+                    
+                    // 行业风险分析
+                    const firstScenario = Object.values(data.scenarios)[0];
+                    if (firstScenario.by_industry && Object.keys(firstScenario.by_industry).length > 0) {
+                        document.getElementById('industry-analysis-card').style.display = 'block';
+                        const industryCtx = document.getElementById('industry-chart').getContext('2d');
+                        if (industryChart) industryChart.destroy();
+                        
+                        // 收集所有场景的行业数据
+                        const industryData = {};
+                        Object.entries(data.scenarios).forEach(([scenarioName, scenario]) => {
+                            Object.entries(scenario.by_industry || {}).forEach(([industry, data]) => {
+                                if (!industryData[industry]) {
+                                    industryData[industry] = [];
+                                }
+                                industryData[industry].push({
+                                    scenario: scenarioName,
+                                    default_rate: data.avg_default_rate,
+                                    count: data.count
+                                });
+                            });
+                        });
+                        
+                        const industries = Object.keys(industryData);
+                        const scenarios = Object.keys(data.scenarios);
+                        
+                        industryChart = new Chart(industryCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: industries,
+                                datasets: scenarios.map((scenarioName, idx) => ({
+                                    label: scenarioName,
+                                    data: industries.map(industry => {
+                                        const item = industryData[industry].find(d => d.scenario === scenarioName);
+                                        return item ? (item.default_rate * 100) : 0;
+                                    }),
+                                    backgroundColor: [
+                                        'rgba(0, 212, 170, 0.7)',
+                                        'rgba(59, 130, 246, 0.7)',
+                                        'rgba(245, 158, 11, 0.7)',
+                                        'rgba(239, 68, 68, 0.7)'
+                                    ][idx]
+                                }))
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { labels: { color: '#f1f5f9' } }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        grid: { color: 'rgba(255,255,255,0.1)' },
+                                        ticks: { color: '#94a3b8' }
+                                    },
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: { color: '#94a3b8' }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    
+                    // 风险分布分析
+                    if (firstScenario.risk_distribution) {
+                        document.getElementById('risk-distribution-card').style.display = 'block';
+                        const riskDistCtx = document.getElementById('risk-distribution-chart').getContext('2d');
+                        if (riskDistributionChart) riskDistributionChart.destroy();
+                        
+                        riskDistributionChart = new Chart(riskDistCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: Object.keys(data.scenarios),
+                                datasets: [
+                                    {
+                                        label: '低风险 (<5%)',
+                                        data: Object.values(data.scenarios).map(s => (s.risk_distribution?.low_risk || 0) * 100),
+                                        backgroundColor: 'rgba(0, 212, 170, 0.7)'
+                                    },
+                                    {
+                                        label: '中风险 (5-15%)',
+                                        data: Object.values(data.scenarios).map(s => (s.risk_distribution?.medium_risk || 0) * 100),
+                                        backgroundColor: 'rgba(245, 158, 11, 0.7)'
+                                    },
+                                    {
+                                        label: '高风险 (15-25%)',
+                                        data: Object.values(data.scenarios).map(s => (s.risk_distribution?.high_risk || 0) * 100),
+                                        backgroundColor: 'rgba(239, 68, 68, 0.7)'
+                                    },
+                                    {
+                                        label: '极高风险 (>25%)',
+                                        data: Object.values(data.scenarios).map(s => (s.risk_distribution?.very_high_risk || 0) * 100),
+                                        backgroundColor: 'rgba(139, 92, 246, 0.7)'
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { labels: { color: '#f1f5f9' } }
+                                },
+                                scales: {
+                                    x: { stacked: true, grid: { display: false }, ticks: { color: '#94a3b8' } },
+                                    y: { 
+                                        stacked: true, 
+                                        beginAtZero: true,
+                                        max: 100,
+                                        grid: { color: 'rgba(255,255,255,0.1)' },
+                                        ticks: { color: '#94a3b8', callback: function(value) { return value + '%'; } }
+                                    }
+                                }
+                            }
+                        });
+                        
+                        // 风险分布统计
+                        const riskStatsDiv = document.getElementById('risk-distribution-stats');
+                        riskStatsDiv.innerHTML = Object.entries(data.scenarios).map(([name, s]) => {
+                            const dist = s.risk_distribution || {};
+                            return `
+                                <div style="margin-bottom: 16px;">
+                                    <h4 style="color: var(--accent); margin-bottom: 8px;">${name}</h4>
+                                    <div style="font-size: 13px; line-height: 1.8;">
+                                        <div>低风险: <strong>${((dist.low_risk || 0) * 100).toFixed(1)}%</strong></div>
+                                        <div>中风险: <strong>${((dist.medium_risk || 0) * 100).toFixed(1)}%</strong></div>
+                                        <div>高风险: <strong>${((dist.high_risk || 0) * 100).toFixed(1)}%</strong></div>
+                                        <div>极高风险: <strong>${((dist.very_high_risk || 0) * 100).toFixed(1)}%</strong></div>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
+                    
+                    // 指标相关性分析
+                    if (data.correlations) {
+                        document.getElementById('correlation-card').style.display = 'block';
+                        const corrContent = document.getElementById('correlation-content');
+                        corrContent.innerHTML = `
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                                ${Object.entries(data.correlations).map(([scenario, corr]) => `
+                                    <div class="card" style="padding: 16px;">
+                                        <h4 style="margin-bottom: 12px; color: var(--accent);">${scenario}</h4>
+                                        <div style="font-size: 13px; line-height: 1.8;">
+                                            <div>GDP vs 违约率: <strong>${corr.gdp_vs_default ? corr.gdp_vs_default.toFixed(2) : '--'}</strong></div>
+                                            <div>失业率 vs 违约率: <strong>${corr.unemployment_vs_default ? corr.unemployment_vs_default.toFixed(2) : '--'}</strong></div>
+                                            <div>信心指数 vs 违约率: <strong>${corr.confidence_vs_default ? corr.confidence_vs_default.toFixed(2) : '--'}</strong></div>
+                                            <div>PMI vs 违约率: <strong>${corr.pmi_vs_default ? corr.pmi_vs_default.toFixed(2) : '--'}</strong></div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+                    
+                    // 显示摘要信息
+                    if (data.summary) {
+                        console.log('分析摘要:', data.summary);
+                    }
                 }
             } catch (error) {
                 alert('分析失败: ' + error.message);
+                console.error(error);
             }
         }
         

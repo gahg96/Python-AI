@@ -2,6 +2,7 @@
 数据加载器 - 加载真实的历史数据集
 
 支持从 Parquet 文件加载大规模历史数据
+支持从云存储（Google Drive、Dropbox等）自动下载数据
 """
 
 import os
@@ -12,6 +13,16 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
+# 尝试导入云存储模块
+try:
+    import sys
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+    from utils.cloud_storage import DataLoader as CloudDataLoader
+    CLOUD_STORAGE_AVAILABLE = True
+except ImportError:
+    CLOUD_STORAGE_AVAILABLE = False
+    CloudDataLoader = None
+
 
 class HistoricalDataLoader:
     """
@@ -20,13 +31,24 @@ class HistoricalDataLoader:
     加载并预处理大规模历史贷款数据
     """
     
-    def __init__(self, data_dir: str):
+    def __init__(self, data_dir: str, use_cloud_storage: bool = True):
+        """
+        初始化数据加载器
+        
+        Args:
+            data_dir: 本地数据目录
+            use_cloud_storage: 是否使用云存储（如果本地文件不存在）
+        """
         self.data_dir = Path(data_dir)
+        self.use_cloud_storage = use_cloud_storage and CLOUD_STORAGE_AVAILABLE
         self.customers: Optional[pd.DataFrame] = None
         self.loans: Optional[pd.DataFrame] = None
         self.repayments: Optional[pd.DataFrame] = None
         self.macro: Optional[pd.DataFrame] = None
         self._loaded = False
+        
+        if self.use_cloud_storage:
+            self.cloud_loader = CloudDataLoader()
     
     def load(self, sample_size: Optional[int] = None) -> 'HistoricalDataLoader':
         """
@@ -44,6 +66,15 @@ class HistoricalDataLoader:
             if sample_size and len(self.customers) > sample_size:
                 self.customers = self.customers.sample(n=sample_size, random_state=42)
             print(f"  ✅ 客户数据: {len(self.customers):,} 条")
+        elif self.use_cloud_storage:
+            try:
+                print("  📥 从云存储加载客户数据...")
+                self.customers = self.cloud_loader.get_customers()
+                if sample_size and len(self.customers) > sample_size:
+                    self.customers = self.customers.sample(n=sample_size, random_state=42)
+                print(f"  ✅ 客户数据: {len(self.customers):,} 条")
+            except Exception as e:
+                print(f"  ⚠️  从云存储加载失败: {e}")
         
         # 加载贷款数据
         loans_path = self.data_dir / 'loan_applications.parquet'
@@ -53,6 +84,16 @@ class HistoricalDataLoader:
                 customer_ids = set(self.customers['customer_id'])
                 self.loans = self.loans[self.loans['customer_id'].isin(customer_ids)]
             print(f"  ✅ 贷款申请: {len(self.loans):,} 条")
+        elif self.use_cloud_storage:
+            try:
+                print("  📥 从云存储加载贷款数据...")
+                self.loans = self.cloud_loader.get_loan_applications()
+                if sample_size and self.customers is not None:
+                    customer_ids = set(self.customers['customer_id'])
+                    self.loans = self.loans[self.loans['customer_id'].isin(customer_ids)]
+                print(f"  ✅ 贷款申请: {len(self.loans):,} 条")
+            except Exception as e:
+                print(f"  ⚠️  从云存储加载失败: {e}")
         
         # 加载还款数据
         repayments_path = self.data_dir / 'repayment_history.parquet'
@@ -62,12 +103,29 @@ class HistoricalDataLoader:
                 loan_ids = set(self.loans['application_id'])
                 self.repayments = self.repayments[self.repayments['application_id'].isin(loan_ids)]
             print(f"  ✅ 还款记录: {len(self.repayments):,} 条")
+        elif self.use_cloud_storage:
+            try:
+                print("  📥 从云存储加载还款数据...")
+                self.repayments = self.cloud_loader.get_repayment_history()
+                if sample_size and self.loans is not None:
+                    loan_ids = set(self.loans['application_id'])
+                    self.repayments = self.repayments[self.repayments['application_id'].isin(loan_ids)]
+                print(f"  ✅ 还款记录: {len(self.repayments):,} 条")
+            except Exception as e:
+                print(f"  ⚠️  从云存储加载失败: {e}")
         
         # 加载宏观数据
         macro_path = self.data_dir / 'macro_economics.parquet'
         if macro_path.exists():
             self.macro = pd.read_parquet(macro_path)
             print(f"  ✅ 宏观数据: {len(self.macro):,} 条")
+        elif self.use_cloud_storage:
+            try:
+                print("  📥 从云存储加载宏观数据...")
+                self.macro = self.cloud_loader.get_macro_economics()
+                print(f"  ✅ 宏观数据: {len(self.macro):,} 条")
+            except Exception as e:
+                print(f"  ⚠️  从云存储加载失败: {e}")
         
         self._loaded = True
         return self

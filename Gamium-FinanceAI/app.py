@@ -27,6 +27,7 @@ from data_distillation.distillation_pipeline import (
     DistillationPipeline, DistillationConfig
 )
 from environment.lending_env import LendingEnv
+from environment.economic_cycle import CyclePhase
 from agents.baseline_agents import (
     RandomAgent, RuleBasedAgent, ConservativeAgent, AggressiveAgent
 )
@@ -154,10 +155,16 @@ def generate_customer():
     customer_type = None
     if data.get('customer_type'):
         type_map = {
+            # 个人客户
             'salaried': CustomerType.SALARIED,
             'small_business': CustomerType.SMALL_BUSINESS,
             'freelancer': CustomerType.FREELANCER,
             'farmer': CustomerType.FARMER,
+            # 企业客户
+            'micro_enterprise': CustomerType.MICRO_ENTERPRISE,
+            'small_enterprise': CustomerType.SMALL_ENTERPRISE,
+            'medium_enterprise': CustomerType.MEDIUM_ENTERPRISE,
+            'large_enterprise': CustomerType.LARGE_ENTERPRISE,
         }
         customer_type = type_map.get(data['customer_type'])
     
@@ -202,59 +209,91 @@ def generate_batch():
 @app.route('/api/predict', methods=['POST'])
 def predict():
     """预测客户未来"""
-    data = request.json
+    try:
+        data = request.json
+        if data is None:
+            return jsonify({'success': False, 'error': 'Invalid JSON data'}), 400
     
-    # 生成或使用提供的客户
-    if data.get('customer'):
-        # 从提供的数据创建客户 (简化处理，使用生成器)
-        customer = generator.generate_one(
-            risk_profile=data.get('risk_profile', 'medium')
+        # 生成或使用提供的客户
+        customer_type_str = data.get('customer_type', 'salaried')
+        risk_profile = data.get('risk_profile', 'medium')
+        
+        # 解析客户类型
+        type_map = {
+            'salaried': CustomerType.SALARIED,
+            'small_business': CustomerType.SMALL_BUSINESS,
+            'freelancer': CustomerType.FREELANCER,
+            'farmer': CustomerType.FARMER,
+            'micro_enterprise': CustomerType.MICRO_ENTERPRISE,
+            'small_enterprise': CustomerType.SMALL_ENTERPRISE,
+            'medium_enterprise': CustomerType.MEDIUM_ENTERPRISE,
+            'large_enterprise': CustomerType.LARGE_ENTERPRISE,
+        }
+        customer_type = type_map.get(customer_type_str, CustomerType.SALARIED)
+        
+        if data.get('customer'):
+            # 从提供的数据创建客户 (简化处理，使用生成器)
+            customer = generator.generate_one(
+                customer_type=customer_type,
+                risk_profile=risk_profile
+            )
+            # 覆盖关键字段
+            if data['customer'].get('monthly_income'):
+                customer.monthly_income = float(data['customer']['monthly_income'])
+            if data['customer'].get('debt_ratio'):
+                customer.total_liabilities = customer.total_assets * float(data['customer']['debt_ratio'])
+        else:
+            customer = generator.generate_one(
+                customer_type=customer_type,
+                risk_profile=risk_profile
+            )
+        
+        # 贷款条件
+        loan_data = data.get('loan', {})
+        loan = LoanOffer(
+            amount=float(loan_data.get('amount', 100000)),
+            interest_rate=float(loan_data.get('interest_rate', 0.08)),
+            term_months=int(loan_data.get('term_months', 24)),
         )
-        # 覆盖关键字段
-        if data['customer'].get('monthly_income'):
-            customer.monthly_income = float(data['customer']['monthly_income'])
-        if data['customer'].get('debt_ratio'):
-            customer.total_liabilities = customer.total_assets * float(data['customer']['debt_ratio'])
-    else:
-        customer = generator.generate_one(risk_profile='medium')
-    
-    # 贷款条件
-    loan_data = data.get('loan', {})
-    loan = LoanOffer(
-        amount=float(loan_data.get('amount', 100000)),
-        interest_rate=float(loan_data.get('interest_rate', 0.08)),
-        term_months=int(loan_data.get('term_months', 24)),
-    )
-    
-    # 市场环境
-    market_data = data.get('market', {})
-    market = MarketConditions(
-        gdp_growth=float(market_data.get('gdp_growth', 0.03)),
-        base_interest_rate=float(market_data.get('base_interest_rate', 0.04)),
-        unemployment_rate=float(market_data.get('unemployment_rate', 0.05)),
-        inflation_rate=float(market_data.get('inflation_rate', 0.02)),
-        credit_spread=float(market_data.get('credit_spread', 0.02)),
-    )
-    
-    # 预测
-    future = world_model.predict_customer_future(customer, loan, market)
-    
-    return jsonify({
-        'success': True,
-        'customer': customer.to_dict(),
-        'loan': {
-            'amount': loan.amount,
-            'interest_rate': loan.interest_rate,
-            'term_months': loan.term_months,
-            'monthly_payment': loan.monthly_payment,
-        },
-        'market': {
-            'gdp_growth': market.gdp_growth,
-            'unemployment_rate': market.unemployment_rate,
-            'economic_stress': market.economic_stress,
-        },
-        'prediction': future.to_dict()
-    })
+        
+        # 市场环境
+        market_data = data.get('market', {})
+        market = MarketConditions(
+            gdp_growth=float(market_data.get('gdp_growth', 0.03)),
+            base_interest_rate=float(market_data.get('base_interest_rate', 0.04)),
+            unemployment_rate=float(market_data.get('unemployment_rate', 0.05)),
+            inflation_rate=float(market_data.get('inflation_rate', 0.02)),
+            credit_spread=float(market_data.get('credit_spread', 0.02)),
+        )
+        
+        # 预测
+        future = world_model.predict_customer_future(customer, loan, market)
+        
+        return jsonify({
+            'success': True,
+            'customer': customer.to_dict(),
+            'loan': {
+                'amount': loan.amount,
+                'interest_rate': loan.interest_rate,
+                'term_months': loan.term_months,
+                'monthly_payment': loan.monthly_payment,
+            },
+            'market': {
+                'gdp_growth': market.gdp_growth,
+                'unemployment_rate': market.unemployment_rate,
+                'economic_stress': market.economic_stress,
+            },
+            'prediction': future.to_dict()
+        })
+    except Exception as e:
+        import traceback
+        error_msg = str(e)
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': error_msg,
+            'traceback': traceback.format_exc() if app.debug else None
+        }), 500
 
 # ============================================================
 # 经济周期分析 API
@@ -324,48 +363,118 @@ def economic_cycle_analysis():
         for c in customers[:10]  # 前10个样本
     ]
     
-    # Step 2: 定义分析场景
+    # Step 2: 定义分析场景 - 使用扩展指标
     scenarios = {
-        "繁荣期": MarketConditions(0.06, 0.05, 0.04, 0.02, 0.02),
-        "正常期": MarketConditions(0.03, 0.04, 0.05, 0.02, 0.02),
-        "衰退期": MarketConditions(0.01, 0.03, 0.07, 0.03, 0.03),
-        "萧条期": MarketConditions(-0.02, 0.02, 0.10, 0.01, 0.04),
+        "繁荣期": MarketConditions(
+            gdp_growth=0.06, base_interest_rate=0.05, unemployment_rate=0.04,
+            inflation_rate=0.02, credit_spread=0.02,
+            consumer_confidence=0.75, manufacturing_pmi=55.0, housing_price_index=120.0,
+            stock_index=3500.0, m2_growth=0.12, exchange_rate=6.8, trade_balance=300.0,
+            fiscal_policy_stance=0.4, monetary_policy_stance=0.4,
+            risk_appetite=0.7, liquidity_index=0.7, market_volatility=0.12
+        ),
+        "正常期": MarketConditions(
+            gdp_growth=0.03, base_interest_rate=0.04, unemployment_rate=0.05,
+            inflation_rate=0.02, credit_spread=0.02,
+            consumer_confidence=0.60, manufacturing_pmi=50.0, housing_price_index=105.0,
+            stock_index=3000.0, m2_growth=0.10, exchange_rate=7.0, trade_balance=200.0,
+            fiscal_policy_stance=0.5, monetary_policy_stance=0.5,
+            risk_appetite=0.5, liquidity_index=0.5, market_volatility=0.15
+        ),
+        "衰退期": MarketConditions(
+            gdp_growth=0.01, base_interest_rate=0.03, unemployment_rate=0.07,
+            inflation_rate=0.03, credit_spread=0.03,
+            consumer_confidence=0.55, manufacturing_pmi=48.0, housing_price_index=100.0,
+            stock_index=2800.0, m2_growth=0.08, exchange_rate=7.2, trade_balance=100.0,
+            fiscal_policy_stance=0.6, monetary_policy_stance=0.6,
+            risk_appetite=0.4, liquidity_index=0.5, market_volatility=0.18
+        ),
+        "萧条期": MarketConditions(
+            gdp_growth=-0.02, base_interest_rate=0.02, unemployment_rate=0.10,
+            inflation_rate=0.01, credit_spread=0.04,
+            consumer_confidence=0.35, manufacturing_pmi=42.0, housing_price_index=95.0,
+            stock_index=2400.0, m2_growth=0.15, exchange_rate=7.5, trade_balance=-50.0,
+            fiscal_policy_stance=0.8, monetary_policy_stance=0.8,
+            risk_appetite=0.2, liquidity_index=0.3, market_volatility=0.25
+        ),
     }
+    
+    # 生成详细的经济指标报告
+    scenario_details = {}
+    for name, market in scenarios.items():
+        scenario_details[name] = market.to_dict()
     
     cycle_analysis_trace["steps"].append({
         "step_id": 2,
         "name": "场景定义",
         "details": {
-            "scenarios": {
-                name: {"gdp_growth": m.gdp_growth, "unemployment": m.unemployment_rate}
-                for name, m in scenarios.items()
-            }
+            "scenarios": scenario_details
         }
     })
     add_log("DEFINE_SCENARIOS", "定义4个经济周期场景: 繁荣期, 正常期, 衰退期, 萧条期")
     
     loan = LoanOffer(amount=100000, interest_rate=0.08, term_months=24)
     
-    # Step 3: 逐场景分析
+    # Step 3: 逐场景分析 - 扩展分析
     results = {}
     for scenario_name, market in scenarios.items():
         step_start = datetime.now()
         default_probs = []
         ltvs = []
+        churn_probs = []
+        expected_dpds = []
+        
+        # 按行业分析
+        by_industry = {}
         
         for customer in customers:
             future = world_model.predict_customer_future(customer, loan, market)
             default_probs.append(future.default_probability)
             ltvs.append(future.expected_ltv)
+            churn_probs.append(future.churn_probability)
+            expected_dpds.append(future.expected_dpd)
+            
+            # 按行业统计
+            industry = customer.industry.value if hasattr(customer, 'industry') else '其他'
+            if industry not in by_industry:
+                by_industry[industry] = {'default_probs': [], 'count': 0}
+            by_industry[industry]['default_probs'].append(future.default_probability)
+            by_industry[industry]['count'] += 1
+        
+        # 计算行业风险
+        industry_risk = {
+            ind: {
+                'avg_default_rate': float(np.mean(data['default_probs'])),
+                'count': data['count']
+            }
+            for ind, data in by_industry.items()
+        }
         
         results[scenario_name] = {
+            # 基础指标
             'avg_default_rate': float(np.mean(default_probs)),
             'avg_ltv': float(np.mean(ltvs)),
             'high_risk_count': int(sum(1 for p in default_probs if p > 0.15)),
             'high_risk_ratio': sum(1 for p in default_probs if p > 0.15) / len(default_probs),
+            # 扩展指标
+            'avg_churn_probability': float(np.mean(churn_probs)),
+            'avg_expected_dpd': float(np.mean(expected_dpds)),
+            'median_default_rate': float(np.median(default_probs)),
+            'std_default_rate': float(np.std(default_probs)),
+            # 经济指标
+            'economic_indicators': market.to_dict(),
+            # 行业分析
+            'by_industry': industry_risk,
+            # 风险分布
+            'risk_distribution': {
+                'low_risk': sum(1 for p in default_probs if p < 0.05) / len(default_probs),
+                'medium_risk': sum(1 for p in default_probs if 0.05 <= p < 0.15) / len(default_probs),
+                'high_risk': sum(1 for p in default_probs if 0.15 <= p < 0.25) / len(default_probs),
+                'very_high_risk': sum(1 for p in default_probs if p >= 0.25) / len(default_probs),
+            }
         }
         
-        add_log("ANALYZE_SCENARIO", f"{scenario_name}: 违约率={results[scenario_name]['avg_default_rate']*100:.2f}%, 高风险={results[scenario_name]['high_risk_count']}人")
+        add_log("ANALYZE_SCENARIO", f"{scenario_name}: 违约率={results[scenario_name]['avg_default_rate']*100:.2f}%, 高风险={results[scenario_name]['high_risk_count']}人, 经济健康度={results[scenario_name]['economic_indicators']['economic_health_score']:.1f}")
     
     cycle_analysis_trace["steps"].append({
         "step_id": 3,
@@ -397,8 +506,78 @@ def economic_cycle_analysis():
     })
     add_log("TYPE_ANALYSIS", f"完成客户类型风险细分: {list(type_analysis.keys())}")
     
+    # Step 5: 生成综合分析报告
+    step5_start = datetime.now()
+    
+    # 计算指标相关性
+    correlations = {}
+    for scenario_name, result in results.items():
+        indicators = result['economic_indicators']
+        default_rate = result['avg_default_rate']
+        
+        correlations[scenario_name] = {
+            'gdp_vs_default': -indicators['gdp_growth'] / (default_rate + 0.01),  # 负相关
+            'unemployment_vs_default': indicators['unemployment_rate'] / (default_rate + 0.01),  # 正相关
+            'confidence_vs_default': -indicators['consumer_confidence'] / (default_rate + 0.01),  # 负相关
+            'pmi_vs_default': -(indicators['manufacturing_pmi'] - 50) / (default_rate + 0.01),  # 负相关
+        }
+    
+    # 生成预警信号
+    warnings = []
+    for scenario_name, result in results.items():
+        indicators = result['economic_indicators']
+        default_rate = result['avg_default_rate']
+        
+        if indicators['gdp_growth'] < 0:
+            warnings.append({
+                'scenario': scenario_name,
+                'level': 'high',
+                'type': 'gdp_negative',
+                'message': f'{scenario_name}: GDP负增长，经济衰退风险高'
+            })
+        
+        if indicators['unemployment_rate'] > 0.08:
+            warnings.append({
+                'scenario': scenario_name,
+                'level': 'high',
+                'type': 'high_unemployment',
+                'message': f'{scenario_name}: 失业率超过8%，就业市场压力大'
+            })
+        
+        if default_rate > 0.20:
+            warnings.append({
+                'scenario': scenario_name,
+                'level': 'critical',
+                'type': 'high_default_rate',
+                'message': f'{scenario_name}: 违约率超过20%，信贷风险极高'
+            })
+        
+        if indicators['consumer_confidence'] < 0.4:
+            warnings.append({
+                'scenario': scenario_name,
+                'level': 'medium',
+                'type': 'low_confidence',
+                'message': f'{scenario_name}: 消费者信心指数低于40%，市场情绪低迷'
+            })
+    
+    cycle_analysis_trace["steps"].append({
+        "step_id": 5,
+        "name": "综合分析报告",
+        "duration_ms": int((datetime.now() - step5_start).total_seconds() * 1000),
+        "details": {
+            "correlations": correlations,
+            "warnings": warnings
+        }
+    })
+    add_log("COMPREHENSIVE_ANALYSIS", f"生成综合分析报告: {len(warnings)}个预警信号")
+    
     cycle_analysis_trace["end_time"] = datetime.now().isoformat()
-    cycle_analysis_trace["results"] = {"scenarios": results, "by_type": type_analysis}
+    cycle_analysis_trace["results"] = {
+        "scenarios": results,
+        "by_type": type_analysis,
+        "correlations": correlations,
+        "warnings": warnings
+    }
     add_log("COMPLETE", "经济周期分析完成")
     
     return jsonify({
@@ -406,7 +585,15 @@ def economic_cycle_analysis():
         'run_id': run_id,
         'customer_count': n_customers,
         'scenarios': results,
-        'by_customer_type': type_analysis
+        'by_customer_type': type_analysis,
+        'correlations': correlations,
+        'warnings': warnings,
+        'summary': {
+            'total_indicators': 18,  # 扩展后的指标数量
+            'total_warnings': len(warnings),
+            'highest_risk_scenario': max(results.items(), key=lambda x: x[1]['avg_default_rate'])[0],
+            'lowest_risk_scenario': min(results.items(), key=lambda x: x[1]['avg_default_rate'])[0],
+        }
     })
 
 @app.route('/api/analysis/trace', methods=['GET'])
@@ -486,12 +673,18 @@ def simulation_step():
 
 @app.route('/api/simulation/auto-run', methods=['POST'])
 def auto_run_simulation():
-    """自动运行完整模拟"""
+    """自动运行完整模拟 - 扩展版"""
     global simulation_trace
     
     data = request.json or {}
     strategy = data.get('strategy', 'rule_based')
     seed = data.get('seed', 42)
+    
+    # 扩展输入参数
+    initial_capital = data.get('initial_capital', 100.0)  # 初始资本（亿）
+    simulation_years = data.get('simulation_years', 10)  # 模拟年数
+    initial_phase = data.get('initial_phase', 'boom')  # 初始经济周期
+    risk_appetite = data.get('risk_appetite', 0.5)  # 风险偏好 (0-1)
     
     run_id = datetime.now().strftime('%Y%m%d_%H%M%S')
     strategy_names = {
@@ -501,16 +694,34 @@ def auto_run_simulation():
         'aggressive': '激进策略'
     }
     
+    phase_map = {
+        'boom': CyclePhase.BOOM,
+        'recession': CyclePhase.RECESSION,
+        'depression': CyclePhase.DEPRESSION,
+        'recovery': CyclePhase.RECOVERY,
+    }
+    initial_cycle_phase = phase_map.get(initial_phase, CyclePhase.BOOM)
+    
     # 初始化追踪
     simulation_trace = {
         "run_id": run_id,
         "start_time": datetime.now().isoformat(),
-        "config": {"strategy": strategy, "strategy_name": strategy_names.get(strategy, strategy), "seed": seed},
+        "config": {
+            "strategy": strategy,
+            "strategy_name": strategy_names.get(strategy, strategy),
+            "seed": seed,
+            "initial_capital": initial_capital,
+            "simulation_years": simulation_years,
+            "initial_phase": initial_phase,
+            "risk_appetite": risk_appetite
+        },
         "steps": [],
         "monthly_decisions": [],
         "key_events": [],
         "summary": {},
-        "audit_log": []
+        "audit_log": [],
+        "economic_history": [],
+        "risk_metrics": []
     }
     
     def add_log(action, details):
@@ -520,10 +731,11 @@ def auto_run_simulation():
             "details": details
         })
     
-    add_log("INIT", f"银行模拟启动, 策略: {strategy_names.get(strategy, strategy)}")
+    add_log("INIT", f"银行模拟启动, 策略: {strategy_names.get(strategy, strategy)}, 初始资本: ¥{initial_capital}亿, 模拟时长: {simulation_years}年")
     
-    # 创建环境和智能体
-    env = LendingEnv(seed=seed)
+    # 创建环境和智能体 - 支持自定义参数
+    # 注意：LendingEnv需要修改以支持这些参数，这里先使用默认值
+    env = LendingEnv(seed=seed, initial_capital=initial_capital * 1e8)
     
     agents = {
         'random': RandomAgent(seed=seed),
@@ -536,19 +748,36 @@ def auto_run_simulation():
     # 运行模拟 - 先reset初始化环境
     state, info = env.reset()
     
+    # 设置初始经济周期
+    if hasattr(env, 'economy'):
+        env.economy.phase = initial_cycle_phase
+        env.economy.state = env.economy._generate_state()
+    
     simulation_trace["steps"].append({
         "step_id": 1,
         "name": "环境初始化",
         "details": {
             "initial_capital": float(env.bank.capital),
             "max_months": LendingEnv.TOTAL_MONTHS,
-            "agent_type": type(agent).__name__
+            "agent_type": type(agent).__name__,
+            "initial_economic_phase": initial_phase,
+            "risk_appetite": risk_appetite
         }
     })
-    add_log("ENV_INIT", f"初始资本: ¥{env.bank.capital/1e8:.1f}亿")
+    add_log("ENV_INIT", f"初始资本: ¥{env.bank.capital/1e8:.1f}亿, 初始经济周期: {initial_phase}")
     history = []
     total_reward = 0
     month_count = 0
+    
+    # 扩展指标追踪
+    max_capital = env.bank.capital
+    min_capital = env.bank.capital
+    max_npl = 0.0
+    total_loans_issued = 0.0
+    total_interest_income = 0.0
+    total_provisions = 0.0
+    total_write_offs = 0.0
+    economic_phase_counts = {}
     
     while True:
         month_count += 1
@@ -579,15 +808,63 @@ def auto_run_simulation():
             'reward': float(reward),
         }
         
+        # 更新扩展指标
+        max_capital = max(max_capital, env.bank.capital)
+        min_capital = min(min_capital, env.bank.capital)
+        max_npl = max(max_npl, info['npl_ratio'])
+        total_loans_issued += abs(decision['capital_change']) if decision['capital_change'] > 0 else 0
+        total_interest_income += env.bank.loan_portfolio.interest_income
+        total_provisions += env.bank.loan_portfolio.provision_expense
+        total_write_offs += env.bank.loan_portfolio.write_offs
+        
+        # 统计经济周期
+        phase = info['eco_phase']
+        economic_phase_counts[phase] = economic_phase_counts.get(phase, 0) + 1
+        
+        # 记录经济指标历史
+        if hasattr(env, 'economy') and env.economy.state:
+            eco_state = env.economy.state
+            simulation_trace["economic_history"].append({
+                'month': env.month,
+                'gdp_growth': float(eco_state.gdp_growth),
+                'interest_rate': float(eco_state.interest_rate),
+                'unemployment_rate': float(eco_state.unemployment_rate),
+                'inflation_rate': float(eco_state.inflation_rate),
+                'phase': phase
+            })
+        
+        # 计算扩展指标
+        roe = (env.bank.loan_portfolio.net_profit * 12) / env.bank.capital if env.bank.capital > 0 else 0
+        capital_adequacy = env.bank.capital_adequacy_ratio
+        loan_to_asset = env.bank.loan_portfolio.total_loans / env.bank.total_assets if env.bank.total_assets > 0 else 0
+        
         history.append({
             'month': env.month,
-            'eco_phase': info['eco_phase'],
+            'year': env.month // 12 + 1,
+            'eco_phase': phase,
             'capital': float(env.bank.capital),
+            'total_assets': float(env.bank.total_assets),
+            'total_loans': float(env.bank.loan_portfolio.total_loans),
             'profit': float(env.bank.loan_portfolio.net_profit),
             'cumulative_profit': float(info['cumulative_profit']),
             'npl_ratio': float(info['npl_ratio']),
             'roa': float(info['roa']),
+            'roe': float(roe),
+            'capital_adequacy_ratio': float(capital_adequacy),
+            'loan_to_asset_ratio': float(loan_to_asset),
+            'interest_income': float(env.bank.loan_portfolio.interest_income),
+            'provision_expense': float(env.bank.loan_portfolio.provision_expense),
+            'write_offs': float(env.bank.loan_portfolio.write_offs),
             'reward': float(reward),
+        })
+        
+        # 记录风险指标
+        simulation_trace["risk_metrics"].append({
+            'month': env.month,
+            'npl_ratio': float(info['npl_ratio']),
+            'capital_adequacy_ratio': float(capital_adequacy),
+            'roe': float(roe),
+            'roa': float(info['roa']),
         })
         
         # 记录关键事件
@@ -625,27 +902,65 @@ def auto_run_simulation():
         }
     })
     
+    # 计算最终扩展指标
+    final_roa = info['roa']
+    final_roe = (info['cumulative_profit'] * 12 / month_count) / info['capital'] if info['capital'] > 0 and month_count > 0 else 0
+    final_capital_adequacy = env.bank.capital_adequacy_ratio
+    capital_growth = (info['capital'] - initial_capital * 1e8) / (initial_capital * 1e8) if initial_capital > 0 else 0
+    avg_monthly_profit = info['cumulative_profit'] / month_count if month_count > 0 else 0
+    profit_volatility = np.std([h['profit'] for h in history]) if len(history) > 1 else 0
+    
     simulation_trace["summary"] = {
+        # 基础指标
         'total_months': len(history),
         'total_reward': float(total_reward),
         'final_capital': float(info['capital']),
         'final_profit': float(info['cumulative_profit']),
         'final_npl': float(info['npl_ratio']),
         'is_bankrupt': bool(info['is_bankrupt']),
+        # 扩展指标
+        'initial_capital': float(initial_capital * 1e8),
+        'capital_growth_rate': float(capital_growth),
+        'max_capital': float(max_capital),
+        'min_capital': float(min_capital),
+        'max_npl': float(max_npl),
+        'final_roa': float(final_roa),
+        'final_roe': float(final_roe),
+        'final_capital_adequacy_ratio': float(final_capital_adequacy),
+        'avg_monthly_profit': float(avg_monthly_profit),
+        'profit_volatility': float(profit_volatility),
+        'total_loans_issued': float(total_loans_issued),
+        'total_interest_income': float(total_interest_income),
+        'total_provisions': float(total_provisions),
+        'total_write_offs': float(total_write_offs),
+        'provision_coverage_ratio': float(total_provisions / total_write_offs) if total_write_offs > 0 else 0,
+        'economic_phase_distribution': economic_phase_counts,
+        'final_total_assets': float(env.bank.total_assets),
+        'final_total_loans': float(env.bank.loan_portfolio.total_loans),
+        'final_loan_to_asset_ratio': float(env.bank.loan_portfolio.total_loans / env.bank.total_assets) if env.bank.total_assets > 0 else 0,
     }
     simulation_trace["end_time"] = datetime.now().isoformat()
     
     if info['is_bankrupt']:
         add_log("BANKRUPT", "银行破产!")
     else:
-        add_log("RESULT", f"最终资本: ¥{info['capital']/1e8:.1f}亿, NPL: {info['npl_ratio']*100:.1f}%")
+        add_log("RESULT", f"最终资本: ¥{info['capital']/1e8:.1f}亿, NPL: {info['npl_ratio']*100:.1f}%, ROE: {final_roe*100:.2f}%")
     
     return jsonify({
         'success': True,
         'run_id': run_id,
         'strategy': strategy,
         'history': history,
-        'summary': simulation_trace["summary"]
+        'summary': simulation_trace["summary"],
+        'economic_history': simulation_trace["economic_history"][::12],  # 每年一个样本
+        'risk_metrics_summary': {
+            'avg_npl': float(np.mean([m['npl_ratio'] for m in simulation_trace["risk_metrics"]])),
+            'max_npl': float(max_npl),
+            'avg_capital_adequacy': float(np.mean([m['capital_adequacy_ratio'] for m in simulation_trace["risk_metrics"]])),
+            'min_capital_adequacy': float(min([m['capital_adequacy_ratio'] for m in simulation_trace["risk_metrics"]])),
+            'avg_roe': float(np.mean([m['roe'] for m in simulation_trace["risk_metrics"]])),
+            'avg_roa': float(np.mean([m['roa'] for m in simulation_trace["risk_metrics"]])),
+        }
     })
 
 @app.route('/api/simulation/trace', methods=['GET'])
@@ -662,12 +977,18 @@ def get_simulation_trace():
 
 @app.route('/api/comparison/strategies', methods=['POST'])
 def compare_strategies():
-    """对比不同策略"""
+    """对比不同策略 - 扩展版"""
     global comparison_trace
     
     data = request.json or {}
-    n_episodes = min(data.get('episodes', 3), 5)
+    n_episodes = min(data.get('episodes', 3), 10)  # 增加到10轮
     seed = data.get('seed', 42)
+    
+    # 扩展输入参数
+    initial_capital = data.get('initial_capital', 100.0)
+    simulation_years = data.get('simulation_years', 10)
+    include_alphazero = data.get('include_alphazero', False)
+    risk_adjusted = data.get('risk_adjusted', True)  # 是否计算风险调整收益
     
     run_id = datetime.now().strftime('%Y%m%d_%H%M%S')
     
@@ -675,11 +996,20 @@ def compare_strategies():
     comparison_trace = {
         "run_id": run_id,
         "start_time": datetime.now().isoformat(),
-        "config": {"episodes_per_strategy": n_episodes, "seed": seed},
+        "config": {
+            "episodes_per_strategy": n_episodes,
+            "seed": seed,
+            "initial_capital": initial_capital,
+            "simulation_years": simulation_years,
+            "include_alphazero": include_alphazero,
+            "risk_adjusted": risk_adjusted
+        },
         "strategies": [],
         "episode_details": {},
         "results": [],
-        "audit_log": []
+        "audit_log": [],
+        "stability_analysis": {},
+        "risk_analysis": {}
     }
     
     def add_log(action, details):
@@ -707,28 +1037,54 @@ def compare_strategies():
         episode_rewards = []
         episode_profits = []
         episode_npls = []
+        episode_roes = []
+        episode_roas = []
+        episode_capital_adequacies = []
         bankruptcies = 0
         episode_details = []
+        episode_histories = []
         
         add_log("STRATEGY_START", f"开始评估: {name}")
         
         for ep in range(n_episodes):
-            env = LendingEnv(seed=seed + ep)
+            env = LendingEnv(seed=seed + ep, initial_capital=initial_capital * 1e8)
             state, info = env.reset()
             total_reward = 0
             month_count = 0
+            history = []
             
             while True:
                 action = agent.select_action(state, info)
                 state, reward, terminated, truncated, info = env.step(action)
                 total_reward += reward
                 month_count += 1
+                
+                # 记录历史
+                if month_count % 12 == 0 or terminated or truncated:
+                    roe = (info['cumulative_profit'] * 12 / month_count) / info['capital'] if info['capital'] > 0 and month_count > 0 else 0
+                    history.append({
+                        'month': month_count,
+                        'capital': float(info['capital']),
+                        'profit': float(info['cumulative_profit']),
+                        'npl': float(info['npl_ratio']),
+                        'roa': float(info['roa']),
+                        'roe': float(roe),
+                        'capital_adequacy': float(env.bank.capital_adequacy_ratio),
+                    })
+                
                 if terminated or truncated:
                     break
+            
+            # 计算最终指标
+            final_roe = (info['cumulative_profit'] * 12 / month_count) / info['capital'] if info['capital'] > 0 and month_count > 0 else 0
             
             episode_rewards.append(total_reward)
             episode_profits.append(info['cumulative_profit'])
             episode_npls.append(info['npl_ratio'])
+            episode_roes.append(final_roe)
+            episode_roas.append(info['roa'])
+            episode_capital_adequacies.append(env.bank.capital_adequacy_ratio)
+            
             if info['is_bankrupt']:
                 bankruptcies += 1
             
@@ -738,36 +1094,116 @@ def compare_strategies():
                 "reward": float(total_reward),
                 "profit": float(info['cumulative_profit']),
                 "npl": float(info['npl_ratio']),
+                "roe": float(final_roe),
+                "roa": float(info['roa']),
+                "capital_adequacy": float(env.bank.capital_adequacy_ratio),
                 "bankrupt": bool(info['is_bankrupt'])
             })
+            episode_histories.append(history)
+        
+        # 计算稳定性指标
+        profit_std = float(np.std(episode_profits))
+        profit_cv = profit_std / abs(np.mean(episode_profits)) if np.mean(episode_profits) != 0 else 0
+        npl_std = float(np.std(episode_npls))
+        roe_std = float(np.std(episode_roes))
+        
+        # 计算风险调整收益 (Sharpe-like ratio)
+        if risk_adjusted:
+            avg_profit = np.mean(episode_profits)
+            profit_volatility = profit_std
+            risk_adjusted_return = avg_profit / (profit_volatility + 1e8) if profit_volatility > 0 else 0
+        else:
+            risk_adjusted_return = np.mean(episode_profits)
+        
+        # 计算最大回撤
+        max_drawdowns = []
+        for history in episode_histories:
+            if len(history) > 0:
+                capitals = [h['capital'] for h in history]
+                peak = capitals[0]
+                max_dd = 0
+                for cap in capitals:
+                    if cap > peak:
+                        peak = cap
+                    dd = (peak - cap) / peak if peak > 0 else 0
+                    max_dd = max(max_dd, dd)
+                max_drawdowns.append(max_dd)
+        avg_max_drawdown = float(np.mean(max_drawdowns)) if max_drawdowns else 0.0
         
         strategy_result = {
             'name': name,
+            # 基础指标
             'avg_reward': float(np.mean(episode_rewards)),
             'avg_profit': float(np.mean(episode_profits)),
             'avg_npl': float(np.mean(episode_npls)),
             'bankruptcy_rate': bankruptcies / n_episodes,
-            'duration_ms': int((datetime.now() - strategy_start).total_seconds() * 1000)
+            # 扩展指标
+            'avg_roe': float(np.mean(episode_roes)),
+            'avg_roa': float(np.mean(episode_roas)),
+            'avg_capital_adequacy': float(np.mean(episode_capital_adequacies)),
+            'min_capital_adequacy': float(np.min(episode_capital_adequacies)),
+            # 稳定性指标
+            'profit_std': profit_std,
+            'profit_cv': float(profit_cv),  # 变异系数
+            'npl_std': npl_std,
+            'roe_std': roe_std,
+            # 风险指标
+            'risk_adjusted_return': float(risk_adjusted_return),
+            'max_drawdown': float(avg_max_drawdown),
+            'win_rate': float(sum(1 for p in episode_profits if p > 0) / len(episode_profits)),
+            # 其他
+            'duration_ms': int((datetime.now() - strategy_start).total_seconds() * 1000),
+            'episode_count': n_episodes
         }
         results.append(strategy_result)
         
         comparison_trace["episode_details"][name] = episode_details
-        add_log("STRATEGY_COMPLETE", f"{name}: 平均奖励={strategy_result['avg_reward']:.2f}, 平均利润=¥{strategy_result['avg_profit']/1e8:.1f}亿")
+        comparison_trace["stability_analysis"][name] = {
+            'profit_volatility': profit_std,
+            'profit_cv': float(profit_cv),
+            'npl_volatility': npl_std,
+            'roe_volatility': roe_std,
+        }
+        comparison_trace["risk_analysis"][name] = {
+            'risk_adjusted_return': float(risk_adjusted_return),
+            'max_drawdown': float(avg_max_drawdown),
+            'bankruptcy_rate': bankruptcies / n_episodes,
+        }
+        
+        add_log("STRATEGY_COMPLETE", f"{name}: 平均利润=¥{strategy_result['avg_profit']/1e8:.1f}亿, ROE={strategy_result['avg_roe']*100:.2f}%, 破产率={strategy_result['bankruptcy_rate']*100:.0f}%")
     
-    # 按奖励排序
-    results.sort(key=lambda x: x['avg_reward'], reverse=True)
+    # 按风险调整收益排序（如果启用）
+    if risk_adjusted:
+        results.sort(key=lambda x: x['risk_adjusted_return'], reverse=True)
+    else:
+        results.sort(key=lambda x: x['avg_reward'], reverse=True)
     
     comparison_trace["results"] = results
     comparison_trace["end_time"] = datetime.now().isoformat()
     comparison_trace["winner"] = results[0]['name'] if results else None
     
-    add_log("COMPLETE", f"对比完成, 最佳策略: {comparison_trace['winner']}")
+    # 生成综合分析
+    comparison_summary = {
+        'total_strategies': len(results),
+        'total_episodes': n_episodes * len(results),
+        'best_profit': max(r['avg_profit'] for r in results),
+        'best_roe': max(r['avg_roe'] for r in results),
+        'lowest_npl': min(r['avg_npl'] for r in results),
+        'lowest_bankruptcy_rate': min(r['bankruptcy_rate'] for r in results),
+        'most_stable': min(results, key=lambda x: x['profit_cv'])['name'] if results else None,
+        'best_risk_adjusted': max(results, key=lambda x: x['risk_adjusted_return'])['name'] if results else None,
+    }
+    
+    add_log("COMPLETE", f"对比完成, 最佳策略: {comparison_trace['winner']}, 最佳ROE: {comparison_summary['best_roe']*100:.2f}%")
     
     return jsonify({
         'success': True,
         'run_id': run_id,
         'episodes': n_episodes,
-        'results': results
+        'results': results,
+        'summary': comparison_summary,
+        'stability_analysis': comparison_trace["stability_analysis"],
+        'risk_analysis': comparison_trace["risk_analysis"]
     })
 
 @app.route('/api/comparison/trace', methods=['GET'])
@@ -1747,6 +2183,16 @@ if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('FLASK_ENV', 'development') == 'development'
+    
+    # 检查数据文件（可选，不阻塞启动）
+    try:
+        from utils.data_loader import ensure_data_files
+        data_dir = Path(__file__).parent / 'data' / 'historical_backup'
+        print("📂 检查数据文件...")
+        ensure_data_files(data_dir)
+    except Exception as e:
+        print(f"⚠️  数据文件检查失败（不影响启动）: {e}")
+        print("💡 如需使用历史数据，请运行: python3 scripts/download_data_from_cloud.py")
     
     print("=" * 60)
     print("🚀 Gamium Finance AI Web Server")
