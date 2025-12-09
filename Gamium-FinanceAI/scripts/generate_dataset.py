@@ -584,26 +584,56 @@ def main():
     
     print("\n🔄 合并临时文件...")
     
-    # 合并所有临时文件
+    # 合并所有临时文件（使用分块合并避免内存溢出）
     customer_files = sorted(output_dir.glob('temp/customers_*.parquet'))
     loan_files = sorted(output_dir.glob('temp/loans_*.parquet'))
     repayment_files = sorted(output_dir.glob('temp/repayments_*.parquet'))
     
-    print("  合并客户数据...")
-    customers = pd.concat([pd.read_parquet(f) for f in customer_files], ignore_index=True)
+    # 分块大小：每次处理50个文件，避免内存溢出
+    CHUNK_SIZE = 50
+    
+    print(f"  合并客户数据 ({len(customer_files)} 个文件，分块大小: {CHUNK_SIZE})...")
+    customer_chunks = []
+    for i in range(0, len(customer_files), CHUNK_SIZE):
+        chunk_files = customer_files[i:i+CHUNK_SIZE]
+        chunk = pd.concat([pd.read_parquet(f) for f in chunk_files], ignore_index=True)
+        customer_chunks.append(chunk)
+        if (i // CHUNK_SIZE + 1) % 5 == 0:
+            print(f"    进度: {i+len(chunk_files)}/{len(customer_files)}")
+    customers = pd.concat(customer_chunks, ignore_index=True)
+    n_customers = len(customers)
     customers.to_parquet(output_dir / 'customers.parquet', index=False)
+    del customer_chunks, customers  # 释放内存
+    print(f"    ✅ 完成: {n_customers:,} 客户")
     
-    print("  合并贷款数据...")
-    loans = pd.concat([pd.read_parquet(f) for f in loan_files], ignore_index=True)
+    print(f"  合并贷款数据 ({len(loan_files)} 个文件，分块大小: {CHUNK_SIZE})...")
+    loan_chunks = []
+    for i in range(0, len(loan_files), CHUNK_SIZE):
+        chunk_files = loan_files[i:i+CHUNK_SIZE]
+        chunk = pd.concat([pd.read_parquet(f) for f in chunk_files], ignore_index=True)
+        loan_chunks.append(chunk)
+        if (i // CHUNK_SIZE + 1) % 5 == 0:
+            print(f"    进度: {i+len(chunk_files)}/{len(loan_files)}")
+    loans = pd.concat(loan_chunks, ignore_index=True)
+    n_loans = len(loans)
     loans.to_parquet(output_dir / 'loan_applications.parquet', index=False)
+    del loan_chunks, loans  # 释放内存
+    print(f"    ✅ 完成: {n_loans:,} 贷款申请")
     
-    print("  合并还款数据...")
-    # 分块合并还款数据 (数据量大)
+    print(f"  合并还款数据 ({len(repayment_files)} 个文件，分块大小: {CHUNK_SIZE})...")
+    # 还款数据最大，使用更小的分块
     repayment_chunks = []
-    for f in repayment_files:
-        repayment_chunks.append(pd.read_parquet(f))
+    for i in range(0, len(repayment_files), CHUNK_SIZE):
+        chunk_files = repayment_files[i:i+CHUNK_SIZE]
+        chunk = pd.concat([pd.read_parquet(f) for f in chunk_files], ignore_index=True)
+        repayment_chunks.append(chunk)
+        if (i // CHUNK_SIZE + 1) % 5 == 0:
+            print(f"    进度: {i+len(chunk_files)}/{len(repayment_files)}")
     repayments = pd.concat(repayment_chunks, ignore_index=True)
+    n_repayments = len(repayments)
     repayments.to_parquet(output_dir / 'repayment_history.parquet', index=False)
+    del repayment_chunks, repayments  # 释放内存
+    print(f"    ✅ 完成: {n_repayments:,} 还款记录")
     
     # 生成宏观经济数据
     print("  生成宏观经济数据...")

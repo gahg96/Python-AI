@@ -4,11 +4,12 @@
   "total_loans": 19999042,
   "total_repayments": 148036074,
   "date_range": "2015-01-01 to 2024-12-31",
-  "total_size_gb": 1.87,
+  "total_size_gb": 4.85,
   "files": [
     "loan_applications.parquet",
     "repayment_history.parquet",
     "macro_economics.parquet",
     "customers.parquet"
-  ]
+  ],
+  "updated_at": "2025-12-09T08:53:47.429525"
 }

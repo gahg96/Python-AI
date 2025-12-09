@@ -111,6 +111,21 @@ def story():
     """Gamium AI 故事展示页面"""
     return send_from_directory('docs', 'Gamium-AI-Story.html')
 
+@app.route('/data-generation')
+def data_generation():
+    """数据生成流程详解页面"""
+    return send_from_directory('docs', '数据生成流程详解.html')
+
+@app.route('/banking-architecture')
+def banking_architecture():
+    """银行系统架构与数据提取详解页面"""
+    return send_from_directory('docs', '银行系统架构与数据提取详解.html')
+
+@app.route('/model-terms')
+def model_terms():
+    """模型评估术语详解页面"""
+    return send_from_directory('docs', '模型评估术语详解.html')
+
 @app.route('/images/<path:filename>')
 def serve_images(filename):
     """提供图片文件"""

@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>银行系统架构与数据提取详解</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+            border-bottom: 4px solid #667eea;
+            padding-bottom: 20px;
+        }
+        
+        h2 {
+            color: #34495e;
+            font-size: 1.8em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-left: 15px;
+            border-left: 5px solid #667eea;
+        }
+        
+        h3 {
+            color: #555;
+            font-size: 1.4em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .system-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .system-card h3 {
+            color: white;
+            margin-top: 0;
+            font-size: 1.6em;
+        }
+        
+        .system-info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        .system-info ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .system-info li {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .system-info li:before {
+            content: "✓ ";
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .diagram-container {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 30px 0;
+            border: 2px solid #e9ecef;
+        }
+        
+        .data-flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .flow-step {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            position: relative;
+        }
+        
+        .flow-step:not(:last-child):after {
+            content: "→";
+            position: absolute;
+            right: -30px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 2em;
+            color: #667eea;
+        }
+        
+        .flow-step .step-number {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .code-block {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .code-block pre {
+            margin: 0;
+        }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+        
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .tip-box {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #856404;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .mermaid {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏦 银行系统架构与数据提取详解</h1>
+        
+        <div style="text-align: center; color: #666; margin-bottom: 40px;">
+            <p style="font-size: 1.1em;">全面解析银行核心系统架构、数据关联关系及提取流程</p>
+        </div>
+
+        <!-- 目录 -->
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 10px; margin-bottom: 40px;">
+            <h3 style="margin-top: 0;">📋 目录</h3>
+            <ul style="columns: 2; list-style: none;">
+                <li>1. 银行系统整体架构</li>
+                <li>2. 核心系统详解</li>
+                <li>3. 系统关联关系</li>
+                <li>4. 数据流向分析</li>
+                <li>5. 数据提取方案</li>
+                <li>6. 典型场景案例</li>
+            </ul>
+        </div>
+
+        <!-- 第一部分：银行系统整体架构 -->
+        <h2>1. 银行系统整体架构</h2>
+        
+        <div class="diagram-container">
+            <div class="mermaid">
+graph TB
+    subgraph "前端渠道层"
+        A1[网银系统] 
+        A2[手机银行]
+        A3[柜面系统]
+        A4[ATM/自助设备]
+    end
+    
+    subgraph "业务应用层"
+        B1[客户关系管理<br/>CRM系统]
+        B2[信贷管理系统<br/>Loan System]
+        B3[核心银行系统<br/>Core Banking]
+        B4[风控系统<br/>Risk System]
+        B5[征信系统<br/>Credit System]
+    end
+    
+    subgraph "数据存储层"
+        C1[(客户数据库)]
+        C2[(交易数据库)]
+        C3[(信贷数据库)]
+        C4[(数据仓库<br/>Data Warehouse)]
+    end
+    
+    subgraph "数据提取层"
+        D1[ETL工具]
+        D2[API网关]
+        D3[数据提取脚本]
+    end
+    
+    A1 --> B1
+    A2 --> B1
+    A3 --> B3
+    A4 --> B3
+    
+    B1 --> C1
+    B2 --> C3
+    B3 --> C2
+    B4 --> C1
+    B4 --> C3
+    B5 --> C3
+    
+    C1 --> C4
+    C2 --> C4
+    C3 --> C4
+    
+    C4 --> D1
+    C4 --> D2
+    C4 --> D3
+    
+    style B1 fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+    style B2 fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+    style B3 fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+    style C4 fill:#764ba2,stroke:#333,stroke-width:2px,color:#fff
+            </div>
+        </div>
+
+        <p style="margin-top: 20px;">
+            银行系统通常采用<strong>分层架构</strong>，从上到下分为：
+        </p>
+        <ul style="margin-left: 30px; margin-top: 10px;">
+            <li><strong>前端渠道层</strong>：用户交互界面，包括网银、手机银行、柜面系统等</li>
+            <li><strong>业务应用层</strong>：核心业务系统，处理各种银行业务逻辑</li>
+            <li><strong>数据存储层</strong>：存储业务数据，包括操作型数据库和数据仓库</li>
+            <li><strong>数据提取层</strong>：从各系统提取数据，用于分析和建模</li>
+        </ul>
+
+        <!-- 第二部分：核心系统详解 -->
+        <h2>2. 核心系统详解</h2>
+
+        <!-- CRM系统 -->
+        <div class="system-card">
+            <h3>📊 客户关系管理系统 (CRM)</h3>
+            <div class="system-info">
+                <p><strong>系统定位</strong>：银行客户信息的核心管理平台</p>
+                <p><strong>主要功能</strong>：</p>
+                <ul>
+                    <li>客户基础信息管理（年龄、性别、职业、教育背景）</li>
+                    <li>客户分类和标签管理</li>
+                    <li>客户关系维护（VIP等级、客户经理分配）</li>
+                    <li>客户画像构建</li>
+                    <li>营销活动管理</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>核心数据表</strong>：</p>
+                <div class="table-container">
+                    <table>
+                        <tr>
+                            <th>表名</th>
+                            <th>主要字段</th>
+                            <th>数据量级</th>
+                        </tr>
+                        <tr>
+                            <td>customer_profile</td>
+                            <td>customer_id, age, gender, education, occupation, industry, city_tier</td>
+                            <td>百万级</td>
+                        </tr>
+                        <tr>
+                            <td>customer_tags</td>
+                            <td>customer_id, tag_name, tag_value, create_date</td>
+                            <td>千万级</td>
+                        </tr>
+                        <tr>
+                            <td>customer_relationship</td>
+                            <td>customer_id, manager_id, vip_level, relationship_start_date</td>
+                            <td>百万级</td>
+                        </tr>
+                    </table>
+                </div>
+                <p style="margin-top: 15px;"><strong>数据提取SQL示例</strong>：</p>
+                <div class="code-block">
+                    <pre>SELECT 
+    customer_id,
+    age,
+    gender,
+    education_level,
+    occupation,
+    industry,
+    city_tier,
+    registration_date,
+    customer_type,
+    vip_level,
+    total_assets,
+    monthly_income
+FROM crm.customer_profile
+WHERE registration_date >= '2015-01-01'
+  AND status = 'active';</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- 核心银行系统 -->
+        <div class="system-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h3>💰 核心银行系统 (Core Banking)</h3>
+            <div class="system-info">
+                <p><strong>系统定位</strong>：银行最核心的业务系统，处理所有账户和交易</p>
+                <p><strong>主要功能</strong>：</p>
+                <ul>
+                    <li>账户管理（开户、销户、账户信息维护）</li>
+                    <li>存款业务（活期、定期、通知存款）</li>
+                    <li>交易处理（转账、支付、结算）</li>
+                    <li>账户余额管理</li>
+                    <li>交易流水记录</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>核心数据表</strong>：</p>
+                <div class="table-container">
+                    <table>
+                        <tr>
+                            <th>表名</th>
+                            <th>主要字段</th>
+                            <th>数据量级</th>
+                        </tr>
+                        <tr>
+                            <td>accounts</td>
+                            <td>account_id, customer_id, account_type, balance, open_date</td>
+                            <td>千万级</td>
+                        </tr>
+                        <tr>
+                            <td>transactions</td>
+                            <td>transaction_id, account_id, transaction_type, amount, transaction_date</td>
+                            <td>亿级</td>
+                        </tr>
+                        <tr>
+                            <td>account_balance_history</td>
+                            <td>account_id, balance_date, balance, avg_balance</td>
+                            <td>十亿级</td>
+                        </tr>
+                    </table>
+                </div>
+                <p style="margin-top: 15px;"><strong>数据提取SQL示例</strong>：</p>
+                <div class="code-block">
+                    <pre>-- 提取账户汇总信息
+SELECT 
+    a.customer_id,
+    COUNT(DISTINCT a.account_id) as account_count,
+    SUM(a.balance) as total_deposit_balance,
+    AVG(a.balance) as avg_account_balance,
+    MIN(a.open_date) as first_account_date
+FROM core.accounts a
+WHERE a.customer_id IN (SELECT customer_id FROM target_customers)
+GROUP BY a.customer_id;
+
+-- 提取交易统计
+SELECT 
+    t.customer_id,
+    COUNT(*) as transaction_count,
+    SUM(CASE WHEN t.type = 'income' THEN t.amount ELSE 0 END) as total_income,
+    SUM(CASE WHEN t.type = 'expense' THEN t.amount ELSE 0 END) as total_expense,
+    AVG(t.amount) as avg_transaction_amount
+FROM core.transactions t
+WHERE t.transaction_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+GROUP BY t.customer_id;</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- 信贷管理系统 -->
+        <div class="system-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <h3>📋 信贷管理系统 (Loan Management System)</h3>
+            <div class="system-info">
+                <p><strong>系统定位</strong>：管理银行所有信贷业务，从申请到还款全流程</p>
+                <p><strong>主要功能</strong>：</p>
+                <ul>
+                    <li>贷款申请管理（申请录入、资料审核）</li>
+                    <li>审批流程管理（审批流程、审批意见）</li>
+                    <li>合同管理（合同生成、合同签署）</li>
+                    <li>放款管理（放款审核、放款执行）</li>
+                    <li>还款管理（还款计划、还款记录、逾期管理）</li>
+                    <li>贷后管理（贷后检查、风险预警）</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>核心数据表</strong>：</p>
+                <div class="table-container">
+                    <table>
+                        <tr>
+                            <th>表名</th>
+                            <th>主要字段</th>
+                            <th>数据量级</th>
+                        </tr>
+                        <tr>
+                            <td>loan_applications</td>
+                            <td>loan_id, customer_id, apply_date, loan_amount, purpose, term, interest_rate</td>
+                            <td>千万级</td>
+                        </tr>
+                        <tr>
+                            <td>loan_approvals</td>
+                            <td>loan_id, approval_status, approver, approval_date, approval_comment</td>
+                            <td>千万级</td>
+                        </tr>
+                        <tr>
+                            <td>repayment_history</td>
+                            <td>loan_id, repayment_date, repayment_amount, overdue_days, loan_status</td>
+                            <td>亿级</td>
+                        </tr>
+                    </table>
+                </div>
+                <p style="margin-top: 15px;"><strong>数据提取SQL示例</strong>：</p>
+                <div class="code-block">
+                    <pre>-- 提取贷款申请和审批信息
+SELECT 
+    la.loan_id,
+    la.customer_id,
+    la.apply_date,
+    la.loan_amount,
+    la.loan_purpose,
+    la.term_months,
+    la.interest_rate,
+    lap.approval_status,
+    lap.approval_date,
+    la.loan_status
+FROM loan.loan_applications la
+LEFT JOIN loan.loan_approvals lap ON la.loan_id = lap.loan_id
+WHERE la.apply_date >= '2015-01-01';
+
+-- 提取还款历史
+SELECT 
+    rh.loan_id,
+    rh.repayment_date,
+    rh.repayment_amount,
+    rh.overdue_days,
+    rh.loan_status,
+    la.customer_id
+FROM loan.repayment_history rh
+JOIN loan.loan_applications la ON rh.loan_id = la.loan_id
+WHERE rh.repayment_date >= '2015-01-01';</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- 风控系统 -->
+        <div class="system-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+            <h3>🛡️ 风控系统 (Risk Management System)</h3>
+            <div class="system-info">
+                <p><strong>系统定位</strong>：银行风险管理的核心平台</p>
+                <p><strong>主要功能</strong>：</p>
+                <ul>
+                    <li>信用评分计算</li>
+                    <li>风险模型管理</li>
+                    <li>风险预警</li>
+                    <li>黑名单管理</li>
+                    <li>反欺诈检测</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>核心数据表</strong>：</p>
+                <div class="table-container">
+                    <table>
+                        <tr>
+                            <th>表名</th>
+                            <th>主要字段</th>
+                            <th>数据量级</th>
+                        </tr>
+                        <tr>
+                            <td>credit_scores</td>
+                            <td>customer_id, score_date, credit_score, risk_level</td>
+                            <td>百万级</td>
+                        </tr>
+                        <tr>
+                            <td>risk_alerts</td>
+                            <td>customer_id, alert_type, alert_level, alert_date, description</td>
+                            <td>百万级</td>
+                        </tr>
+                        <tr>
+                            <td>blacklist</td>
+                            <td>customer_id, blacklist_type, add_date, reason</td>
+                            <td>万级</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第三部分：系统关联关系 -->
+        <h2>3. 系统关联关系</h2>
+
+        <div class="diagram-container">
+            <div class="mermaid">
+erDiagram
+    CUSTOMER_PROFILE ||--o{ ACCOUNTS : "拥有"
+    CUSTOMER_PROFILE ||--o{ LOAN_APPLICATIONS : "申请"
+    CUSTOMER_PROFILE ||--o{ CREDIT_SCORES : "评分"
+    
+    ACCOUNTS ||--o{ TRANSACTIONS : "产生"
+    
+    LOAN_APPLICATIONS ||--|| LOAN_APPROVALS : "审批"
+    LOAN_APPLICATIONS ||--o{ REPAYMENT_HISTORY : "还款"
+    
+    CUSTOMER_PROFILE {
+        string customer_id PK
+        int age
+        string gender
+        string education
+        string industry
+        decimal monthly_income
+        decimal total_assets
+    }
+    
+    ACCOUNTS {
+        string account_id PK
+        string customer_id FK
+        string account_type
+        decimal balance
+        date open_date
+    }
+    
+    TRANSACTIONS {
+        string transaction_id PK
+        string account_id FK
+        string transaction_type
+        decimal amount
+        date transaction_date
+    }
+    
+    LOAN_APPLICATIONS {
+        string loan_id PK
+        string customer_id FK
+        date apply_date
+        decimal loan_amount
+        int term_months
+        decimal interest_rate
+    }
+    
+    REPAYMENT_HISTORY {
+        string repayment_id PK
+        string loan_id FK
+        date repayment_date
+        decimal repayment_amount
+        int overdue_days
+    }
+            </div>
+        </div>
+
+        <div class="tip-box">
+            <strong>💡 关键关联关系：</strong>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li><strong>customer_id</strong> 是核心关联字段，连接所有系统数据</li>
+                <li>一个客户可以有多个账户（account_id）</li>
+                <li>一个客户可以有多笔贷款（loan_id）</li>
+                <li>每笔贷款有多条还款记录（repayment_id）</li>
+                <li>每个账户有多笔交易记录（transaction_id）</li>
+            </ul>
+        </div>
+
+        <!-- 第四部分：数据流向分析 -->
+        <h2>4. 数据流向分析</h2>
+
+        <div class="diagram-container">
+            <div class="mermaid">
+flowchart LR
+    subgraph "数据产生"
+        A1[CRM系统<br/>客户注册]
+        A2[核心系统<br/>账户开户]
+        A3[核心系统<br/>交易发生]
+        A4[信贷系统<br/>贷款申请]
+        A5[信贷系统<br/>还款记录]
+    end
+    
+    subgraph "数据存储"
+        B1[(CRM数据库)]
+        B2[(核心数据库)]
+        B3[(信贷数据库)]
+    end
+    
+    subgraph "数据整合"
+        C1[数据仓库<br/>ETL处理]
+        C2[数据湖<br/>原始数据]
+    end
+    
+    subgraph "数据提取"
+        D1[特征工程]
+        D2[模型训练]
+        D3[业务分析]
+    end
+    
+    A1 --> B1
+    A2 --> B2
+    A3 --> B2
+    A4 --> B3
+    A5 --> B3
+    
+    B1 --> C1
+    B2 --> C1
+    B3 --> C1
+    
+    B1 --> C2
+    B2 --> C2
+    B3 --> C2
+    
+    C1 --> D1
+    C2 --> D1
+    
+    D1 --> D2
+    D1 --> D3
+    
+    style C1 fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+    style D1 fill:#764ba2,stroke:#333,stroke-width:2px,color:#fff
+            </div>
+        </div>
+
+        <h3>数据流向说明</h3>
+        <div class="data-flow">
+            <div class="flow-step">
+                <div class="step-number">1</div>
+                <h4>数据产生</h4>
+                <p>各业务系统在日常运营中产生业务数据</p>
+            </div>
+            <div class="flow-step">
+                <div class="step-number">2</div>
+                <h4>数据存储</h4>
+                <p>数据实时写入各系统的操作型数据库</p>
+            </div>
+            <div class="flow-step">
+                <div class="step-number">3</div>
+                <h4>数据整合</h4>
+                <p>通过ETL工具将数据整合到数据仓库或数据湖</p>
+            </div>
+            <div class="flow-step">
+                <div class="step-number">4</div>
+                <h4>数据提取</h4>
+                <p>从数据仓库提取数据，进行特征工程和建模</p>
+            </div>
+        </div>
+
+        <!-- 第五部分：数据提取方案 -->
+        <h2>5. 数据提取方案</h2>
+
+        <h3>5.1 完整数据提取流程</h3>
+        <div class="diagram-container">
+            <div class="mermaid">
+flowchart TD
+    Start([开始数据提取]) --> Step1[1. 提取客户基础数据<br/>从CRM系统]
+    Step1 --> Step2[2. 提取账户数据<br/>从核心系统]
+    Step2 --> Step3[3. 提取交易数据<br/>从核心系统]
+    Step3 --> Step4[4. 提取贷款数据<br/>从信贷系统]
+    Step4 --> Step5[5. 提取还款数据<br/>从信贷系统]
+    Step5 --> Step6[6. 数据清洗<br/>处理缺失值和异常值]
+    Step6 --> Step7[7. 数据合并<br/>以customer_id为键]
+    Step7 --> Step8[8. 特征工程<br/>计算衍生特征]
+    Step8 --> Step9[9. 数据验证<br/>检查数据质量]
+    Step9 --> Step10[10. 数据存储<br/>保存为Parquet格式]
+    Step10 --> End([完成])
+    
+    style Step1 fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+    style Step2 fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+    style Step3 fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+    style Step4 fill:#4facfe,stroke:#333,stroke-width:2px,color:#fff
+    style Step5 fill:#4facfe,stroke:#333,stroke-width:2px,color:#fff
+    style Step8 fill:#764ba2,stroke:#333,stroke-width:2px,color:#fff
+            </div>
+        </div>
+
+        <h3>5.2 数据提取SQL示例（完整版）</h3>
+        <div class="code-block">
+            <pre>-- ============================================
+-- 步骤1: 提取客户基础数据
+-- ============================================
+SELECT 
+    c.customer_id,
+    c.age,
+    c.gender,
+    c.education_level,
+    c.occupation,
+    c.industry,
+    c.city_tier,
+    c.registration_date,
+    c.customer_type,
+    c.vip_level,
+    c.total_assets,
+    c.total_liabilities,
+    c.monthly_income
+FROM crm.customer_profile c
+WHERE c.registration_date >= '2015-01-01'
+  AND c.status = 'active';
+
+-- ============================================
+-- 步骤2: 提取账户汇总数据
+-- ============================================
+SELECT 
+    a.customer_id,
+    COUNT(DISTINCT a.account_id) as account_count,
+    SUM(a.balance) as total_deposit_balance,
+    AVG(a.balance) as avg_account_balance,
+    MIN(a.open_date) as first_account_date,
+    MAX(a.balance) as max_account_balance
+FROM core.accounts a
+WHERE a.customer_id IN (SELECT customer_id FROM target_customers)
+GROUP BY a.customer_id;
+
+-- ============================================
+-- 步骤3: 提取交易统计数据（近12个月）
+-- ============================================
+SELECT 
+    t.customer_id,
+    COUNT(*) as transaction_count,
+    SUM(CASE WHEN t.transaction_type = 'income' THEN t.transaction_amount ELSE 0 END) as total_income,
+    SUM(CASE WHEN t.transaction_type = 'expense' THEN t.transaction_amount ELSE 0 END) as total_expense,
+    AVG(t.transaction_amount) as avg_transaction_amount,
+    STDDEV(t.transaction_amount) as transaction_std
+FROM core.transactions t
+WHERE t.customer_id IN (SELECT customer_id FROM target_customers)
+  AND t.transaction_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+GROUP BY t.customer_id;
+
+-- ============================================
+-- 步骤4: 提取贷款申请数据
+-- ============================================
+SELECT 
+    la.loan_id,
+    la.customer_id,
+    la.apply_date,
+    la.loan_amount,
+    la.loan_purpose,
+    la.term_months,
+    la.interest_rate,
+    lap.approval_status,
+    lap.approval_date,
+    la.loan_status
+FROM loan.loan_applications la
+LEFT JOIN loan.loan_approvals lap ON la.loan_id = lap.loan_id
+WHERE la.customer_id IN (SELECT customer_id FROM target_customers)
+  AND la.apply_date >= '2015-01-01';
+
+-- ============================================
+-- 步骤5: 提取还款历史数据
+-- ============================================
+SELECT 
+    rh.loan_id,
+    rh.repayment_date,
+    rh.repayment_amount,
+    rh.overdue_days,
+    rh.loan_status,
+    la.customer_id
+FROM loan.repayment_history rh
+JOIN loan.loan_applications la ON rh.loan_id = la.loan_id
+WHERE la.customer_id IN (SELECT customer_id FROM target_customers)
+  AND rh.repayment_date >= '2015-01-01';
+
+-- ============================================
+-- 步骤6: 合并所有数据（在Python中执行）
+-- ============================================
+-- 使用 customer_id 作为主键进行 LEFT JOIN
+-- 计算衍生特征
+-- 处理缺失值
+-- 保存为 Parquet 格式</pre>
+        </div>
+
+        <!-- 第六部分：典型场景案例 -->
+        <h2>6. 典型场景案例</h2>
+
+        <h3>场景1：客户信用评分特征提取</h3>
+        <div class="diagram-container">
+            <div class="mermaid">
+flowchart LR
+    A[CRM系统<br/>客户基础信息] --> E[特征工程]
+    B[核心系统<br/>账户和交易] --> E
+    C[信贷系统<br/>贷款历史] --> E
+    D[风控系统<br/>信用评分] --> E
+    
+    E --> F[客户信用特征表]
+    
+    F --> G[模型训练]
+    
+    style E fill:#764ba2,stroke:#333,stroke-width:2px,color:#fff
+    style F fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+            </div>
+        </div>
+
+        <div class="code-block">
+            <pre>-- 客户信用评分特征提取SQL
+WITH customer_base AS (
+    SELECT customer_id, age, gender, education, industry, monthly_income
+    FROM crm.customer_profile
+),
+account_summary AS (
+    SELECT 
+        customer_id,
+        SUM(balance) as total_deposit,
+        AVG(balance) as avg_balance
+    FROM core.accounts
+    GROUP BY customer_id
+),
+loan_summary AS (
+    SELECT 
+        customer_id,
+        COUNT(*) as loan_count,
+        SUM(CASE WHEN loan_status = 'defaulted' THEN 1 ELSE 0 END) as default_count,
+        MAX(overdue_days) as max_overdue_days
+    FROM loan.loan_applications
+    GROUP BY customer_id
+)
+SELECT 
+    cb.customer_id,
+    cb.age,
+    cb.monthly_income,
+    COALESCE(ac.total_deposit, 0) as total_deposit,
+    COALESCE(ls.loan_count, 0) as loan_count,
+    COALESCE(ls.default_count, 0) as default_count,
+    COALESCE(ls.max_overdue_days, 0) as max_overdue_days,
+    -- 计算衍生特征
+    CASE 
+        WHEN cb.monthly_income > 0 THEN COALESCE(ac.total_deposit, 0) / (cb.monthly_income * 12)
+        ELSE 0 
+    END as savings_ratio
+FROM customer_base cb
+LEFT JOIN account_summary ac ON cb.customer_id = ac.customer_id
+LEFT JOIN loan_summary ls ON cb.customer_id = ls.customer_id;</pre>
+        </div>
+
+        <h3>场景2：贷款审批决策特征提取</h3>
+        <div class="diagram-container">
+            <div class="mermaid">
+flowchart TD
+    A[新贷款申请] --> B{提取客户历史数据}
+    B --> C[客户基础信息]
+    B --> D[账户交易数据]
+    B --> E[历史贷款记录]
+    B --> F[信用评分]
+    
+    C --> G[特征计算]
+    D --> G
+    E --> G
+    F --> G
+    
+    G --> H[审批决策特征]
+    H --> I[模型预测]
+    
+    style G fill:#764ba2,stroke:#333,stroke-width:2px,color:#fff
+    style H fill:#667eea,stroke:#333,stroke-width:2px,color:#fff
+            </div>
+        </div>
+
+        <div class="code-block">
+            <pre>-- 贷款审批决策特征提取
+SELECT 
+    la.loan_id,
+    la.customer_id,
+    la.loan_amount,
+    la.term_months,
+    la.interest_rate,
+    -- 客户基础特征
+    cp.age,
+    cp.monthly_income,
+    cp.total_assets,
+    cp.total_liabilities,
+    -- 账户特征
+    ac.total_deposit_balance,
+    ac.avg_account_balance,
+    -- 交易特征
+    tx.total_income,
+    tx.total_expense,
+    tx.income_volatility,
+    -- 历史贷款特征
+    lh.total_loans,
+    lh.default_count,
+    lh.max_overdue_days,
+    lh.months_since_last_loan,
+    -- 信用评分
+    cs.credit_score,
+    -- 计算衍生特征
+    la.loan_amount / NULLIF(cp.monthly_income * 12, 0) as loan_to_income_ratio,
+    cp.total_liabilities / NULLIF(cp.total_assets, 0) as debt_ratio,
+    (tx.total_income - tx.total_expense) / NULLIF(tx.total_income, 0) as savings_rate
+FROM loan.loan_applications la
+JOIN crm.customer_profile cp ON la.customer_id = cp.customer_id
+LEFT JOIN (
+    SELECT customer_id, SUM(balance) as total_deposit_balance, AVG(balance) as avg_account_balance
+    FROM core.accounts GROUP BY customer_id
+) ac ON la.customer_id = ac.customer_id
+LEFT JOIN (
+    SELECT 
+        customer_id,
+        SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_income,
+        SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_expense,
+        STDDEV(amount) / AVG(amount) as income_volatility
+    FROM core.transactions
+    WHERE transaction_date >= DATE_SUB(NOW(), INTERVAL 12 MONTH)
+    GROUP BY customer_id
+) tx ON la.customer_id = tx.customer_id
+LEFT JOIN (
+    SELECT 
+        customer_id,
+        COUNT(*) as total_loans,
+        SUM(CASE WHEN loan_status = 'defaulted' THEN 1 ELSE 0 END) as default_count,
+        MAX(overdue_days) as max_overdue_days,
+        DATEDIFF(NOW(), MAX(apply_date)) / 30 as months_since_last_loan
+    FROM loan.loan_applications
+    WHERE apply_date < (SELECT apply_date FROM loan.loan_applications WHERE loan_id = la.loan_id)
+    GROUP BY customer_id
+) lh ON la.customer_id = lh.customer_id
+LEFT JOIN risk.credit_scores cs ON la.customer_id = cs.customer_id
+WHERE la.apply_date >= '2024-01-01';</pre>
+        </div>
+
+        <div class="warning-box">
+            <strong>⚠️ 注意事项：</strong>
+            <ul style="margin-top: 10px; margin-left: 20px;">
+                <li>大数据量查询时，建议使用增量提取，避免全表扫描</li>
+                <li>JOIN操作可能很慢，建议先在数据仓库中预聚合</li>
+                <li>敏感数据提取前必须进行脱敏处理</li>
+                <li>提取的数据需要符合监管合规要求</li>
+            </ul>
+        </div>
+
+        <!-- 总结 -->
+        <h2>7. 总结</h2>
+        <div style="background: #f8f9fa; padding: 25px; border-radius: 10px; margin-top: 20px;">
+            <h3>关键要点</h3>
+            <ul style="margin-left: 30px; margin-top: 15px;">
+                <li><strong>系统关联</strong>：所有系统通过 <code class="highlight">customer_id</code> 关联</li>
+                <li><strong>数据提取</strong>：优先从数据仓库提取，避免直接查询生产库</li>
+                <li><strong>特征工程</strong>：结合多系统数据计算综合特征</li>
+                <li><strong>数据安全</strong>：提取前必须进行数据脱敏</li>
+                <li><strong>性能优化</strong>：使用索引、分批处理、增量提取</li>
+            </ul>
+            
+            <h3 style="margin-top: 30px;">推荐工具</h3>
+            <ul style="margin-left: 30px; margin-top: 15px;">
+                <li><strong>数据提取</strong>：使用我们提供的 <code>extract_banking_data.py</code> 脚本</li>
+                <li><strong>ETL工具</strong>：Apache Airflow、Talend、Informatica</li>
+                <li><strong>数据存储</strong>：Parquet格式（高效压缩、列式存储）</li>
+                <li><strong>数据分析</strong>：Pandas、PySpark、DuckDB</li>
+            </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e9ecef; color: #666;">
+            <p>📚 更多详细信息请参考：</p>
+            <p><code>docs/银行数据提取与特征工程指南.md</code></p>
+            <p><code>docs/数据提取快速指南.md</code></p>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+    </script>
+</body>
+</html>
+

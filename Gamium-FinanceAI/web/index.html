@@ -1056,8 +1056,11 @@
         <a href="/" class="nav-tab" style="text-decoration: none; margin-right: 10px; background: linear-gradient(135deg, rgba(0, 245, 255, 0.2), rgba(168, 85, 247, 0.2)); border: 1px solid rgba(0, 245, 255, 0.5);">
             📺 大屏监控
         </a>
-        <a href="/story" class="nav-tab" style="text-decoration: none; margin-right: 20px; background: linear-gradient(135deg, rgba(255, 184, 0, 0.2), rgba(255, 107, 53, 0.2)); border: 1px solid rgba(255, 184, 0, 0.5);">
+        <a href="/story" class="nav-tab" style="text-decoration: none; margin-right: 10px; background: linear-gradient(135deg, rgba(255, 184, 0, 0.2), rgba(255, 107, 53, 0.2)); border: 1px solid rgba(255, 184, 0, 0.5);">
             📖 项目介绍
+        </a>
+        <a href="/banking-architecture" class="nav-tab" style="text-decoration: none; margin-right: 20px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.2), rgba(118, 75, 162, 0.2)); border: 1px solid rgba(102, 126, 234, 0.5);">
+            🏦 系统架构
         </a>
         <div class="nav-tabs">
             <button class="nav-tab active" data-page="dashboard">📊 仪表盘</button>
@@ -1315,6 +1318,71 @@
                     <button class="modal-close" onclick="closeCustomerDetail()">×</button>
                 </div>
                 <div class="modal-body" id="customer-detail-content">
+                </div>
+            </div>
+        </div>
+        
+        <!-- LTV说明模态框 -->
+        <div id="ltv-explanation-modal" class="modal" style="display: none;">
+            <div class="modal-content" style="max-width: 800px;">
+                <div class="modal-header">
+                    <h3>💰 LTV (生命周期价值) 说明</h3>
+                    <button class="modal-close" onclick="closeLTVExplanation()">×</button>
+                </div>
+                <div class="modal-body" style="max-height: 80vh; overflow-y: auto;">
+                    <div style="padding: 20px;">
+                        <h4 style="color: var(--accent-primary); margin-bottom: 15px;">什么是LTV？</h4>
+                        <p style="margin-bottom: 15px; line-height: 1.8;">
+                            <strong>LTV (Lifetime Value)</strong> = <strong>客户生命周期价值</strong><br>
+                            LTV表示银行从某个客户身上预期能获得的<strong>净收益</strong>，即在整个客户关系周期内，银行从这个客户身上赚到的钱减去可能损失的钱。
+                        </p>
+                        
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                            <h5 style="margin-bottom: 10px;">📊 计算公式：</h5>
+                            <div style="font-family: monospace; background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 5px; margin: 10px 0;">
+                                LTV = 利息收入 - 预期损失 - 运营成本
+                            </div>
+                            <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+                                <li><strong>利息收入</strong>：银行从客户收取的贷款利息</li>
+                                <li><strong>预期损失</strong>：客户违约后可能无法收回的本金（= 贷款本金 × 违约概率 × 60%）</li>
+                                <li><strong>运营成本</strong>：审批、管理、催收等成本（通常为贷款本金的2%）</li>
+                            </ul>
+                        </div>
+                        
+                        <h4 style="color: var(--accent-primary); margin: 25px 0 15px;">如何解读LTV？</h4>
+                        <div class="grid grid-2" style="gap: 15px; margin: 15px 0;">
+                            <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); padding: 15px; border-radius: 8px; border-left: 4px solid #10b981;">
+                                <div style="font-weight: bold; color: #10b981; margin-bottom: 8px;">LTV > 0（正值）</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);">
+                                    这个客户能为银行带来利润，值得放贷。数值越大，利润越多。
+                                </div>
+                            </div>
+                            <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1)); padding: 15px; border-radius: 8px; border-left: 4px solid #ef4444;">
+                                <div style="font-weight: bold; color: #ef4444; margin-bottom: 8px;">LTV < 0（负值）</div>
+                                <div style="font-size: 13px; color: var(--text-secondary);">
+                                    这个客户可能让银行亏损，需要谨慎考虑。可能需要提高利率或拒绝放贷。
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <h4 style="color: var(--accent-primary); margin: 25px 0 15px;">实际示例</h4>
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; margin: 15px 0;">
+                            <strong>示例：贷款100,000元，年利率6%，期限12个月，违约概率10%</strong>
+                            <div style="margin-top: 10px; font-size: 13px; line-height: 1.8;">
+                                1. 利息收入 = 3,320元<br>
+                                2. 预期损失 = 100,000 × 10% × 60% = 6,000元<br>
+                                3. 运营成本 = 100,000 × 2% = 2,000元<br>
+                                <strong>LTV = 3,320 × 90% - 6,000 - 2,000 = -5,012元</strong><br>
+                                <span style="color: #ef4444;">结果：负值，表示可能亏损</span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                            <a href="/model-terms" target="_blank" style="color: var(--accent-primary); text-decoration: none; font-size: 13px;">
+                                📖 查看更详细的LTV说明文档 →
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1937,6 +2005,160 @@
                                 <span class="profile-value">${(c.months_as_customer / 12).toFixed(1)}年</span>
                             </div>
                         </div>
+                        
+                        <!-- 模型评估指标说明 -->
+                        <div class="card" style="margin-top: 20px; border: 1px solid var(--border-color);">
+                            <div class="card-header" onclick="toggleMetricsExplanation()" style="cursor: pointer; padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <span style="font-size: 20px;">📊</span>
+                                    <h4 style="margin: 0; font-size: 16px;">模型评估指标说明</h4>
+                                </div>
+                                <span id="metrics-toggle-icon" style="font-size: 18px; transition: transform 0.3s;">▼</span>
+                            </div>
+                            <div id="metrics-explanation" style="display: none; padding: 20px;">
+                                <div style="margin-bottom: 20px;">
+                                    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+                                        以下指标用于评估模型预测的准确性和可靠性。点击 <a href="/model-terms" target="_blank" style="color: var(--accent-primary); text-decoration: underline;">查看详细术语解释</a>
+                                    </p>
+                                </div>
+                                
+                                <div class="grid grid-2" style="gap: 16px; margin-bottom: 16px;">
+                                    <!-- AUC -->
+                                    <div class="metric-card" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1)); padding: 16px; border-radius: 8px; border-left: 4px solid #667eea;">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                            <div>
+                                                <div style="font-weight: bold; color: #667eea; font-size: 14px;">AUC (ROC曲线下面积)</div>
+                                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">模型区分能力</div>
+                                            </div>
+                                            <span class="badge" style="background: #17a2b8; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px;">0.85</span>
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+                                            <strong>含义：</strong>衡量模型区分"好客户"和"坏客户"的整体能力<br>
+                                            <strong>通俗解释：</strong>给你一个好人一个小偷，模型有85%的概率能正确区分<br>
+                                            <strong>评判标准：</strong>
+                                            <span style="color: #28a745;">> 0.9 优秀</span> | 
+                                            <span style="color: #17a2b8;">0.8-0.9 良好</span> | 
+                                            <span style="color: #ffc107;">0.7-0.8 可接受</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 精确率 -->
+                                    <div class="metric-card" style="background: linear-gradient(135deg, rgba(240, 147, 251, 0.1), rgba(245, 87, 108, 0.1)); padding: 16px; border-radius: 8px; border-left: 4px solid #f5576c;">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                            <div>
+                                                <div style="font-weight: bold; color: #f5576c; font-size: 14px;">精确率 (Precision)</div>
+                                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">避免误拒好客户</div>
+                                            </div>
+                                            <span class="badge" style="background: #17a2b8; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px;">0.85</span>
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+                                            <strong>含义：</strong>预测为违约的客户中，真正违约的比例<br>
+                                            <strong>通俗解释：</strong>模型预测100个会违约，其中85个真的违约了<br>
+                                            <strong>业务影响：</strong>精确率高 = 误拒率低（避免好客户被拒绝）<br>
+                                            <strong>评判标准：</strong>
+                                            <span style="color: #28a745;">> 0.85 优秀</span> | 
+                                            <span style="color: #17a2b8;">0.75-0.85 良好</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 召回率 -->
+                                    <div class="metric-card" style="background: linear-gradient(135deg, rgba(79, 172, 254, 0.1), rgba(0, 242, 254, 0.1)); padding: 16px; border-radius: 8px; border-left: 4px solid #4facfe;">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                            <div>
+                                                <div style="font-weight: bold; color: #4facfe; font-size: 14px;">召回率 (Recall)</div>
+                                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">避免漏检坏客户</div>
+                                            </div>
+                                            <span class="badge" style="background: #ffc107; color: #333; padding: 4px 8px; border-radius: 12px; font-size: 11px;">0.72</span>
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+                                            <strong>含义：</strong>真正违约的客户中，被正确识别的比例<br>
+                                            <strong>通俗解释：</strong>实际100个违约，模型识别出了72个<br>
+                                            <strong>业务影响：</strong>召回率高 = 漏检率低（避免坏客户被批准）<br>
+                                            <strong>评判标准：</strong>
+                                            <span style="color: #28a745;">> 0.80 优秀</span> | 
+                                            <span style="color: #17a2b8;">0.70-0.80 良好</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- F1分数 -->
+                                    <div class="metric-card" style="background: linear-gradient(135deg, rgba(250, 112, 154, 0.1), rgba(254, 225, 64, 0.1)); padding: 16px; border-radius: 8px; border-left: 4px solid #fa709a;">
+                                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                            <div>
+                                                <div style="font-weight: bold; color: #fa709a; font-size: 14px;">F1分数 (F1-Score)</div>
+                                                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">精确率和召回率平衡</div>
+                                            </div>
+                                            <span class="badge" style="background: #17a2b8; color: white; padding: 4px 8px; border-radius: 12px; font-size: 11px;">0.78</span>
+                                        </div>
+                                        <div style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+                                            <strong>含义：</strong>精确率和召回率的调和平均数<br>
+                                            <strong>通俗解释：</strong>综合考虑"不误拒好客户"和"不漏检坏客户"<br>
+                                            <strong>用途：</strong>当需要平衡精确率和召回率时使用<br>
+                                            <strong>评判标准：</strong>
+                                            <span style="color: #28a745;">> 0.82 优秀</span> | 
+                                            <span style="color: #17a2b8;">0.72-0.82 良好</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 混淆矩阵说明 -->
+                                <div style="margin-top: 20px; padding: 16px; background: #f8f9fa; border-radius: 8px;">
+                                    <h5 style="margin: 0 0 12px; font-size: 14px; color: var(--text-secondary);">📋 混淆矩阵说明</h5>
+                                    <div style="display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px; font-size: 12px;">
+                                        <div></div>
+                                        <div style="font-weight: bold; text-align: center; padding: 8px; background: #667eea; color: white; border-radius: 4px;">预测正常</div>
+                                        <div style="font-weight: bold; text-align: center; padding: 8px; background: #667eea; color: white; border-radius: 4px;">预测违约</div>
+                                        
+                                        <div style="font-weight: bold; padding: 8px; display: flex; align-items: center;">实际正常</div>
+                                        <div style="padding: 8px; background: #17a2b8; color: white; text-align: center; border-radius: 4px;">
+                                            <strong>TN</strong><br>
+                                            <small>真负例<br>(正确识别的好客户)</small>
+                                        </div>
+                                        <div style="padding: 8px; background: #ffc107; color: #333; text-align: center; border-radius: 4px;">
+                                            <strong>FP</strong><br>
+                                            <small>假正例<br>(误拒的好客户)</small>
+                                        </div>
+                                        
+                                        <div style="font-weight: bold; padding: 8px; display: flex; align-items: center;">实际违约</div>
+                                        <div style="padding: 8px; background: #dc3545; color: white; text-align: center; border-radius: 4px;">
+                                            <strong>FN</strong><br>
+                                            <small>假负例<br>(漏检的坏客户)</small>
+                                        </div>
+                                        <div style="padding: 8px; background: #28a745; color: white; text-align: center; border-radius: 4px;">
+                                            <strong>TP</strong><br>
+                                            <small>真正例<br>(正确识别的坏客户)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 业务指标 -->
+                                <div style="margin-top: 20px;">
+                                    <h5 style="margin: 0 0 12px; font-size: 14px; color: var(--text-secondary);">💼 业务指标</h5>
+                                    <div class="grid grid-3" style="gap: 12px;">
+                                        <div style="padding: 12px; background: #f8f9fa; border-radius: 6px;">
+                                            <div style="font-size: 11px; color: var(--text-muted);">误拒率</div>
+                                            <div style="font-size: 16px; font-weight: bold; color: #28a745;">&lt; 5%</div>
+                                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">避免好客户被拒绝</div>
+                                        </div>
+                                        <div style="padding: 12px; background: #f8f9fa; border-radius: 6px;">
+                                            <div style="font-size: 11px; color: var(--text-muted);">漏检率</div>
+                                            <div style="font-size: 16px; font-weight: bold; color: #17a2b8;">&lt; 10%</div>
+                                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">避免坏客户被批准</div>
+                                        </div>
+                                        <div style="padding: 12px; background: #f8f9fa; border-radius: 6px;">
+                                            <div style="font-size: 11px; color: var(--text-muted);">整体准确率</div>
+                                            <div style="font-size: 16px; font-weight: bold; color: #667eea;">&gt; 85%</div>
+                                            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">模型整体表现</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color); text-align: center;">
+                                    <a href="/model-terms" target="_blank" style="color: var(--accent-primary); text-decoration: none; font-size: 13px;">
+                                        📖 查看完整术语解释 →
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     `;
                 }
             } catch (error) {
@@ -2035,8 +2257,16 @@
                             <div class="detail-value ${p.default_probability < 0.05 ? 'positive' : p.default_probability < 0.15 ? 'warning' : 'negative'}">${(p.default_probability * 100).toFixed(2)}%</div>
                         </div>
                         <div class="detail-item">
-                            <div class="detail-label">预期LTV</div>
+                            <div class="detail-label" style="display: flex; align-items: center; gap: 6px;">
+                                预期LTV
+                                <span style="cursor: pointer; color: var(--accent-primary); font-size: 14px;" 
+                                      onclick="showLTVExplanation()" 
+                                      title="点击查看LTV详细说明">❓</span>
+                            </div>
                             <div class="detail-value ${p.expected_ltv > 0 ? 'positive' : 'negative'}">¥${p.expected_ltv.toLocaleString()}</div>
+                            <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                                ${p.expected_ltv > 0 ? '✅ 能为银行带来利润' : p.expected_ltv < -5000 ? '❌ 可能造成较大亏损' : '⚠️ 利润微薄或可能亏损'}
+                            </div>
                         </div>
                         <div class="detail-item">
                             <div class="detail-label">流失概率</div>
@@ -2099,9 +2329,33 @@
             document.getElementById('customer-detail-modal').style.display = 'none';
         }
         
+        function showLTVExplanation() {
+            document.getElementById('ltv-explanation-modal').style.display = 'flex';
+        }
+        
+        function closeLTVExplanation() {
+            document.getElementById('ltv-explanation-modal').style.display = 'none';
+        }
+        
+        function toggleMetricsExplanation() {
+            const explanation = document.getElementById('metrics-explanation');
+            const icon = document.getElementById('metrics-toggle-icon');
+            if (explanation.style.display === 'none') {
+                explanation.style.display = 'block';
+                icon.style.transform = 'rotate(180deg)';
+            } else {
+                explanation.style.display = 'none';
+                icon.style.transform = 'rotate(0deg)';
+            }
+        }
+        
         // 点击弹窗外部关闭
         document.getElementById('customer-detail-modal')?.addEventListener('click', function(e) {
             if (e.target === this) closeCustomerDetail();
+        });
+        
+        document.getElementById('ltv-explanation-modal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeLTVExplanation();
         });
         
         // ============================================================

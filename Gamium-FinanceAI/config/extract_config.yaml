@@ -1,0 +1,42 @@
+# 银行数据提取配置文件
+
+# 输出目录
+output_dir: data/extracted
+
+# 是否数据脱敏
+anonymize: true
+
+# 客户数据源配置
+customer_source:
+  type: parquet  # 可选: database, csv, parquet
+  file_path: data/historical/customers.parquet
+  
+  # 如果是数据库，使用以下配置:
+  # type: database
+  # connection_string: postgresql://user:password@host:port/database
+  # query: |
+  #   SELECT 
+  #     customer_id,
+  #     age,
+  #     gender,
+  #     education_level,
+  #     industry,
+  #     city_tier,
+  #     registration_date,
+  #     customer_type,
+  #     monthly_income,
+  #     total_assets,
+  #     total_liabilities
+  #   FROM crm.customer_profile
+  #   WHERE registration_date >= '2015-01-01'
+
+# 交易数据源配置（可选）
+transaction_source:
+  type: parquet
+  file_path: data/historical/repayment_history.parquet
+
+# 贷款数据源配置（可选）
+loan_source:
+  type: parquet
+  file_path: data/historical/loan_applications.parquet
+

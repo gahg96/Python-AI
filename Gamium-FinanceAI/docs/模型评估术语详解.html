@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型评估术语详解</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-align: center;
+            border-bottom: 4px solid #667eea;
+            padding-bottom: 20px;
+        }
+        
+        h2 {
+            color: #34495e;
+            font-size: 1.8em;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-left: 15px;
+            border-left: 5px solid #667eea;
+        }
+        
+        h3 {
+            color: #555;
+            font-size: 1.4em;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+        
+        .term-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin: 20px 0;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        }
+        
+        .term-card h3 {
+            color: white;
+            margin-top: 0;
+            font-size: 1.6em;
+        }
+        
+        .term-content {
+            background: rgba(255,255,255,0.95);
+            color: #333;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+        
+        .term-content p {
+            color: #333;
+        }
+        
+        .term-content strong {
+            color: #2c3e50;
+        }
+        
+        .term-content h3,
+        .term-content h4,
+        .term-content h5 {
+            color: #2c3e50;
+        }
+        
+        .term-content ul,
+        .term-content ol {
+            color: #333;
+        }
+        
+        .term-content li {
+            color: #333;
+        }
+        
+        .term-content table {
+            color: #333;
+        }
+        
+        .example-box {
+            background: #ffffff;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            color: #333;
+        }
+        
+        .example-box strong {
+            color: #667eea;
+        }
+        
+        .example-box p {
+            color: #333;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-table th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+        }
+        
+        .comparison-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin: 5px;
+        }
+        
+        .badge-excellent {
+            background: #28a745;
+            color: white;
+        }
+        
+        .badge-good {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .badge-acceptable {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .badge-poor {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .confusion-matrix {
+            display: grid;
+            grid-template-columns: auto 1fr 1fr;
+            gap: 10px;
+            margin: 20px 0;
+            max-width: 400px;
+        }
+        
+        .confusion-cell {
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        
+        .confusion-header {
+            background: #667eea;
+            color: white;
+        }
+        
+        .confusion-tp {
+            background: #28a745;
+            color: white;
+        }
+        
+        .confusion-tn {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .confusion-fp {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .confusion-fn {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .formula {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        .term-content .formula {
+            background: #1e1e1e;
+            color: #e0e0e0;
+        }
+        
+        .tip-box {
+            background: #e7f3f5;
+            border-left: 4px solid #0c5460;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            color: #333;
+        }
+        
+        .tip-box h3 {
+            color: #0c5460;
+        }
+        
+        .tip-box ul {
+            color: #333;
+        }
+        
+        .tip-box li {
+            color: #333;
+        }
+        
+        .analogy-box {
+            background: #fff9e6;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            color: #333;
+        }
+        
+        .analogy-box strong {
+            color: #856404;
+        }
+        
+        .analogy-box p {
+            color: #333;
+        }
+        
+        .comparison-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e9ecef;
+            color: #333;
+        }
+        
+        .tip-box {
+            background: #d1ecf1;
+            border-left: 4px solid #0c5460;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            color: #333;
+        }
+        
+        .tip-box strong {
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 模型评估术语详解</h1>
+        
+        <div style="text-align: center; color: #666; margin-bottom: 40px;">
+            <p style="font-size: 1.1em;">用通俗易懂的方式解释模型评估中的专业术语</p>
+        </div>
+
+        <!-- AUC -->
+        <div class="term-card">
+            <h3>1. AUC (Area Under the Curve) - ROC曲线下面积</h3>
+            <div class="term-content">
+                <p><strong>定义</strong>: AUC是ROC曲线下方的面积，取值范围0到1，衡量模型区分正负样本的能力。</p>
+                
+                <div class="analogy-box">
+                    <strong>🎯 通俗解释（抓小偷的例子）:</strong><br>
+                    想象你是一个保安，需要在人群中识别小偷。<br>
+                    <strong>AUC = 0.9</strong> 意味着：给你一个好人一个小偷，你有90%的概率能正确区分出哪个是小偷。
+                </div>
+                
+                <div class="example-box">
+                    <strong>📊 实际例子:</strong><br>
+                    AUC = 0.85 表示：<br>
+                    - 从100对客户中（每对包含1个好客户和1个坏客户）<br>
+                    - 模型能正确区分出85对<br>
+                    - 这是衡量模型整体区分能力的最佳指标
+                </div>
+                
+                <div class="formula">
+                    取值范围: 0 ≤ AUC ≤ 1<br>
+                    AUC = 1.0: 完美模型，100%能区分<br>
+                    AUC = 0.5: 和随机猜测一样<br>
+                    AUC < 0.5: 比随机猜测还差
+                </div>
+                
+                <table class="comparison-table">
+                    <tr>
+                        <th>AUC值</th>
+                        <th>评级</th>
+                        <th>说明</th>
+                    </tr>
+                    <tr>
+                        <td>> 0.9</td>
+                        <td><span class="badge badge-excellent">优秀</span></td>
+                        <td>模型区分能力非常强</td>
+                    </tr>
+                    <tr>
+                        <td>0.8 - 0.9</td>
+                        <td><span class="badge badge-good">良好</span></td>
+                        <td>模型区分能力良好，可以投入使用</td>
+                    </tr>
+                    <tr>
+                        <td>0.7 - 0.8</td>
+                        <td><span class="badge badge-acceptable">可接受</span></td>
+                        <td>模型有一定区分能力，但需要改进</td>
+                    </tr>
+                    <tr>
+                        <td>< 0.7</td>
+                        <td><span class="badge badge-poor">需改进</span></td>
+                        <td>模型区分能力较差，不建议使用</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- 精确率 -->
+        <div class="term-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+            <h3>2. 精确率 (Precision) - 预测为违约的客户中，真正违约的比例</h3>
+            <div class="term-content">
+                <div class="formula">
+                    精确率 = TP / (TP + FP)<br>
+                    TP: 真正违约且被预测为违约的客户数<br>
+                    FP: 正常客户但被误判为违约的客户数
+                </div>
+                
+                <div class="analogy-box">
+                    <strong>🎯 通俗解释（银行贷款的例子）:</strong><br>
+                    <strong>精确率 = 0.85</strong> 意味着：<br>
+                    - 模型预测了100个客户会违约<br>
+                    - 其中85个真的违约了<br>
+                    - 15个是误判（好客户被误判为坏客户）
+                </div>
+                
+                <div class="example-box">
+                    <strong>📊 业务影响:</strong><br>
+                    精确率高 = 误拒率低（避免好客户被拒绝）<br>
+                    精确率低 = 误拒率高（好客户被错误拒绝，损失业务）
+                </div>
+                
+                <table class="comparison-table">
+                    <tr>
+                        <th>精确率</th>
+                        <th>评级</th>
+                        <th>业务影响</th>
+                    </tr>
+                    <tr>
+                        <td>> 0.85</td>
+                        <td><span class="badge badge-excellent">优秀</span></td>
+                        <td>误拒率低，业务损失小</td>
+                    </tr>
+                    <tr>
+                        <td>0.75 - 0.85</td>
+                        <td><span class="badge badge-good">良好</span></td>
+                        <td>误拒率可接受</td>
+                    </tr>
+                    <tr>
+                        <td>0.65 - 0.75</td>
+                        <td><span class="badge badge-acceptable">可接受</span></td>
+                        <td>误拒率较高，需要关注</td>
+                    </tr>
+                    <tr>
+                        <td>< 0.65</td>
+                        <td><span class="badge badge-poor">需改进</span></td>
+                        <td>误拒率很高，业务损失大</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- 召回率 -->
+        <div class="term-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+            <h3>3. 召回率 (Recall) - 真正违约的客户中，被正确识别的比例</h3>
+            <div class="term-content">
+                <div class="formula">
+                    召回率 = TP / (TP + FN)<br>
+                    TP: 真正违约且被预测为违约的客户数<br>
+                    FN: 真正违约但被误判为正常的客户数
+                </div>
+                
+                <div class="analogy-box">
+                    <strong>🎯 通俗解释（银行贷款的例子）:</strong><br>
+                    <strong>召回率 = 0.80</strong> 意味着：<br>
+                    - 实际有100个客户违约了<br>
+                    - 模型识别出了80个<br>
+                    - 漏掉了20个（坏客户被误判为好客户）
+                </div>
+                
+                <div class="example-box">
+                    <strong>📊 业务影响:</strong><br>
+                    召回率高 = 漏检率低（避免坏客户被批准）<br>
+                    召回率低 = 漏检率高（坏客户被错误批准，造成坏账损失）
+                </div>
+                
+                <table class="comparison-table">
+                    <tr>
+                        <th>召回率</th>
+                        <th>评级</th>
+                        <th>业务影响</th>
+                    </tr>
+                    <tr>
+                        <td>> 0.80</td>
+                        <td><span class="badge badge-excellent">优秀</span></td>
+                        <td>漏检率低，风险控制好</td>
+                    </tr>
+                    <tr>
+                        <td>0.70 - 0.80</td>
+                        <td><span class="badge badge-good">良好</span></td>
+                        <td>漏检率可接受</td>
+                    </tr>
+                    <tr>
+                        <td>0.60 - 0.70</td>
+                        <td><span class="badge badge-acceptable">可接受</span></td>
+                        <td>漏检率较高，需要关注</td>
+                    </tr>
+                    <tr>
+                        <td>< 0.60</td>
+                        <td><span class="badge badge-poor">需改进</span></td>
+                        <td>漏检率很高，风险损失大</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- F1分数 -->
+        <div class="term-card" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+            <h3>4. F1分数 (F1-Score) - 精确率和召回率的平衡</h3>
+            <div class="term-content">
+                <div class="formula">
+                    F1 = 2 × (精确率 × 召回率) / (精确率 + 召回率)
+                </div>
+                
+                <div class="analogy-box">
+                    <strong>🎯 通俗解释:</strong><br>
+                    F1分数综合考虑了精确率和召回率<br>
+                    <strong>F1 = 0.82</strong> 意味着：<br>
+                    - 模型在精确率和召回率之间取得了良好平衡<br>
+                    - 既不会误拒太多好客户，也不会漏掉太多坏客户
+                </div>
+                
+                <div class="example-box">
+                    <strong>📊 计算示例:</strong><br>
+                    精确率 = 0.85, 召回率 = 0.80<br>
+                    F1 = 2 × (0.85 × 0.80) / (0.85 + 0.80)<br>
+                    &nbsp;&nbsp;&nbsp;= 2 × 0.68 / 1.65<br>
+                    &nbsp;&nbsp;&nbsp;= 0.82<br>
+                    这表示模型在精确率和召回率之间取得了良好平衡
+                </div>
+                
+                <table class="comparison-table">
+                    <tr>
+                        <th>F1分数</th>
+                        <th>评级</th>
+                        <th>说明</th>
+                    </tr>
+                    <tr>
+                        <td>> 0.82</td>
+                        <td><span class="badge badge-excellent">优秀</span></td>
+                        <td>精确率和召回率都很高</td>
+                    </tr>
+                    <tr>
+                        <td>0.72 - 0.82</td>
+                        <td><span class="badge badge-good">良好</span></td>
+                        <td>精确率和召回率平衡良好</td>
+                    </tr>
+                    <tr>
+                        <td>0.62 - 0.72</td>
+                        <td><span class="badge badge-acceptable">可接受</span></td>
+                        <td>精确率和召回率需要改进</td>
+                    </tr>
+                    <tr>
+                        <td>< 0.62</td>
+                        <td><span class="badge badge-poor">需改进</span></td>
+                        <td>模型整体表现较差</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- KS值 -->
+        <div class="term-card" style="background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);">
+            <h3>5. KS值 (Kolmogorov-Smirnov) - 模型区分能力指标</h3>
+            <div class="term-content">
+                <p><strong>定义</strong>: KS值是模型在正负样本上的累积分布函数的最大差值，取值范围0到1。</p>
+                
+                <div class="analogy-box">
+                    <strong>🎯 通俗解释:</strong><br>
+                    <strong>KS值 = 0.4</strong> 意味着：<br>
+                    - 模型对好客户和坏客户的评分分布有40%的最大差异<br>
+                    - KS值越高，说明模型越能区分好客户和坏客户
+                </div>
+                
+                <div class="example-box">
+                    <strong>📊 实际意义:</strong><br>
+                    KS值 > 0.4: 模型区分能力优秀<br>
+                    KS值 0.3-0.4: 模型区分能力良好<br>
+                    KS值 < 0.2: 模型区分能力较差
+                </div>
+                
+                <table class="comparison-table">
+                    <tr>
+                        <th>KS值</th>
+                        <th>评级</th>
+                        <th>说明</th>
+                    </tr>
+                    <tr>
+                        <td>> 0.4</td>
+                        <td><span class="badge badge-excellent">优秀</span></td>
+                        <td>模型区分能力非常强</td>
+                    </tr>
+                    <tr>
+                        <td>0.3 - 0.4</td>
+                        <td><span class="badge badge-good">良好</span></td>
+                        <td>模型区分能力良好</td>
+                    </tr>
+                    <tr>
+                        <td>0.2 - 0.3</td>
+                        <td><span class="badge badge-acceptable">可接受</span></td>
+                        <td>模型有一定区分能力</td>
+                    </tr>
+                    <tr>
+                        <td>< 0.2</td>
+                        <td><span class="badge badge-poor">需改进</span></td>
+                        <td>模型区分能力较差</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- 混淆矩阵 -->
+        <h2>混淆矩阵相关术语</h2>
+        
+        <div class="term-content">
+            <h3>混淆矩阵 (Confusion Matrix)</h3>
+            <p>展示模型预测结果与实际结果对比的表格</p>
+            
+            <div class="confusion-matrix">
+                <div></div>
+                <div class="confusion-cell confusion-header">预测正常</div>
+                <div class="confusion-cell confusion-header">预测违约</div>
+                
+                <div class="confusion-cell confusion-header">实际正常</div>
+                <div class="confusion-cell confusion-tn">TN<br>真负例<br>(正确识别的好客户)</div>
+                <div class="confusion-cell confusion-fp">FP<br>假正例<br>(误拒的好客户)</div>
+                
+                <div class="confusion-cell confusion-header">实际违约</div>
+                <div class="confusion-cell confusion-fn">FN<br>假负例<br>(漏检的坏客户)</div>
+                <div class="confusion-cell confusion-tp">TP<br>真正例<br>(正确识别的坏客户)</div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h4>术语解释：</h4>
+                <ul style="margin-left: 30px; margin-top: 10px;">
+                    <li><strong>TP (True Positive)</strong>: 真正违约且被预测为违约的客户 - 模型正确识别出的坏客户</li>
+                    <li><strong>TN (True Negative)</strong>: 真正正常且被预测为正常的客户 - 模型正确识别出的好客户</li>
+                    <li><strong>FP (False Positive)</strong>: 真正正常但被误判为违约的客户 - 好客户被误判为坏客户（误拒）</li>
+                    <li><strong>FN (False Negative)</strong>: 真正违约但被误判为正常的客户 - 坏客户被误判为好客户（漏检）</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- 业务术语 -->
+        <h2>业务相关术语</h2>
+        
+        <div class="term-content">
+            <h3>误拒率 (False Positive Rate)</h3>
+            <div class="formula">
+                误拒率 = FP / (FP + TN)
+            </div>
+            <p><strong>通俗解释</strong>: 100个好客户中，有多少个被错误拒绝</p>
+            <p><strong>业务影响</strong>: 误拒率高 = 损失业务机会</p>
+            
+            <h3 style="margin-top: 30px;">漏检率 (False Negative Rate)</h3>
+            <div class="formula">
+                漏检率 = FN / (TP + FN)
+            </div>
+            <p><strong>通俗解释</strong>: 100个坏客户中，有多少个被错误批准</p>
+            <p><strong>业务影响</strong>: 漏检率高 = 造成坏账损失</p>
+            
+            <h3 style="margin-top: 30px;">准确率 (Accuracy)</h3>
+            <div class="formula">
+                准确率 = (TP + TN) / (TP + TN + FP + FN)
+            </div>
+            <p><strong>通俗解释</strong>: 100个客户中，有多少个被正确预测</p>
+            <div class="tip-box">
+                <strong>⚠️ 注意事项</strong>: 当数据不平衡时（好客户多，坏客户少），准确率可能不准确。
+                例如：1000个客户中，950个好客户，50个坏客户。即使模型全部预测为"好客户"，
+                准确率也有95%，但完全没有识别坏客户的能力。
+            </div>
+        </div>
+
+        <!-- 总结 -->
+        <h2>总结</h2>
+        
+        <div class="tip-box">
+            <h3>核心概念速记</h3>
+            <ul style="margin-left: 30px; margin-top: 10px;">
+                <li><strong>AUC</strong>: 模型区分好客户和坏客户的整体能力（越高越好）</li>
+                <li><strong>精确率</strong>: 预测为坏客户中，真正坏客户的比例（避免误拒好客户）</li>
+                <li><strong>召回率</strong>: 真正坏客户中，被正确识别的比例（避免漏检坏客户）</li>
+                <li><strong>F1分数</strong>: 精确率和召回率的平衡（综合考虑）</li>
+                <li><strong>KS值</strong>: 模型区分能力的指标（越高越好）</li>
+            </ul>
+        </div>
+        
+        <table class="comparison-table" style="margin-top: 30px;">
+            <tr>
+                <th>指标</th>
+                <th>关注点</th>
+                <th>业务影响</th>
+                <th>理想值</th>
+            </tr>
+            <tr>
+                <td><strong>AUC</strong></td>
+                <td>整体区分能力</td>
+                <td>模型整体性能</td>
+                <td>> 0.8</td>
+            </tr>
+            <tr>
+                <td><strong>精确率</strong></td>
+                <td>误拒率</td>
+                <td>避免好客户被拒绝</td>
+                <td>> 0.75</td>
+            </tr>
+            <tr>
+                <td><strong>召回率</strong></td>
+                <td>漏检率</td>
+                <td>避免坏客户被批准</td>
+                <td>> 0.70</td>
+            </tr>
+            <tr>
+                <td><strong>F1分数</strong></td>
+                <td>精确率和召回率平衡</td>
+                <td>整体表现</td>
+                <td>> 0.72</td>
+            </tr>
+            <tr>
+                <td><strong>KS值</strong></td>
+                <td>区分能力</td>
+                <td>模型区分度</td>
+                <td>> 0.3</td>
+            </tr>
+        </table>
+
+        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #e9ecef; color: #666;">
+            <p>📚 更多详细信息请参考：</p>
+            <p><code>docs/模型评估术语详解.md</code></p>
+            <p><code>docs/模型预测与评估指南.md</code></p>
+        </div>
+    </div>
+</body>
+</html>
+

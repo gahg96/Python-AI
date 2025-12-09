@@ -1,0 +1,27 @@
+{
+  "age": 35,
+  "gender": "M",
+  "education": "bachelor",
+  "industry": "it",
+  "city_tier": "tier_1",
+  "customer_type": "salaried",
+  "monthly_income": 15000.0,
+  "total_assets": 500000.0,
+  "total_liabilities": 200000.0,
+  "total_deposit_balance": 100000.0,
+  "avg_account_balance": 50000.0,
+  "total_income": 180000.0,
+  "total_expense": 150000.0,
+  "income_volatility": 0.15,
+  "transaction_count": 120,
+  "avg_transaction_amount": 1250.0,
+  "total_loans": 2,
+  "total_loan_amount": 200000.0,
+  "avg_loan_amount": 100000.0,
+  "default_count": 0,
+  "max_overdue_days": 0,
+  "avg_interest_rate": 0.06,
+  "months_since_last_loan": 12,
+  "months_as_customer": 36
+}
+
