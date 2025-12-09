@@ -239,58 +239,101 @@ def get_default_probability_detail():
         '服务企业': CustomerType.SERVICE_COMPANY,
     }
     
-    customer_type = type_map.get(customer_data.get('customer_type'), CustomerType.SALARIED)
-    customer = generator.generate_one(customer_type=customer_type)
+    # 使用传入的预测数据中的违约概率，确保一致性
+    # 如果预测数据中有违约概率，直接使用它，否则重新计算
+    use_prediction_data = prediction_data and 'default_probability' in prediction_data
     
-    # 覆盖关键字段（跳过只读属性）
-    readonly_props = {'debt_ratio', 'debt_to_income', 'risk_score', 'financial_health_score', 
-                      'innovation_score', 'enterprise_size_score', 'is_enterprise'}
+    if use_prediction_data:
+        # 直接使用预测结果，确保前后一致
+        final_prob = prediction_data.get('default_probability', 0.03)
+        risk_factors = prediction_data.get('risk_factors', {})
+    else:
+        # 需要重新计算时，正确重建客户对象
+        customer_type = type_map.get(customer_data.get('customer_type'), CustomerType.SALARIED)
+        from data_distillation.customer_generator import CityTier, Industry
+        
+        # 解析城市等级和行业
+        city_tier = None
+        if customer_data.get('city_tier'):
+            city_tier_map = {
+                'tier_1': CityTier.TIER_1,
+                'tier_2': CityTier.TIER_2,
+                'tier_3': CityTier.TIER_3,
+                'tier_4': CityTier.TIER_4,
+            }
+            city_tier = city_tier_map.get(customer_data.get('city_tier'))
+        
+        industry = None
+        if customer_data.get('industry'):
+            industry_map = {
+                'manufacturing': Industry.MANUFACTURING,
+                'service': Industry.SERVICE,
+                'retail': Industry.RETAIL,
+                'catering': Industry.CATERING,
+                'it': Industry.IT,
+                'construction': Industry.CONSTRUCTION,
+                'agriculture': Industry.AGRICULTURE,
+            }
+            industry = industry_map.get(customer_data.get('industry'))
+        
+        customer = generator.generate_one(customer_type=customer_type, city_tier=city_tier, industry=industry)
+        
+        # 覆盖关键字段（跳过只读属性）
+        readonly_props = {'debt_ratio', 'debt_to_income', 'risk_score', 'financial_health_score', 
+                          'innovation_score', 'enterprise_size_score', 'is_enterprise'}
+        
+        for key, value in customer_data.items():
+            if key not in readonly_props and hasattr(customer, key):
+                try:
+                    # 尝试设置属性
+                    attr = getattr(type(customer), key, None)
+                    if not isinstance(attr, property) or attr.fset is not None:
+                        setattr(customer, key, value)
+                except (AttributeError, TypeError):
+                    # 如果是只读属性，跳过
+                    pass
+        
+        # 特殊处理：通过设置总资产和总负债来间接设置负债率
+        if 'debt_ratio' in customer_data:
+            debt_ratio = float(customer_data['debt_ratio'])
+            if hasattr(customer, 'total_assets') and customer.total_assets > 0:
+                customer.total_liabilities = customer.total_assets * debt_ratio
+        
+        # 重建贷款对象
+        loan = LoanOffer(
+            amount=float(loan_data.get('amount', 100000)),
+            interest_rate=float(loan_data.get('interest_rate', 0.08)),
+            term_months=int(loan_data.get('term_months', 24)),
+        )
+        
+        # 重建市场环境
+        market = MarketConditions(
+            gdp_growth=float(market_data.get('gdp_growth', 0.03)),
+            base_interest_rate=float(market_data.get('base_interest_rate', 0.04)),
+            unemployment_rate=float(market_data.get('unemployment_rate', 0.05)),
+            inflation_rate=float(market_data.get('inflation_rate', 0.02)),
+            credit_spread=float(market_data.get('credit_spread', 0.02)),
+        )
+        
+        # 重新预测（不添加噪声）
+        future = world_model.predict_customer_future(customer, loan, market, add_noise=False)
+        final_prob = future.default_probability
+        risk_factors = future.risk_factors or {}
     
-    for key, value in customer_data.items():
-        if key not in readonly_props and hasattr(customer, key):
-            try:
-                # 尝试设置属性
-                attr = getattr(type(customer), key, None)
-                if not isinstance(attr, property) or attr.fset is not None:
-                    setattr(customer, key, value)
-            except (AttributeError, TypeError):
-                # 如果是只读属性，跳过
-                pass
-    
-    # 特殊处理：通过设置总资产和总负债来间接设置负债率
-    if 'debt_ratio' in customer_data:
-        debt_ratio = float(customer_data['debt_ratio'])
-        if hasattr(customer, 'total_assets') and customer.total_assets > 0:
-            customer.total_liabilities = customer.total_assets * debt_ratio
-    
-    # 重建贷款对象
-    loan = LoanOffer(
-        amount=float(loan_data.get('amount', 100000)),
-        interest_rate=float(loan_data.get('interest_rate', 0.08)),
-        term_months=int(loan_data.get('term_months', 24)),
-    )
-    
-    # 重建市场环境
-    market = MarketConditions(
-        gdp_growth=float(market_data.get('gdp_growth', 0.03)),
-        base_interest_rate=float(market_data.get('base_interest_rate', 0.04)),
-        unemployment_rate=float(market_data.get('unemployment_rate', 0.05)),
-        inflation_rate=float(market_data.get('inflation_rate', 0.02)),
-        credit_spread=float(market_data.get('credit_spread', 0.02)),
-    )
-    
-    # 重新预测（不添加噪声）
-    future = world_model.predict_customer_future(customer, loan, market, add_noise=False)
-    
-    # 构建详细计算过程
-    risk_factors = future.risk_factors or {}
+    # 确保risk_factors存在
+    if not risk_factors:
+        risk_factors = {}
     
     # 计算步骤
     calculation_steps = []
     
     # 步骤1: 基础违约率
     base_rate = risk_factors.get('base_rate', 0.03)
-    customer_type_name = customer.customer_type.value if hasattr(customer.customer_type, 'value') else str(customer.customer_type)
+    # 获取客户类型名称
+    if use_prediction_data:
+        customer_type_name = customer_data.get('customer_type', '未知')
+    else:
+        customer_type_name = customer.customer_type.value if hasattr(customer.customer_type, 'value') else str(customer.customer_type)
     calculation_steps.append({
         'step': 1,
         'name': '基础违约率',
