@@ -10584,10 +10584,44 @@
             return modal;
         }
 
+        // 全局变量：存储模型列表
+        let arenaModelList = [];
+
+        // 加载模型列表
+        async function loadArenaModels() {
+            try {
+                const res = await fetch(`${API_BASE}/api/models/list`);
+                const data = await res.json();
+                if (data.success && data.models) {
+                    arenaModelList = data.models.map(m => ({
+                        id: m.id,
+                        name: m.config?.model_name || m.id,
+                        type: m.type?.value || m.type || 'unknown',
+                        provider: m.config?.provider || '未知'
+                    }));
+                }
+            } catch (e) {
+                console.error('加载模型列表失败:', e);
+                arenaModelList = [];
+            }
+        }
+
+        // 生成模型下拉选项HTML
+        function generateModelSelectOptions(selectedModelId) {
+            let options = '<option value="">无 (策略模式)</option>';
+            arenaModelList.forEach(model => {
+                const selected = model.id === selectedModelId ? 'selected' : '';
+                const label = `${model.name} (${model.provider})`;
+                options += `<option value="${model.id}" ${selected}>${label}</option>`;
+            });
+            return options;
+        }
+
         function openArenaModal() {
             ensureArenaModal().style.display = 'flex';
-            initArenaParticipants();
-            runArena();
+            loadArenaModels().then(() => {
+                initArenaParticipants();
+            });
         }
 
         function closeArenaModal() {
@@ -10614,6 +10648,7 @@
             card.style.padding = '10px';
             card.style.display = 'grid';
             card.style.gap = '6px';
+            const modelSelectOptions = generateModelSelectOptions(p.model_id || '');
             card.innerHTML = `
                 <div style="display:flex; justify-content: space-between; align-items:center;">
                     <input type="text" class="form-input" value="${p.name || ''}" placeholder="名称" style="flex:1; margin-right:6px;">
@@ -10623,7 +10658,9 @@
                     <input type="number" class="form-input" value="${p.approval_threshold || 0.18}" step="0.01" placeholder="审批阈值">
                     <input type="number" class="form-input" value="${p.rate_spread || 0.01}" step="0.001" placeholder="利差">
                 </div>
-                <input type="text" class="form-input" value="${p.model_id || ''}" placeholder="模型ID(可选)">
+                <select class="form-input" style="width: 100%;">
+                    ${modelSelectOptions}
+                </select>
             `;
             container.appendChild(card);
         }
@@ -10638,11 +10675,13 @@
             const cards = Array.from(container.children);
             return cards.map(c => {
                 const inputs = c.querySelectorAll('input');
+                const select = c.querySelector('select');
+                const modelId = select?.value || null;
                 return {
                     name: inputs[0]?.value || '未命名',
                     approval_threshold: parseFloat(inputs[1]?.value || 0.18),
                     rate_spread: parseFloat(inputs[2]?.value || 0.01),
-                    model_id: inputs[3]?.value || null
+                    model_id: modelId || null
                 };
             });
         }
