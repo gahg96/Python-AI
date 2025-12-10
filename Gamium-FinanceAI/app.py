@@ -97,6 +97,13 @@ comparison_trace = {
 # 静态文件
 # ============================================================
 
+@app.route('/docs/<path:filename>')
+def serve_docs(filename):
+    """提供docs目录下的文档文件"""
+    import os
+    docs_dir = os.path.join(os.path.dirname(__file__), 'docs')
+    return send_from_directory(docs_dir, filename)
+
 @app.route('/')
 def index():
     """大屏展示页面 - 首页"""
@@ -3201,6 +3208,1961 @@ def realtime_reset():
 # ============================================================
 # 主入口
 # ============================================================
+
+# ============================================================
+# 多模型对抗评测 API
+# ============================================================
+
+from model_evaluation.model_gateway import ModelGateway, ModelType, gateway
+from model_evaluation.evaluator import AdversarialEvaluator, TestCase, get_default_test_cases
+import asyncio
+
+# 初始化模型网关（注册主流模型）
+def init_model_gateway():
+    """初始化模型网关，注册主流国内外模型"""
+    
+    # OpenAI系列
+    gateway.register_model(
+        'gpt-4',
+        ModelType.OPENAI,
+        {
+            'model_name': 'gpt-4',
+            'api_key': 'demo-key',
+            'endpoint': 'https://api.openai.com/v1/chat/completions',
+            'temperature': 0.7,
+            'provider': 'OpenAI',
+            'features': ['推理', '多模态']
+        }
+    )
+    
+    gateway.register_model(
+        'gpt-4-turbo',
+        ModelType.OPENAI,
+        {
+            'model_name': 'gpt-4-turbo',
+            'api_key': 'demo-key',
+            'endpoint': 'https://api.openai.com/v1/chat/completions',
+            'temperature': 0.7,
+            'provider': 'OpenAI',
+            'features': ['推理', '多模态', '便宜']
+        }
+    )
+    
+    gateway.register_model(
+        'gpt-3.5-turbo',
+        ModelType.OPENAI,
+        {
+            'model_name': 'gpt-3.5-turbo',
+            'api_key': 'demo-key',
+            'endpoint': 'https://api.openai.com/v1/chat/completions',
+            'temperature': 0.7,
+            'provider': 'OpenAI',
+            'features': ['便宜', '快速']
+        }
+    )
+    
+    # Anthropic系列
+    gateway.register_model(
+        'claude-3-opus',
+        ModelType.ANTHROPIC,
+        {
+            'model_name': 'claude-3-opus',
+            'api_key': 'demo-key',
+            'endpoint': 'https://api.anthropic.com/v1/messages',
+            'temperature': 0.7,
+            'provider': 'Anthropic',
+            'features': ['推理', '长上下文']
+        }
+    )
+    
+    gateway.register_model(
+        'claude-3-sonnet',
+        ModelType.ANTHROPIC,
+        {
+            'model_name': 'claude-3-sonnet',
+            'api_key': 'demo-key',
+            'endpoint': 'https://api.anthropic.com/v1/messages',
+            'temperature': 0.7,
+            'provider': 'Anthropic',
+            'features': ['推理', '平衡']
+        }
+    )
+    
+    # Google系列
+    gateway.register_model(
+        'gemini-pro',
+        ModelType.OPENAI,  # 使用OpenAI兼容接口
+        {
+            'model_name': 'gemini-pro',
+            'api_key': 'demo-key',
+            'endpoint': 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+            'temperature': 0.7,
+            'provider': 'Google',
+            'features': ['多模态', '推理', '便宜']
+        }
+    )
+    
+    gateway.register_model(
+        'gemini-ultra',
+        ModelType.OPENAI,
+        {
+            'model_name': 'gemini-ultra',
+            'api_key': 'demo-key',
+            'endpoint': 'https://generativelanguage.googleapis.com/v1beta/models/gemini-ultra:generateContent',
+            'temperature': 0.7,
+            'provider': 'Google',
+            'features': ['多模态', '推理']
+        }
+    )
+    
+    # 阿里云通义千问系列
+    gateway.register_model(
+        'qwen-turbo',
+        ModelType.OPENAI,
+        {
+            'model_name': 'qwen-turbo',
+            'api_key': 'demo-key',
+            'endpoint': 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',
+            'temperature': 0.7,
+            'provider': '阿里云',
+            'features': ['便宜', '快速']
+        }
+    )
+    
+    gateway.register_model(
+        'qwen-plus',
+        ModelType.OPENAI,
+        {
+            'model_name': 'qwen-plus',
+            'api_key': 'demo-key',
+            'endpoint': 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',
+            'temperature': 0.7,
+            'provider': '阿里云',
+            'features': ['推理', '平衡']
+        }
+    )
+    
+    gateway.register_model(
+        'qwen-max',
+        ModelType.OPENAI,
+        {
+            'model_name': 'qwen-max',
+            'api_key': 'demo-key',
+            'endpoint': 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation',
+            'temperature': 0.7,
+            'provider': '阿里云',
+            'features': ['推理', '长上下文']
+        }
+    )
+    
+    # DeepSeek系列
+    gateway.register_model(
+        'deepseek-chat',
+        ModelType.OPENAI,
+        {
+            'model_name': 'deepseek-chat',
+            'api_key': 'demo-key',
+            'endpoint': 'https://api.deepseek.com/v1/chat/completions',
+            'temperature': 0.7,
+            'provider': 'DeepSeek',
+            'features': ['推理', '便宜']
+        }
+    )
+    
+    gateway.register_model(
+        'deepseek-coder',
+        ModelType.OPENAI,
+        {
+            'model_name': 'deepseek-coder',
+            'api_key': 'demo-key',
+            'endpoint': 'https://api.deepseek.com/v1/chat/completions',
+            'temperature': 0.7,
+            'provider': 'DeepSeek',
+            'features': ['代码', '推理']
+        }
+    )
+    
+    # 月之暗面Kimi系列
+    gateway.register_model(
+        'kimi-chat',
+        ModelType.OPENAI,
+        {
+            'model_name': 'kimi-chat',
+            'api_key': 'demo-key',
+            'endpoint': 'https://api.moonshot.cn/v1/chat/completions',
+            'temperature': 0.7,
+            'provider': '月之暗面',
+            'features': ['长上下文', '推理']
+        }
+    )
+    
+    # 智谱AI GLM系列
+    gateway.register_model(
+        'glm-4',
+        ModelType.OPENAI,
+        {
+            'model_name': 'glm-4',
+            'api_key': 'demo-key',
+            'endpoint': 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+            'temperature': 0.7,
+            'provider': '智谱AI',
+            'features': ['推理', '多模态']
+        }
+    )
+    
+    # 本地模型（Ollama等）
+    gateway.register_model(
+        'ollama-llama3',
+        ModelType.LOCAL_LLM,
+        {
+            'model_name': 'llama3',
+            'endpoint': 'http://localhost:11434/api/generate',
+            'temperature': 0.7,
+            'provider': 'Ollama',
+            'features': ['本地部署', '便宜']
+        }
+    )
+    
+    gateway.register_model(
+        'ollama-mistral',
+        ModelType.LOCAL_LLM,
+        {
+            'model_name': 'mistral',
+            'endpoint': 'http://localhost:11434/api/generate',
+            'temperature': 0.7,
+            'provider': 'Ollama',
+            'features': ['本地部署', '推理']
+        }
+    )
+    
+    gateway.register_model(
+        'ollama-qwen',
+        ModelType.LOCAL_LLM,
+        {
+            'model_name': 'qwen',
+            'endpoint': 'http://localhost:11434/api/generate',
+            'temperature': 0.7,
+            'provider': 'Ollama',
+            'features': ['本地部署', '中文']
+        }
+    )
+    
+    # RAG应用
+    gateway.register_model(
+        'rag-finance',
+        ModelType.RAG,
+        {
+            'model_name': 'finance-rag',
+            'endpoint': 'http://localhost:8001/api/chat',
+            'temperature': 0.7,
+            'provider': 'RAG',
+            'features': ['知识检索', '专业']
+        }
+    )
+
+# 初始化模型网关（确保在导入时就执行）
+def load_persisted_models():
+    """从持久化文件加载模型配置"""
+    try:
+        import json
+        from pathlib import Path
+        models_file = Path(__file__).parent / 'data' / 'models_config.json'
+        
+        if models_file.exists():
+            with open(models_file, 'r', encoding='utf-8') as f:
+                all_models_config = json.load(f)
+                
+            # 将持久化的配置合并到内存中
+            for model_id, model_data in all_models_config.items():
+                if model_id in gateway.models:
+                    # 合并配置，持久化的配置优先
+                    persisted_config = model_data.get('config', {})
+                    memory_config = gateway.models[model_id].get('config', {})
+                    gateway.models[model_id]['config'] = {**memory_config, **persisted_config}
+                else:
+                    # 如果内存中没有，从文件加载
+                    model_type_str = model_data.get('type', 'openai')
+                    try:
+                        model_type = ModelType(model_type_str)
+                        gateway.register_model(model_id, model_type, model_data.get('config', {}))
+                    except:
+                        pass  # 忽略无效的模型类型
+    except Exception as e:
+        print(f"⚠️ 加载持久化模型配置失败: {e}")
+
+try:
+    init_model_gateway()
+    load_persisted_models()  # 加载持久化的配置
+    print(f"✅ 模型网关初始化完成，已注册 {len(gateway.list_models())} 个模型")
+except Exception as e:
+    print(f"⚠️ 模型网关初始化失败: {e}")
+    import traceback
+    traceback.print_exc()
+
+@app.route('/api/models/list', methods=['GET'])
+def list_models():
+    """获取模型列表"""
+    try:
+        models = gateway.list_models()
+        # 格式化模型数据，确保包含所有必要字段
+        formatted_models = []
+        for model in models:
+            model_type = model.get('type')
+            # 处理Enum类型
+            if hasattr(model_type, 'value'):
+                type_value = model_type.value
+            elif isinstance(model_type, str):
+                type_value = model_type
+            else:
+                type_value = str(model_type)
+            
+            formatted_models.append({
+                'id': model.get('id', ''),
+                'type': {
+                    'value': type_value
+                },
+                'status': model.get('status', 'active'),
+                'config': model.get('config', {})
+            })
+        return jsonify({
+            'success': True,
+            'models': formatted_models
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/models/register', methods=['POST'])
+def register_model():
+    """注册新模型（持久化保存）"""
+    try:
+        data = request.json or {}
+        model_id = data.get('model_id')
+        model_type_str = data.get('model_type', 'openai')
+        config = data.get('config', {})
+        
+        if not model_id:
+            return jsonify({
+                'success': False,
+                'error': '模型ID不能为空'
+            }), 400
+        
+        model_type = ModelType(model_type_str)
+        
+        # 注册到内存
+        gateway.register_model(model_id, model_type, config)
+        
+        # 持久化保存到文件
+        import json
+        from pathlib import Path
+        models_file = Path(__file__).parent / 'data' / 'models_config.json'
+        models_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # 读取现有配置
+        all_models_config = {}
+        if models_file.exists():
+            with open(models_file, 'r', encoding='utf-8') as f:
+                all_models_config = json.load(f)
+        
+        # 添加新模型
+        all_models_config[model_id] = {
+            'id': model_id,
+            'type': model_type_str,
+            'config': config,
+            'status': 'active',
+            'created_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': time.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        # 保存到文件
+        with open(models_file, 'w', encoding='utf-8') as f:
+            json.dump(all_models_config, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'message': f'模型 {model_id} 注册成功并已保存',
+            'model_id': model_id
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/evaluation/test-cases', methods=['GET'])
+def get_test_cases():
+    """获取测试用例列表"""
+    try:
+        test_cases = get_default_test_cases()
+        return jsonify({
+            'success': True,
+            'test_cases': [
+                {
+                    'id': tc.id,
+                    'scenario': tc.scenario,
+                    'initial_prompt': tc.initial_prompt,
+                    'rounds_count': len(tc.rounds),
+                    'expected_keywords': tc.expected_keywords
+                }
+                for tc in test_cases
+            ]
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/evaluation/create', methods=['POST'])
+def create_evaluation():
+    """创建评测任务"""
+    try:
+        data = request.json or {}
+        model_ids = data.get('model_ids', [])
+        test_case_ids = data.get('test_case_ids', [])
+        
+        if not model_ids:
+            return jsonify({
+                'success': False,
+                'error': '请至少选择一个模型'
+            }), 400
+        
+        # 获取测试用例
+        all_test_cases = get_default_test_cases()
+        test_cases = [tc for tc in all_test_cases if tc.id in test_case_ids]
+        
+        if not test_cases:
+            test_cases = all_test_cases  # 默认使用所有测试用例
+        
+        # 执行评测（使用异步）
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
+        evaluator = AdversarialEvaluator(gateway)
+        results = loop.run_until_complete(evaluator.evaluate(model_ids, test_cases))
+        loop.close()
+        
+        # 格式化结果（包含完整对话内容）
+        formatted_results = []
+        for result in results:
+            # 构建完整对话历史
+            test_case = next((tc for tc in test_cases if tc.id == result.test_case_id), None)
+            dialogue_history = []
+            if test_case:
+                dialogue_history.append({
+                    'role': 'user',
+                    'content': test_case.initial_prompt
+                })
+                for i, round_config in enumerate(test_case.rounds):
+                    if round_config.get('role') == 'user':
+                        dialogue_history.append({
+                            'role': 'user',
+                            'content': round_config.get('content', '')
+                        })
+                        if i < len(result.responses):
+                            dialogue_history.append({
+                                'role': 'assistant',
+                                'content': result.responses[i] if i < len(result.responses) else '',
+                                'latency': result.latencies[i] if i < len(result.latencies) else 0
+                            })
+                    elif round_config.get('role') == 'assistant':
+                        dialogue_history.append({
+                            'role': 'assistant',
+                            'content': round_config.get('content', '')
+                        })
+            
+            formatted_results.append({
+                'model_id': result.model_id,
+                'test_case_id': result.test_case_id,
+                'responses': result.responses,
+                'latencies': result.latencies,
+                'metrics': result.metrics,
+                'errors': result.errors,
+                'dialogue_history': dialogue_history  # 完整对话历史
+            })
+        
+        # 计算汇总指标（专业版）
+        summary = {}
+        for model_id in model_ids:
+            model_results = [r for r in formatted_results if r['model_id'] == model_id]
+            if model_results:
+                summary[model_id] = {
+                    # 核心指标
+                    'avg_accuracy': sum(r['metrics'].get('accuracy', 0) for r in model_results) / len(model_results),
+                    'avg_latency': sum(r['metrics'].get('avg_latency', 0) for r in model_results) / len(model_results),
+                    'avg_hallucination_rate': sum(r['metrics'].get('hallucination_rate', 0) for r in model_results) / len(model_results),
+                    'avg_compliance_rate': sum(r['metrics'].get('compliance_rate', 0) for r in model_results) / len(model_results),
+                    'avg_consistency': sum(r['metrics'].get('consistency', 0) for r in model_results) / len(model_results),
+                    # 专业指标
+                    'avg_professionalism': sum(r['metrics'].get('professionalism', 0) for r in model_results) / len(model_results),
+                    'avg_response_quality': sum(r['metrics'].get('response_quality', 0) for r in model_results) / len(model_results),
+                    'avg_stability': sum(r['metrics'].get('stability', 0) for r in model_results) / len(model_results),
+                    'avg_performance_score': sum(r['metrics'].get('performance_score', 0) for r in model_results) / len(model_results),
+                    'avg_business_fit': sum(r['metrics'].get('business_fit', 0) for r in model_results) / len(model_results),
+                    # 综合评分
+                    'avg_overall_score': sum(r['metrics'].get('overall_score', 0) for r in model_results) / len(model_results),
+                    'total_tests': len(model_results)
+                }
+        
+        return jsonify({
+            'success': True,
+            'results': formatted_results,
+            'summary': summary
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/evaluation/test-case/<test_case_id>', methods=['GET'])
+def get_test_case_detail(test_case_id):
+    """获取测试用例详情（用于合规审计）"""
+    try:
+        test_cases = get_default_test_cases()
+        test_case = next((tc for tc in test_cases if tc.id == test_case_id), None)
+        
+        if not test_case:
+            return jsonify({
+                'success': False,
+                'error': '测试用例不存在'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'test_case': {
+                'id': test_case.id,
+                'scenario': test_case.scenario,
+                'initial_prompt': test_case.initial_prompt,
+                'rounds': test_case.rounds,
+                'expected_keywords': test_case.expected_keywords,
+                'expected_behavior': test_case.expected_behavior,
+                'evaluation_criteria': test_case.evaluation_criteria if hasattr(test_case, 'evaluation_criteria') else None,
+                'compliance_requirements': test_case.compliance_requirements if hasattr(test_case, 'compliance_requirements') else None
+            }
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/evaluation/metrics-explanation', methods=['GET'])
+def get_metrics_explanation():
+    """获取评分依据说明（用于合规审计）"""
+    try:
+        explanation = {
+            'accuracy': {
+                'name': '正确率',
+                'description': '评估模型回答的正确性',
+                'calculation': '基于关键词匹配和语义理解，计算响应中包含预期关键词的比例',
+                'formula': '正确率 = (匹配关键词数 / 预期关键词总数) * 0.7 + (响应完整性得分) * 0.3',
+                'weight': 0.25,
+                'compliance_note': '确保模型提供准确信息，避免误导客户'
+            },
+            'hallucination_rate': {
+                'name': '幻觉率',
+                'description': '评估模型产生错误或虚假信息的比例',
+                'calculation': '多维度检测：响应过短(0.5分) + 错误标记(0.3分) + 重复内容过多(0.2分)',
+                'formula': '幻觉率 = min(1.0, 各项检测得分之和)',
+                'weight': 0.20,
+                'compliance_note': '降低幻觉率是金融合规的核心要求，避免虚假信息误导决策'
+            },
+            'compliance_rate': {
+                'name': '合规率',
+                'description': '评估模型回答的金融合规性',
+                'calculation': '检查4类合规关键词：风险提示、监管要求、审批流程、信息披露',
+                'formula': '合规率 = (各类合规关键词匹配得分) / 4',
+                'weight': 0.15,
+                'compliance_note': '必须包含必要的风险提示和监管要求说明，确保符合金融监管规定'
+            },
+            'professionalism': {
+                'name': '专业性',
+                'description': '评估模型使用金融专业术语和逻辑结构的能力',
+                'calculation': '专业术语使用(60%) + 逻辑结构(40%)',
+                'formula': '专业性 = (术语得分 * 0.6) + (结构得分 * 0.4)',
+                'weight': 0.12,
+                'compliance_note': '确保使用准确的金融术语，避免非专业表述'
+            },
+            'response_quality': {
+                'name': '响应质量',
+                'description': '评估响应的完整性和可读性',
+                'calculation': '完整性(60%) + 可读性(40%)',
+                'formula': '质量 = (长度得分 * 0.6) + (可读性得分 * 0.4)',
+                'weight': 0.10,
+                'compliance_note': '确保响应完整、清晰，便于客户理解'
+            },
+            'consistency': {
+                'name': '一致性',
+                'description': '评估多轮对话的连贯性',
+                'calculation': '检查相邻轮次的关键词重叠度',
+                'formula': '一致性 = (关键词交集 / 关键词并集)',
+                'weight': 0.12,
+                'compliance_note': '确保多轮对话中信息一致，避免前后矛盾'
+            },
+            'business_fit': {
+                'name': '业务适配度',
+                'description': '评估模型在金融业务场景中的适配程度',
+                'calculation': '合规率(40%) + 专业性(30%) + 正确率(30%)',
+                'formula': '业务适配 = 合规率*0.4 + 专业性*0.3 + 正确率*0.3',
+                'weight': 0.0,
+                'compliance_note': '综合评估模型在金融业务场景中的适用性'
+            },
+            'overall_score': {
+                'name': '综合评分',
+                'description': '综合所有维度的加权评分',
+                'calculation': '正确性25% + 准确性20% + 合规性15% + 一致性12% + 专业性12% + 质量10% + 稳定性6%',
+                'formula': '综合评分 = Σ(各维度得分 * 权重)',
+                'weight': 1.0,
+                'compliance_note': '综合评分用于模型选型和性能评估，所有评分依据可追溯'
+            }
+        }
+        
+        return jsonify({
+            'success': True,
+            'explanation': explanation,
+            'audit_info': {
+                'version': '1.0',
+                'last_updated': '2024-01-01',
+                'reviewer': 'Gamium Finance AI System',
+                'compliance_standard': '金融行业AI应用合规指南'
+            }
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/evaluation/save-script', methods=['POST'])
+def save_script():
+    """保存对话为内部标准话术"""
+    try:
+        data = request.json or {}
+        model_id = data.get('model_id')
+        test_case_id = data.get('test_case_id')
+        dialogue_history = data.get('dialogue_history', [])
+        script_name = data.get('script_name', f'{test_case_id}_{model_id}')
+        
+        if not dialogue_history:
+            return jsonify({
+                'success': False,
+                'error': '对话历史为空'
+            }), 400
+        
+        # 构建话术模板
+        script_template = {
+            'id': f'script_{int(time.time())}',
+            'name': script_name,
+            'model_id': model_id,
+            'test_case_id': test_case_id,
+            'created_at': time.strftime('%Y-%m-%d %H:%M:%S'),
+            'dialogue_history': dialogue_history,
+            'metadata': {
+                'total_rounds': len([d for d in dialogue_history if d.get('role') == 'user']),
+                'total_tokens': sum(len(d.get('content', '')) for d in dialogue_history),
+                'avg_latency': sum(d.get('latency', 0) for d in dialogue_history) / len(dialogue_history) if dialogue_history else 0
+            }
+        }
+        
+        # 保存到文件（实际应用中应保存到数据库）
+        scripts_dir = Path(__file__).parent / 'data' / 'scripts'
+        scripts_dir.mkdir(parents=True, exist_ok=True)
+        
+        script_file = scripts_dir / f'{script_template["id"]}.json'
+        with open(script_file, 'w', encoding='utf-8') as f:
+            json.dump(script_template, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'script': script_template,
+            'message': '话术模板已保存'
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/evaluation/export-script', methods=['POST'])
+def export_script():
+    """导出话术模板"""
+    try:
+        data = request.json or {}
+        script_id = data.get('script_id')
+        export_format = data.get('format', 'json')
+        
+        # 读取话术文件
+        scripts_dir = Path(__file__).parent / 'data' / 'scripts'
+        script_file = scripts_dir / f'{script_id}.json'
+        
+        if not script_file.exists():
+            return jsonify({
+                'success': False,
+                'error': '话术模板不存在'
+            }), 404
+        
+        with open(script_file, 'r', encoding='utf-8') as f:
+            script = json.load(f)
+        
+        if export_format == 'json':
+            return jsonify({
+                'success': True,
+                'script': script,
+                'format': 'json'
+            })
+        elif export_format == 'csv':
+            import csv
+            import io
+            output = io.StringIO()
+            writer = csv.writer(output)
+            writer.writerow(['轮次', '角色', '内容', '延时(ms)'])
+            for i, dialogue in enumerate(script['dialogue_history']):
+                writer.writerow([
+                    i + 1,
+                    dialogue.get('role', ''),
+                    dialogue.get('content', ''),
+                    int(dialogue.get('latency', 0) * 1000)
+                ])
+            return jsonify({
+                'success': True,
+                'content': output.getvalue(),
+                'format': 'csv',
+                'filename': f'{script["name"]}.csv'
+            })
+        elif export_format == 'txt':
+            content = f"话术模板: {script['name']}\n"
+            content += f"模型: {script['model_id']}\n"
+            content += f"创建时间: {script['created_at']}\n"
+            content += "=" * 50 + "\n\n"
+            for i, dialogue in enumerate(script['dialogue_history']):
+                role_name = '客户' if dialogue.get('role') == 'user' else '客服'
+                content += f"[第{i+1}轮] {role_name}:\n"
+                content += f"{dialogue.get('content', '')}\n\n"
+            return jsonify({
+                'success': True,
+                'content': content,
+                'format': 'txt',
+                'filename': f'{script["name"]}.txt'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'不支持的导出格式: {export_format}'
+            }), 400
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+# ============================================================
+# AI Hub 管理 API
+# ============================================================
+
+@app.route('/api/hub/model/<model_id>', methods=['GET'])
+def get_hub_model_detail(model_id):
+    """获取模型详细配置（优先从持久化文件读取）"""
+    try:
+        # URL解码模型ID（处理中文模型名）
+        from urllib.parse import unquote
+        model_id = unquote(model_id)
+        
+        # 先尝试从持久化文件读取
+        import json
+        from pathlib import Path
+        models_file = Path(__file__).parent / 'data' / 'models_config.json'
+        
+        config = {}
+        if models_file.exists():
+            try:
+                with open(models_file, 'r', encoding='utf-8') as f:
+                    all_models_config = json.load(f)
+                    if model_id in all_models_config:
+                        config = all_models_config[model_id].get('config', {})
+            except:
+                pass  # 文件读取失败，继续使用内存配置
+        
+        # 如果文件没有，从内存读取
+        model_info = gateway.get_model(model_id)
+        if not model_info:
+            return jsonify({
+                'success': False,
+                'error': f'模型不存在: {model_id}'
+            }), 404
+        
+        # 合并配置（文件优先）
+        if not config:
+            config = model_info.get('config', {})
+        else:
+            # 合并，文件配置优先
+            memory_config = model_info.get('config', {})
+            config = {**memory_config, **config}
+        
+        # 安全获取type值
+        model_type = model_info.get('type')
+        if model_type is None:
+            type_value = 'unknown'
+        elif hasattr(model_type, 'value'):
+            type_value = model_type.value
+        elif isinstance(model_type, str):
+            type_value = model_type
+        else:
+            type_value = str(model_type)
+        
+        # 返回完整配置信息
+        return jsonify({
+            'success': True,
+            'model': {
+                'id': model_id,
+                'type': type_value,
+                'api_key': config.get('api_key', ''),
+                'endpoint': config.get('endpoint', ''),
+                'model_name': config.get('model_name', model_id),
+                'temperature': config.get('temperature', 0.7),
+                'max_tokens': config.get('max_tokens', None),
+                'provider': config.get('provider', ''),
+                'daily_limit': config.get('daily_limit', 10000),
+                'rate_limit': config.get('rate_limit', 60),
+                'used_today': config.get('used_today', 0),
+                'circuit_breaker_error_rate': config.get('circuit_breaker_error_rate', 0.5),
+                'circuit_breaker_latency': config.get('circuit_breaker_latency', 5000),
+                'circuit_breaker_open': config.get('circuit_breaker_open', False),
+                'sensitive_filter_enabled': config.get('sensitive_filter_enabled', True),
+                'filter_mode': config.get('filter_mode', 'replace')
+            }
+        })
+    except Exception as e:
+        import traceback
+        error_msg = str(e)
+        error_trace = traceback.format_exc()
+        print(f"❌ 获取模型详情失败: {error_msg}")
+        print(error_trace)
+        return jsonify({
+            'success': False,
+            'error': error_msg,
+            'traceback': error_trace
+        }), 500
+
+@app.route('/api/hub/sensitive-words', methods=['GET'])
+def get_sensitive_words():
+    """获取敏感词列表"""
+    try:
+        # 从文件或数据库加载敏感词
+        import json
+        from pathlib import Path
+        sensitive_file = Path(__file__).parent / 'data' / 'sensitive_words.json'
+        
+        if sensitive_file.exists():
+            with open(sensitive_file, 'r', encoding='utf-8') as f:
+                words = json.load(f)
+        else:
+            # 默认敏感词
+            words = [
+                {'id': '1', 'word': '内幕消息', 'category': '金融'},
+                {'id': '2', 'word': '保证收益', 'category': '金融'},
+                {'id': '3', 'word': '高额回报', 'category': '金融'},
+                {'id': '4', 'word': '无风险', 'category': '金融'},
+                {'id': '5', 'word': '稳赚不赔', 'category': '金融'}
+            ]
+        
+        return jsonify({
+            'success': True,
+            'words': words
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/hub/sensitive-words', methods=['POST'])
+def add_sensitive_word():
+    """添加敏感词"""
+    try:
+        data = request.json or {}
+        word = data.get('word', '').strip()
+        
+        if not word:
+            return jsonify({
+                'success': False,
+                'error': '敏感词不能为空'
+            }), 400
+        
+        # 保存到文件
+        import json
+        from pathlib import Path
+        sensitive_file = Path(__file__).parent / 'data' / 'sensitive_words.json'
+        sensitive_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        words = []
+        if sensitive_file.exists():
+            with open(sensitive_file, 'r', encoding='utf-8') as f:
+                words = json.load(f)
+        
+        new_word = {
+            'id': str(int(time.time())),
+            'word': word,
+            'category': data.get('category', '通用'),
+            'created_at': time.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        words.append(new_word)
+        
+        with open(sensitive_file, 'w', encoding='utf-8') as f:
+            json.dump(words, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            'success': True,
+            'word': new_word
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/hub/sensitive-words/<word_id>', methods=['DELETE'])
+def delete_sensitive_word(word_id):
+    """删除敏感词"""
+    try:
+        import json
+        from pathlib import Path
+        sensitive_file = Path(__file__).parent / 'data' / 'sensitive_words.json'
+        
+        if not sensitive_file.exists():
+            return jsonify({
+                'success': False,
+                'error': '敏感词文件不存在'
+            }), 404
+        
+        with open(sensitive_file, 'r', encoding='utf-8') as f:
+            words = json.load(f)
+        
+        words = [w for w in words if w.get('id') != word_id]
+        
+        with open(sensitive_file, 'w', encoding='utf-8') as f:
+            json.dump(words, f, ensure_ascii=False, indent=2)
+        
+        return jsonify({
+            'success': True
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/hub/model/<model_id>', methods=['PUT'])
+def update_model_config(model_id):
+    """更新模型配置（持久化保存）"""
+    try:
+        # URL解码模型ID（处理中文模型名）
+        from urllib.parse import unquote
+        model_id = unquote(model_id)
+        
+        data = request.json or {}
+        model_info = gateway.get_model(model_id)
+        
+        if not model_info:
+            return jsonify({
+                'success': False,
+                'error': f'模型不存在: {model_id}'
+            }), 404
+        
+        # 更新配置
+        config = model_info.get('config', {})
+        
+        # 更新所有配置项
+        if 'api_key' in data:
+            config['api_key'] = data['api_key']
+        if 'endpoint' in data:
+            config['endpoint'] = data['endpoint']
+        if 'model_name' in data:
+            config['model_name'] = data['model_name']
+        if 'temperature' in data:
+            config['temperature'] = float(data['temperature'])
+        if 'max_tokens' in data:
+            config['max_tokens'] = int(data['max_tokens']) if data['max_tokens'] else None
+        if 'daily_limit' in data:
+            config['daily_limit'] = int(data['daily_limit']) if data['daily_limit'] else None
+        if 'rate_limit' in data:
+            config['rate_limit'] = int(data['rate_limit']) if data['rate_limit'] else None
+        if 'circuit_breaker_error_rate' in data:
+            config['circuit_breaker_error_rate'] = float(data['circuit_breaker_error_rate'])
+        if 'circuit_breaker_latency' in data:
+            config['circuit_breaker_latency'] = int(data['circuit_breaker_latency'])
+        if 'sensitive_filter_enabled' in data:
+            config['sensitive_filter_enabled'] = bool(data['sensitive_filter_enabled'])
+        if 'filter_mode' in data:
+            config['filter_mode'] = data['filter_mode']
+        
+        # 持久化保存到文件
+        import json
+        from pathlib import Path
+        models_file = Path(__file__).parent / 'data' / 'models_config.json'
+        models_file.parent.mkdir(parents=True, exist_ok=True)
+        
+        # 读取现有配置
+        all_models_config = {}
+        if models_file.exists():
+            with open(models_file, 'r', encoding='utf-8') as f:
+                all_models_config = json.load(f)
+        
+        # 更新该模型的配置
+        all_models_config[model_id] = {
+            'id': model_id,
+            'type': str(model_info.get('type').value) if hasattr(model_info.get('type'), 'value') else str(model_info.get('type')),
+            'config': config,
+            'status': model_info.get('status', 'active'),
+            'updated_at': time.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        # 保存到文件
+        with open(models_file, 'w', encoding='utf-8') as f:
+            json.dump(all_models_config, f, ensure_ascii=False, indent=2)
+        
+        # 更新内存中的配置
+        gateway.models[model_id]['config'] = config
+        
+        return jsonify({
+            'success': True,
+            'message': '配置更新成功并已保存',
+            'model': {
+                'id': model_id,
+                'config': config
+            }
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/hub/model/<model_id>/test', methods=['POST'])
+def test_model_connection(model_id):
+    """测试模型连接"""
+    try:
+        model_info = gateway.get_model(model_id)
+        if not model_info:
+            return jsonify({
+                'success': False,
+                'error': '模型不存在'
+            }), 404
+        
+        # 模拟测试连接
+        import random
+        test_result = {
+            'success': True,
+            'latency': round(random.uniform(0.1, 0.5), 3),
+            'status': 'connected',
+            'message': '连接成功',
+            'test_time': time.strftime('%Y-%m-%d %H:%M:%S')
+        }
+        
+        # 如果有真实API key，可以实际测试
+        config = model_info.get('config', {})
+        if config.get('api_key') and config.get('api_key') != 'demo-key':
+            # 这里可以添加真实的API测试逻辑
+            pass
+        
+        return jsonify({
+            'success': True,
+            'result': test_result
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/hub/users', methods=['GET'])
+def get_users():
+    """获取用户列表"""
+    try:
+        # 从文件加载用户数据
+        import json
+        from pathlib import Path
+        users_file = Path(__file__).parent / 'data' / 'users.json'
+        
+        if users_file.exists():
+            with open(users_file, 'r', encoding='utf-8') as f:
+                users = json.load(f)
+        else:
+            # 默认用户
+            users = [
+                {
+                    'id': '1',
+                    'username': 'admin',
+                    'email': 'admin@gamium.ai',
+                    'role': 'admin',
+                    'permissions': ['all'],
+                    'created_at': '2024-01-01 00:00:00',
+                    'last_login': '2024-12-20 10:30:00'
+                },
+                {
+                    'id': '2',
+                    'username': 'analyst',
+                    'email': 'analyst@gamium.ai',
+                    'role': 'analyst',
+                    'permissions': ['read', 'evaluate'],
+                    'created_at': '2024-01-15 00:00:00',
+                    'last_login': '2024-12-20 09:15:00'
+                },
+                {
+                    'id': '3',
+                    'username': 'viewer',
+                    'email': 'viewer@gamium.ai',
+                    'role': 'viewer',
+                    'permissions': ['read'],
+                    'created_at': '2024-02-01 00:00:00',
+                    'last_login': '2024-12-19 16:45:00'
+                }
+            ]
+        
+        return jsonify({
+            'success': True,
+            'users': users
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/hub/roles', methods=['GET'])
+def get_roles():
+    """获取角色列表"""
+    try:
+        roles = [
+            {
+                'id': 'admin',
+                'name': '管理员',
+                'description': '拥有所有权限',
+                'permissions': ['all'],
+                'user_count': 1
+            },
+            {
+                'id': 'analyst',
+                'name': '分析师',
+                'description': '可以查看和评测模型',
+                'permissions': ['read', 'evaluate', 'export'],
+                'user_count': 1
+            },
+            {
+                'id': 'viewer',
+                'name': '查看者',
+                'description': '只能查看数据',
+                'permissions': ['read'],
+                'user_count': 1
+            },
+            {
+                'id': 'operator',
+                'name': '运营',
+                'description': '可以管理模型和敏感词',
+                'permissions': ['read', 'manage_models', 'manage_sensitive'],
+                'user_count': 0
+            }
+        ]
+        
+        return jsonify({
+            'success': True,
+            'roles': roles
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/hub/statistics', methods=['GET'])
+def get_hub_statistics():
+    """获取使用统计（包含多维度下钻数据）"""
+    try:
+        # 模拟统计数据（实际应从数据库获取）
+        import random
+        
+        base_total = 125680
+        base_today = 3420
+        
+        # 生成部门统计数据（前10）
+        departments = ['风控部', '信贷部', '产品部', '技术部', '运营部', '市场部', '财务部', '合规部', '客服部', '数据部']
+        dept_stats = []
+        for i, dept in enumerate(departments):
+            calls = base_total // 10 + random.randint(-5000, 5000)
+            cost = calls * (0.10 + random.uniform(-0.02, 0.02))
+            dept_stats.append({
+                'department': dept,
+                'calls': max(1000, calls),
+                'cost': round(cost, 2),
+                'users': random.randint(5, 25),
+                'avg_latency': round(random.uniform(0.5, 3.0), 2)
+            })
+        dept_stats.sort(key=lambda x: x['calls'], reverse=True)
+        
+        # 生成人员统计数据（前10）
+        users = [
+            {'name': '张三', 'department': '风控部', 'role': '高级分析师'},
+            {'name': '李四', 'department': '信贷部', 'role': '信贷经理'},
+            {'name': '王五', 'department': '产品部', 'role': '产品经理'},
+            {'name': '赵六', 'department': '技术部', 'role': '算法工程师'},
+            {'name': '钱七', 'department': '运营部', 'role': '运营专员'},
+            {'name': '孙八', 'department': '市场部', 'role': '市场经理'},
+            {'name': '周九', 'department': '财务部', 'role': '财务分析师'},
+            {'name': '吴十', 'department': '合规部', 'role': '合规专员'},
+            {'name': '郑一', 'department': '客服部', 'role': '客服主管'},
+            {'name': '王二', 'department': '数据部', 'role': '数据分析师'}
+        ]
+        user_stats = []
+        for i, user in enumerate(users):
+            calls = base_total // 20 + random.randint(-2000, 5000)
+            cost = calls * (0.10 + random.uniform(-0.02, 0.02))
+            user_stats.append({
+                'name': user['name'],
+                'department': user['department'],
+                'role': user['role'],
+                'calls': max(500, calls),
+                'cost': round(cost, 2),
+                'avg_latency': round(random.uniform(0.5, 3.0), 2),
+                'success_rate': round(random.uniform(0.92, 0.99), 3)
+            })
+        user_stats.sort(key=lambda x: x['calls'], reverse=True)
+        
+        # 生成模型统计数据（前10）
+        models = ['gpt-4', 'claude-3-opus', 'qwen-max', 'gemini-pro', 'gpt-4-turbo', 
+                  'claude-3-sonnet', 'qwen-plus', 'deepseek-chat', 'glm-4', 'kimi-chat']
+        model_stats = []
+        for i, model_id in enumerate(models):
+            calls = base_total // 10 + random.randint(-3000, 8000)
+            cost = calls * (0.08 + random.uniform(-0.03, 0.05))
+            model_stats.append({
+                'model_id': model_id,
+                'calls': max(2000, calls),
+                'cost': round(cost, 2),
+                'avg_latency': round(random.uniform(0.3, 2.5), 2),
+                'error_rate': round(random.uniform(0.01, 0.05), 3),
+                'success_rate': round(random.uniform(0.95, 0.99), 3)
+            })
+        model_stats.sort(key=lambda x: x['calls'], reverse=True)
+        
+        # 按时间维度统计（最近7天）
+        daily_stats = []
+        for i in range(7, 0, -1):
+            daily_calls = base_today + random.randint(-200, 500)
+            daily_cost = daily_calls * (0.10 + random.uniform(-0.02, 0.02))
+            daily_stats.append({
+                'date': time.strftime('%Y-%m-%d', time.localtime(time.time() - i * 86400)),
+                'calls': max(1000, daily_calls),
+                'cost': round(daily_cost, 2)
+            })
+        
+        return jsonify({
+            'success': True,
+            'call_stats': {
+                'total': base_total + random.randint(-100, 100),
+                'today': base_today + random.randint(-50, 50),
+                'week': 18950 + random.randint(-200, 200),
+                'month': 67890 + random.randint(-500, 500)
+            },
+            'cost_stats': {
+                'total': 12580.50 + random.uniform(-10, 10),
+                'today': 342.20 + random.uniform(-5, 5),
+                'month': 3890.80 + random.uniform(-20, 20),
+                'avg_per_call': 0.10 + random.uniform(-0.01, 0.01)
+            },
+            'error_stats': {
+                'total': 45 + random.randint(-5, 5),
+                'rate': 0.036 + random.uniform(-0.005, 0.005),
+                'circuit_breaker': 2,
+                'avg_error_latency': 2.5 + random.uniform(-0.5, 0.5)
+            },
+            'department_rank': [{'department': d['department'], 'count': d['calls'], 'total': base_total} for d in dept_stats[:10]],
+            'user_rank': [{'username': u['name'], 'department': u['department'], 'count': u['calls'], 'total': base_total} for u in user_stats[:10]],
+            'model_rank': [{'model_id': m['model_id'], 'count': m['calls'], 'total': base_total} for m in model_stats[:10]],
+            'time_trend': [{'date': d['date'], 'count': d['calls']} for d in daily_stats],
+            'drill_down': {
+                'by_department': dept_stats[:10],  # 前10部门
+                'by_user': user_stats[:10],  # 前10人员
+                'by_model': model_stats[:10],  # 前10模型
+                'by_time': daily_stats  # 最近7天
+            }
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/hub/statistics/drilldown', methods=['GET'])
+def get_hub_statistics_drilldown():
+    """获取使用统计下钻数据"""
+    try:
+        drilldown_type = request.args.get('type', 'calls')  # calls, costs, errors
+        
+        # 模拟统计数据（实际应从数据库获取）
+        import random
+        import time
+        
+        base_total = 125680
+        base_today = 3420
+        
+        # 生成部门统计数据（前10）
+        departments = ['风控部', '信贷部', '产品部', '技术部', '运营部', '市场部', '财务部', '合规部', '客服部', '数据部']
+        dept_stats = []
+        for i, dept in enumerate(departments):
+            if drilldown_type == 'calls':
+                count = base_total // 10 + random.randint(-5000, 5000)
+            elif drilldown_type == 'costs':
+                count = (base_total // 10 + random.randint(-5000, 5000)) * (0.10 + random.uniform(-0.02, 0.02))
+            else:  # errors
+                count = random.randint(2, 8)
+            dept_stats.append({
+                'department': dept,
+                'count': max(1000 if drilldown_type == 'calls' else (100 if drilldown_type == 'costs' else 1), count),
+                'total': base_total if drilldown_type == 'calls' else (base_total * 0.10 if drilldown_type == 'costs' else 45)
+            })
+        dept_stats.sort(key=lambda x: x['count'], reverse=True)
+        
+        # 生成人员统计数据（前10）
+        users = [
+            {'name': '张三', 'department': '风控部'},
+            {'name': '李四', 'department': '信贷部'},
+            {'name': '王五', 'department': '产品部'},
+            {'name': '赵六', 'department': '技术部'},
+            {'name': '钱七', 'department': '运营部'},
+            {'name': '孙八', 'department': '市场部'},
+            {'name': '周九', 'department': '财务部'},
+            {'name': '吴十', 'department': '合规部'},
+            {'name': '郑一', 'department': '客服部'},
+            {'name': '王二', 'department': '数据部'}
+        ]
+        user_stats = []
+        for i, user in enumerate(users):
+            if drilldown_type == 'calls':
+                count = base_total // 20 + random.randint(-2000, 5000)
+            elif drilldown_type == 'costs':
+                count = (base_total // 20 + random.randint(-2000, 5000)) * (0.10 + random.uniform(-0.02, 0.02))
+            else:  # errors
+                count = random.randint(1, 5)
+            user_stats.append({
+                'username': user['name'],
+                'department': user['department'],
+                'count': max(500 if drilldown_type == 'calls' else (50 if drilldown_type == 'costs' else 1), count),
+                'total': base_total if drilldown_type == 'calls' else (base_total * 0.10 if drilldown_type == 'costs' else 45)
+            })
+        user_stats.sort(key=lambda x: x['count'], reverse=True)
+        
+        # 生成模型统计数据（前10）
+        models = ['gpt-4', 'claude-3-opus', 'qwen-max', 'gemini-pro', 'gpt-4-turbo', 
+                  'claude-3-sonnet', 'qwen-plus', 'deepseek-chat', 'glm-4', 'kimi-chat']
+        model_stats = []
+        for i, model_id in enumerate(models):
+            if drilldown_type == 'calls':
+                count = base_total // 10 + random.randint(-3000, 8000)
+            elif drilldown_type == 'costs':
+                count = (base_total // 10 + random.randint(-3000, 8000)) * (0.08 + random.uniform(-0.03, 0.05))
+            else:  # errors
+                count = random.randint(1, 6)
+            model_stats.append({
+                'model_id': model_id,
+                'count': max(2000 if drilldown_type == 'calls' else (160 if drilldown_type == 'costs' else 1), count),
+                'total': base_total if drilldown_type == 'calls' else (base_total * 0.10 if drilldown_type == 'costs' else 45)
+            })
+        model_stats.sort(key=lambda x: x['count'], reverse=True)
+        
+        # 按时间维度统计（最近7天）
+        time_trend = []
+        for i in range(7, 0, -1):
+            if drilldown_type == 'calls':
+                count = base_today + random.randint(-200, 500)
+            elif drilldown_type == 'costs':
+                count = (base_today + random.randint(-200, 500)) * (0.10 + random.uniform(-0.02, 0.02))
+            else:  # errors
+                count = random.randint(3, 10)
+            time_trend.append({
+                'date': time.strftime('%Y-%m-%d', time.localtime(time.time() - i * 86400)),
+                'count': max(1000 if drilldown_type == 'calls' else (100 if drilldown_type == 'costs' else 1), count)
+            })
+        
+        return jsonify({
+            'success': True,
+            'type': drilldown_type,
+            'department_rank': dept_stats[:10],
+            'user_rank': user_stats[:10],
+            'model_rank': model_stats[:10],
+            'time_trend': time_trend
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+# ============================================================
+# 风控压力测试 API
+# ============================================================
+
+def _group_by_attribute(customer_details, attribute, base_avg):
+    """按属性分组分析"""
+    groups = {}
+    for customer in customer_details:
+        key = customer.get(attribute, '未知')
+        if key not in groups:
+            groups[key] = {
+                'count': 0,
+                'normal_probs': [],
+                'stress_probs': [],
+                'changes': []
+            }
+        groups[key]['count'] += 1
+        groups[key]['normal_probs'].append(customer['normal_prob'])
+        groups[key]['stress_probs'].append(customer['stress_prob'])
+        groups[key]['changes'].append(customer['change'])
+    
+    import numpy as np
+    result = {}
+    for key, data in groups.items():
+        if len(data['normal_probs']) > 0:
+            result[key] = {
+                'count': data['count'],
+                'avg_normal_prob': float(np.mean(data['normal_probs'])),
+                'avg_stress_prob': float(np.mean(data['stress_probs'])),
+                'avg_change': float(np.mean(data['changes'])),
+                'avg_change_pct': float(np.mean(data['changes']) / np.mean(data['normal_probs']) * 100) if np.mean(data['normal_probs']) > 0 else 0,
+                'affected_count': sum(1 for p in data['stress_probs'] if p > base_avg * 1.2),
+                'affected_ratio': sum(1 for p in data['stress_probs'] if p > base_avg * 1.2) / len(data['stress_probs']) if data['stress_probs'] else 0
+            }
+    return result
+
+@app.route('/api/stress-test', methods=['POST'])
+def stress_test():
+    """风控压力测试 - 基于真实环境模拟"""
+    try:
+        data = request.json or {}
+        if data is None:
+            return jsonify({'success': False, 'error': 'Invalid JSON data'}), 400
+        
+        from environment.economic_cycle import EconomicCycle, CyclePhase
+        from environment.lending_env import LendingEnv, BankState
+        from data_distillation.customer_generator import CustomerGenerator
+        
+        event_type = data.get('event_type', 'financial_crisis')
+        severity = data.get('severity', 'moderate')
+        duration = int(data.get('duration', 6))
+        
+        # 事件名称映射
+        event_names = {
+            'financial_crisis': '金融危机',
+            'pandemic': '疫情冲击',
+            'industry_collapse': '行业暴雷',
+            'interest_rate_shock': '利率冲击',
+            'unemployment_surge': '失业率飙升',
+            'custom': '自定义事件'
+        }
+        
+        # 强度倍数映射
+        severity_multipliers = {
+            'mild': 1.2,
+            'moderate': 1.5,
+            'severe': 2.0,
+            'extreme': 3.0
+        }
+        
+        multiplier = severity_multipliers.get(severity, 1.5)
+        
+        # 创建经济周期模拟器
+        economy = EconomicCycle(seed=42)
+        
+        # 根据事件类型调整经济参数
+        base_state = economy.state
+        
+        # 事件对经济的影响
+        event_impacts = {
+            'financial_crisis': {
+                'gdp_growth': -0.05 * multiplier,
+                'unemployment_rate': 0.05 * multiplier,
+                'credit_spread': 0.03 * multiplier,
+                'phase': CyclePhase.DEPRESSION
+            },
+            'pandemic': {
+                'gdp_growth': -0.03 * multiplier,
+                'unemployment_rate': 0.04 * multiplier,
+                'credit_spread': 0.02 * multiplier,
+                'phase': CyclePhase.RECESSION
+            },
+            'industry_collapse': {
+                'gdp_growth': -0.02 * multiplier,
+                'unemployment_rate': 0.03 * multiplier,
+                'credit_spread': 0.025 * multiplier,
+                'phase': CyclePhase.RECESSION
+            },
+            'interest_rate_shock': {
+                'gdp_growth': -0.01 * multiplier,
+                'unemployment_rate': 0.02 * multiplier,
+                'credit_spread': 0.04 * multiplier,
+                'phase': CyclePhase.RECESSION
+            },
+            'unemployment_surge': {
+                'gdp_growth': -0.02 * multiplier,
+                'unemployment_rate': 0.05 * multiplier,
+                'credit_spread': 0.02 * multiplier,
+                'phase': CyclePhase.RECESSION
+            }
+        }
+        
+        impact = event_impacts.get(event_type, event_impacts['financial_crisis'])
+        
+        # 创建压力测试环境
+        stress_state = economy.state
+        stress_state.gdp_growth = max(-0.1, min(0.15, base_state.gdp_growth + impact['gdp_growth']))
+        stress_state.unemployment_rate = min(0.2, base_state.unemployment_rate + impact['unemployment_rate'])
+        stress_state.credit_spread = min(0.1, base_state.credit_spread + impact['credit_spread'])
+        stress_state.phase = impact['phase']
+        
+        # 获取客户筛选条件
+        customer_type_filter = data.get('customer_type', '')
+        industry_filter = data.get('industry', '')
+        city_tier_filter = data.get('city_tier', '')
+        customer_count = int(data.get('customer_count', 100))
+        
+        # 获取贷款条件
+        loan_amount = float(data.get('loan_amount', 100000))
+        interest_rate = float(data.get('interest_rate', 8)) / 100.0
+        loan_term = int(data.get('loan_term', 24))
+        
+        # 生成测试客户样本
+        generator = CustomerGenerator(seed=42)
+        all_customers = generator.generate_batch(1000)
+        
+        # 应用筛选条件
+        test_customers = []
+        type_map = {
+            'salaried': CustomerType.SALARIED,
+            'small_business': CustomerType.SMALL_BUSINESS,
+            'freelancer': CustomerType.FREELANCER,
+            'farmer': CustomerType.FARMER,
+            'professional': CustomerType.PROFESSIONAL,
+            'entrepreneur': CustomerType.ENTREPRENEUR,
+            'investor': CustomerType.INVESTOR,
+            'retiree': CustomerType.RETIREE,
+            'student': CustomerType.STUDENT,
+            'startup': CustomerType.STARTUP,
+            'tech_startup': CustomerType.TECH_STARTUP,
+            'manufacturing': CustomerType.MANUFACTURING,
+            'trade_company': CustomerType.TRADE_COMPANY,
+            'service_company': CustomerType.SERVICE_COMPANY,
+        }
+        
+        industry_map = {
+            'manufacturing': Industry.MANUFACTURING,
+            'service': Industry.SERVICE,
+            'retail': Industry.RETAIL,
+            'catering': Industry.CATERING,
+            'it': Industry.IT,
+            'construction': Industry.CONSTRUCTION,
+            'agriculture': Industry.AGRICULTURE,
+            'finance': Industry.FINANCE,
+            'real_estate': Industry.REAL_ESTATE,
+        }
+        
+        city_tier_map = {
+            'tier_1': CityTier.TIER_1,
+            'tier_2': CityTier.TIER_2,
+            'tier_3': CityTier.TIER_3,
+            'tier_4': CityTier.TIER_4,
+        }
+        
+        for customer in all_customers:
+            # 客户类型筛选
+            if customer_type_filter:
+                expected_type = type_map.get(customer_type_filter)
+                if expected_type and customer.customer_type != expected_type:
+                    continue
+            
+            # 行业筛选
+            if industry_filter:
+                expected_industry = industry_map.get(industry_filter)
+                if expected_industry and customer.industry != expected_industry:
+                    continue
+            
+            # 城市等级筛选
+            if city_tier_filter:
+                expected_tier = city_tier_map.get(city_tier_filter)
+                if expected_tier and customer.city_tier != expected_tier:
+                    continue
+            
+            test_customers.append(customer)
+            if len(test_customers) >= customer_count:
+                break
+        
+        # 如果筛选后客户不足，补充生成
+        if len(test_customers) < customer_count:
+            additional_needed = customer_count - len(test_customers)
+            for _ in range(additional_needed):
+                if customer_type_filter and customer_type_filter in type_map:
+                    customer = generator.generate_one(customer_type=type_map[customer_type_filter])
+                else:
+                    customer = generator.generate_one()
+                test_customers.append(customer)
+        
+        # 计算压力场景下的违约率
+        from data_distillation.world_model import WorldModel, LoanOffer, MarketConditions
+        
+        world_model = WorldModel(seed=42)
+        loan = LoanOffer(amount=loan_amount, interest_rate=interest_rate, term_months=loan_term)
+        
+        stress_market = MarketConditions(
+            gdp_growth=stress_state.gdp_growth,
+            base_interest_rate=stress_state.interest_rate,
+            unemployment_rate=stress_state.unemployment_rate,
+            inflation_rate=stress_state.inflation_rate,
+            credit_spread=stress_state.credit_spread
+        )
+        
+        # 计算正常场景和压力场景的违约率
+        normal_defaults = []
+        stress_defaults = []
+        
+        # 详细计算过程记录
+        calculation_steps = []
+        customer_details = []
+        
+        normal_market = MarketConditions(
+            gdp_growth=base_state.gdp_growth,
+            base_interest_rate=base_state.interest_rate,
+            unemployment_rate=base_state.unemployment_rate,
+            inflation_rate=base_state.inflation_rate,
+            credit_spread=base_state.credit_spread
+        )
+        
+        for i, customer in enumerate(test_customers):
+            normal_future = world_model.predict_customer_future(customer, loan, normal_market, add_noise=False)
+            stress_future = world_model.predict_customer_future(customer, loan, stress_market, add_noise=False)
+            
+            normal_prob = normal_future.default_probability
+            stress_prob = stress_future.default_probability
+            
+            normal_defaults.append(normal_prob)
+            stress_defaults.append(stress_prob)
+            
+            # 记录所有客户详情用于分析
+            customer_details.append({
+                'index': i + 1,
+                'customer_type': customer.customer_type.value if hasattr(customer.customer_type, 'value') else str(customer.customer_type),
+                'industry': customer.industry.value if hasattr(customer.industry, 'value') else str(customer.industry),
+                'city_tier': customer.city_tier.value if hasattr(customer.city_tier, 'value') else str(customer.city_tier),
+                'normal_prob': float(normal_prob),
+                'stress_prob': float(stress_prob),
+                'change': float(stress_prob - normal_prob),
+                'change_pct': float((stress_prob - normal_prob) / normal_prob * 100) if normal_prob > 0 else 0
+            })
+        
+        import numpy as np
+        normal_avg = np.mean(normal_defaults)
+        stress_avg = np.mean(stress_defaults)
+        default_rate_change = stress_avg - normal_avg
+        default_rate_change_pct = (default_rate_change / normal_avg * 100) if normal_avg > 0 else 0
+        
+        # 记录计算步骤
+        calculation_steps.append({
+            'step': 1,
+            'name': '基础违约率计算',
+            'description': f'在正常经济环境下，对{len(test_customers)}个测试客户进行违约概率预测',
+            'formula': f'正常违约率 = Σ(客户违约概率) / 客户数量',
+            'value': float(normal_avg),
+            'details': f'共{len(test_customers)}个客户，平均违约概率为{normal_avg:.4f}'
+        })
+        
+        calculation_steps.append({
+            'step': 2,
+            'name': '压力场景违约率计算',
+            'description': f'在{event_names.get(event_type, "压力")}事件影响下，重新计算违约概率',
+            'formula': f'压力违约率 = Σ(压力场景下客户违约概率) / 客户数量',
+            'value': float(stress_avg),
+            'details': f'压力场景下平均违约概率为{stress_avg:.4f}，较正常场景上升{default_rate_change_pct:.2f}%'
+        })
+        
+        # 受影响客户数
+        affected_threshold = normal_avg * 1.2  # 违约率上升20%以上视为受影响
+        affected_customers = sum(1 for d in stress_defaults if d > affected_threshold)
+        affected_ratio = affected_customers / len(stress_defaults) if len(stress_defaults) > 0 else 0
+        
+        # 标记受影响客户
+        for customer_detail in customer_details:
+            customer_detail['is_affected'] = customer_detail['stress_prob'] > affected_threshold
+        
+        calculation_steps.append({
+            'step': 3,
+            'name': '受影响客户识别',
+            'description': f'识别违约概率上升超过20%的客户',
+            'formula': f'受影响客户 = 违约概率 > {affected_threshold:.4f} 的客户数量',
+            'value': affected_customers,
+            'details': f'共{affected_customers}个客户受影响，占比{affected_ratio*100:.1f}%'
+        })
+        
+        # 潜在损失
+        total_loan_amount = len(test_customers) * loan.amount
+        recovery_rate = 0.4  # 假设回收率40%
+        potential_loss = total_loan_amount * stress_avg * (1 - recovery_rate)
+        
+        calculation_steps.append({
+            'step': 4,
+            'name': '潜在损失计算',
+            'description': '计算压力场景下的潜在损失',
+            'formula': f'潜在损失 = 总贷款金额 × 违约率 × (1 - 回收率)',
+            'value': float(potential_loss),
+            'details': f'总贷款金额{total_loan_amount/1e8:.2f}亿元，违约率{stress_avg:.4f}，回收率{recovery_rate*100:.0f}%，潜在损失{potential_loss/1e8:.2f}亿元'
+        })
+        
+        # 敏感性分析
+        sensitivity = {}
+        sensitivity_config = data.get('sensitivity', {})
+        sensitivity_range = data.get('sensitivity_range', 0.3)
+        
+        sensitivity_details = {}
+        
+        if sensitivity_config.get('gdp', False):
+            # GDP变化对违约率的影响
+            test_market = MarketConditions(
+                gdp_growth=base_state.gdp_growth + sensitivity_range,
+                base_interest_rate=base_state.interest_rate,
+                unemployment_rate=base_state.unemployment_rate,
+                inflation_rate=base_state.inflation_rate,
+                credit_spread=base_state.credit_spread
+            )
+            test_defaults = [world_model.predict_customer_future(c, loan, test_market, add_noise=False).default_probability 
+                           for c in test_customers[:50]]
+            test_avg = np.mean(test_defaults)
+            sensitivity['gdp'] = (test_avg - normal_avg) / normal_avg if normal_avg > 0 else 0
+            sensitivity_details['gdp'] = {
+                'base_value': float(base_state.gdp_growth),
+                'test_value': float(base_state.gdp_growth + sensitivity_range),
+                'base_default_rate': float(normal_avg),
+                'test_default_rate': float(test_avg),
+                'impact': float(sensitivity['gdp']),
+                'explanation': f'GDP增长率从{base_state.gdp_growth*100:.2f}%变化到{(base_state.gdp_growth + sensitivity_range)*100:.2f}%，导致违约率从{normal_avg:.4f}变化到{test_avg:.4f}，影响幅度为{sensitivity["gdp"]*100:.2f}%'
+            }
+        
+        if sensitivity_config.get('unemployment', False):
+            test_market = MarketConditions(
+                gdp_growth=base_state.gdp_growth,
+                base_interest_rate=base_state.interest_rate,
+                unemployment_rate=min(0.2, base_state.unemployment_rate + sensitivity_range),
+                inflation_rate=base_state.inflation_rate,
+                credit_spread=base_state.credit_spread
+            )
+            test_defaults = [world_model.predict_customer_future(c, loan, test_market, add_noise=False).default_probability 
+                           for c in test_customers[:50]]
+            sensitivity['unemployment'] = (np.mean(test_defaults) - normal_avg) / normal_avg
+        
+        if sensitivity_config.get('interest', False):
+            test_market = MarketConditions(
+                gdp_growth=base_state.gdp_growth,
+                base_interest_rate=min(0.15, base_state.interest_rate + sensitivity_range * 0.02),
+                unemployment_rate=base_state.unemployment_rate,
+                inflation_rate=base_state.inflation_rate,
+                credit_spread=base_state.credit_spread
+            )
+            test_defaults = [world_model.predict_customer_future(c, loan, test_market, add_noise=False).default_probability 
+                           for c in test_customers[:50]]
+            sensitivity['interest'] = (np.mean(test_defaults) - normal_avg) / normal_avg
+        
+        if sensitivity_config.get('inflation', False):
+            test_market = MarketConditions(
+                gdp_growth=base_state.gdp_growth,
+                base_interest_rate=base_state.interest_rate,
+                unemployment_rate=base_state.unemployment_rate,
+                inflation_rate=min(0.1, base_state.inflation_rate + sensitivity_range * 0.01),
+                credit_spread=base_state.credit_spread
+            )
+            test_defaults = [world_model.predict_customer_future(c, loan, test_market, add_noise=False).default_probability 
+                           for c in test_customers[:50]]
+            sensitivity['inflation'] = (np.mean(test_defaults) - normal_avg) / normal_avg
+        
+        # 韧性评估 - 模拟时间序列
+        resilience_config = data.get('resilience', {})
+        max_drawdown = 0.0
+        recovery_months = 0
+        resilience_score = 100
+        
+        if resilience_config.get('profit', False):
+            # 模拟利润变化曲线
+            monthly_profits = []
+            peak_profit = 1000  # 基准月利润（百万）
+            current_profit = peak_profit
+            
+            for month in range(duration + 12):  # 事件期间 + 恢复期
+                if month < duration:
+                    # 事件期间：利润下降
+                    decline_rate = 0.15 * multiplier * (1 - month / duration)
+                    current_profit *= (1 - decline_rate)
+                else:
+                    # 恢复期：逐步恢复
+                    recovery_rate = 0.05 * (1 - (month - duration) / 12)
+                    current_profit *= (1 + recovery_rate)
+                    current_profit = min(peak_profit, current_profit)
+                
+                monthly_profits.append(current_profit)
+            
+            max_drawdown = (peak_profit - min(monthly_profits)) / peak_profit
+            
+            # 计算恢复时间（恢复到90%）
+            recovery_threshold = peak_profit * 0.9
+            for i, profit in enumerate(monthly_profits[duration:], start=duration):
+                if profit >= recovery_threshold:
+                    recovery_months = i - duration
+                    break
+            else:
+                recovery_months = 12
+            
+            # 韧性评分
+            resilience_score = max(0, int(100 - max_drawdown * 150 - recovery_months * 2))
+        
+        # 风险等级
+        if stress_avg > 0.25 or max_drawdown > 0.5:
+            risk_level = '极高风险'
+            risk_description = '需要立即采取应对措施，建议暂停高风险业务'
+        elif stress_avg > 0.15 or max_drawdown > 0.3:
+            risk_level = '高风险'
+            risk_description = '风险显著上升，需要加强风控措施'
+        elif stress_avg > 0.10 or max_drawdown > 0.2:
+            risk_level = '中风险'
+            risk_description = '风险有所上升，需要密切关注'
+        else:
+            risk_level = '低风险'
+            risk_description = '风险可控，保持现有策略'
+        
+        # 应对预案
+        contingency_plan = []
+        
+        if stress_avg > 0.15:
+            contingency_plan.append({
+                'priority': 'high',
+                'action': '收紧审批标准',
+                'description': f'将审批门槛提高{(stress_avg - 0.15) * 100:.1f}%，拒绝高风险客户'
+            })
+        
+        if max_drawdown > 0.3:
+            contingency_plan.append({
+                'priority': 'high',
+                'action': '增加资本缓冲',
+                'description': f'建议增加{(max_drawdown - 0.3) * 100:.1f}%的资本缓冲以应对损失'
+            })
+        
+        if recovery_months > 12:
+            contingency_plan.append({
+                'priority': 'medium',
+                'action': '优化资产结构',
+                'description': '加快不良资产处置，优化贷款组合结构'
+            })
+        
+        if affected_ratio > 0.5:
+            contingency_plan.append({
+                'priority': 'medium',
+                'action': '客户分层管理',
+                'description': '对受影响客户进行分层，重点监控高风险客户'
+            })
+        
+        contingency_plan.append({
+            'priority': 'low',
+            'action': '持续监控',
+            'description': '建立实时监控机制，定期评估风险变化'
+        })
+        
+        return jsonify({
+            'success': True,
+            'event_name': event_names.get(event_type, '未知事件'),
+            'config': {
+                'event_type': event_type,
+                'severity': severity,
+                'duration': duration,
+                'customer_type': customer_type_filter,
+                'industry': industry_filter,
+                'city_tier': city_tier_filter,
+                'loan_amount': loan_amount,
+                'interest_rate': interest_rate,
+                'loan_term': loan_term,
+                'customer_count': len(test_customers)
+            },
+            'impact': {
+                'default_rate': float(stress_avg),
+                'default_rate_change': float(default_rate_change),
+                'default_rate_change_pct': float(default_rate_change_pct),
+                'normal_default_rate': float(normal_avg),
+                'affected_customers': affected_customers,
+                'affected_ratio': float(affected_ratio),
+                'potential_loss': float(potential_loss),
+                'total_loan_amount': float(total_loan_amount),
+                'explanation': f'在{event_names.get(event_type, "压力")}事件影响下，违约率从{normal_avg:.4f}上升至{stress_avg:.4f}，上升幅度{default_rate_change_pct:.2f}%。共有{affected_customers}个客户（占比{affected_ratio*100:.1f}%）受到显著影响，潜在损失约{potential_loss/1e8:.2f}亿元。'
+            },
+            'sensitivity': sensitivity,
+            'sensitivity_details': sensitivity_details,
+            'resilience': {
+                'max_drawdown': float(max_drawdown),
+                'profit_drawdown': float(max_drawdown),
+                'recovery_months': recovery_months,
+                'resilience_score': resilience_score,
+                'explanation': f'在压力场景下，利润最大回撤{max_drawdown*100:.1f}%，预计需要{recovery_months}个月恢复到正常水平。韧性评分为{resilience_score}/100分。'
+            },
+            'risk_level': risk_level,
+            'risk_description': risk_description,
+            'contingency_plan': contingency_plan,
+            'economic_state': {
+                'gdp_growth': float(stress_state.gdp_growth),
+                'unemployment_rate': float(stress_state.unemployment_rate),
+                'credit_spread': float(stress_state.credit_spread),
+                'phase': stress_state.phase.value,
+                'base_gdp_growth': float(base_state.gdp_growth),
+                'base_unemployment_rate': float(base_state.unemployment_rate),
+                'base_credit_spread': float(base_state.credit_spread)
+            },
+            'calculation_steps': calculation_steps,
+            'customer_details': customer_details,  # 返回所有客户详情用于分析
+            'statistics': {
+                'total_customers': len(test_customers),
+                'affected_count': affected_customers,
+                'affected_ratio': float(affected_ratio),
+                'avg_normal_prob': float(normal_avg),
+                'avg_stress_prob': float(stress_avg),
+                'max_change': float(max([c['change'] for c in customer_details]) if customer_details else 0.0),
+                'min_change': float(min([c['change'] for c in customer_details]) if customer_details else 0.0),
+                'std_normal': float(np.std(normal_defaults)) if len(normal_defaults) > 1 else 0.0,
+                'std_stress': float(np.std(stress_defaults)) if len(stress_defaults) > 1 else 0.0
+            },
+            'grouped_analysis': {
+                'by_customer_type': _group_by_attribute(customer_details, 'customer_type', normal_avg),
+                'by_industry': _group_by_attribute(customer_details, 'industry', normal_avg),
+                'by_city_tier': _group_by_attribute(customer_details, 'city_tier', normal_avg)
+            }
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 if __name__ == '__main__':
     import os

@@ -1247,6 +1247,128 @@
             </div>
         </div>
         
+        <!-- 风控压力测试和AI Hub监控区域 -->
+        <div class="main-grid" style="margin-top: 20px; grid-template-columns: 1fr 1fr;">
+            <!-- 风控压力测试监控 -->
+            <div class="panel flow-border">
+                <div class="corner corner-tl"></div>
+                <div class="corner corner-tr"></div>
+                <div class="corner corner-bl"></div>
+                <div class="corner corner-br"></div>
+                <div class="panel-header">
+                    <div class="panel-icon" style="background: var(--accent-orange);"></div>
+                    <span class="panel-title">⚠️ 风控压力测试监控</span>
+                </div>
+                <div class="panel-body">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div style="background: rgba(255, 149, 0, 0.1); border: 1px solid rgba(255, 149, 0, 0.3); border-radius: 6px; padding: 12px;">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">正常违约率</div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 20px; color: var(--accent-green);" id="stress-normal-rate">2.15%</div>
+                        </div>
+                        <div style="background: rgba(255, 51, 102, 0.1); border: 1px solid rgba(255, 51, 102, 0.3); border-radius: 6px; padding: 12px;">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">压力违约率</div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 20px; color: var(--accent-red);" id="stress-stress-rate">--</div>
+                        </div>
+                    </div>
+                    <div style="background: rgba(0, 245, 255, 0.05); border: 1px solid rgba(0, 245, 255, 0.2); border-radius: 6px; padding: 12px; margin-bottom: 15px;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">韧性评分</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="flex: 1; height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden;">
+                                <div style="height: 100%; background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan)); width: 85%; transition: width 1s ease;" id="stress-resilience-bar"></div>
+                            </div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 16px; color: var(--accent-cyan);" id="stress-resilience-score">85分</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 5px;">利润回撤</div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 14px; color: var(--accent-orange);" id="stress-drawdown">-12.5%</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 5px;">恢复时间</div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 14px; color: var(--accent-cyan);" id="stress-recovery">8个月</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 5px;">风险等级</div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 14px; color: var(--accent-green);" id="stress-risk-level">中等</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0, 245, 255, 0.2);">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">最近测试事件</div>
+                        <div style="font-size: 12px; color: var(--accent-cyan);" id="stress-last-event">暂无压力测试记录</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- AI Hub 使用统计 -->
+            <div class="panel flow-border">
+                <div class="corner corner-tl"></div>
+                <div class="corner corner-tr"></div>
+                <div class="corner corner-bl"></div>
+                <div class="corner corner-br"></div>
+                <div class="panel-header">
+                    <div class="panel-icon" style="background: var(--accent-purple);"></div>
+                    <span class="panel-title">🎯 AI Hub 使用统计</span>
+                </div>
+                <div class="panel-body">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-bottom: 15px;">
+                        <div style="background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 6px; padding: 12px;">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">今日调用</div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 20px; color: var(--accent-purple);" id="hub-today-calls">12,458</div>
+                            <div style="font-size: 10px; color: var(--accent-green); margin-top: 3px;">↑ +8.2%</div>
+                        </div>
+                        <div style="background: rgba(0, 128, 255, 0.1); border: 1px solid rgba(0, 128, 255, 0.3); border-radius: 6px; padding: 12px;">
+                            <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 5px;">今日成本</div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 20px; color: var(--accent-blue);" id="hub-today-cost">¥1,245</div>
+                            <div style="font-size: 10px; color: var(--accent-green); margin-top: 3px;">↓ -3.1%</div>
+                        </div>
+                    </div>
+                    <div style="background: rgba(0, 245, 255, 0.05); border: 1px solid rgba(0, 245, 255, 0.2); border-radius: 6px; padding: 12px; margin-bottom: 15px;">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">活跃模型数</div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div style="flex: 1; display: flex; gap: 5px;">
+                                <div style="flex: 1; height: 8px; background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan)); border-radius: 4px;"></div>
+                                <div style="flex: 1; height: 8px; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue)); border-radius: 4px;"></div>
+                                <div style="flex: 1; height: 8px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); border-radius: 4px;"></div>
+                            </div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 16px; color: var(--accent-cyan);" id="hub-active-models">18个</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 5px;">错误率</div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 14px; color: var(--accent-green);" id="hub-error-rate">0.12%</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 5px;">平均延迟</div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 14px; color: var(--accent-cyan);" id="hub-avg-latency">245ms</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 5px;">熔断次数</div>
+                            <div style="font-family: 'Orbitron', monospace; font-size: 14px; color: var(--accent-orange);" id="hub-circuit-breaks">2次</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(0, 245, 255, 0.2);">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">Top 3 调用模型</div>
+                        <div style="display: flex; flex-direction: column; gap: 6px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--accent-cyan);">GPT-4</span>
+                                <span style="color: var(--text-secondary);">4,521次</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--accent-cyan);">Claude-3</span>
+                                <span style="color: var(--text-secondary);">3,842次</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span style="color: var(--accent-cyan);">Qwen-Max</span>
+                                <span style="color: var(--text-secondary);">2,156次</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- 状态栏 -->
         <div class="status-bar">
             <div class="status-item">
@@ -1733,9 +1855,98 @@
                         updateRulesChain(data.explanation.rules_triggered);
                         updateDecision(data.explanation.decision, data.transaction);
                     }
+                    
+                    // 更新风控压力测试监控
+                    if (data.stress_test) {
+                        updateStressTest(data.stress_test);
+                    }
+                    
+                    // 更新AI Hub统计
+                    if (data.ai_hub) {
+                        updateAIHub(data.ai_hub);
+                    }
                 }
             } catch (e) {
                 console.error('Realtime tick failed:', e);
+            }
+        }
+        
+        // 更新风控压力测试数据
+        function updateStressTest(data) {
+            if (data.normal_rate !== undefined) {
+                document.getElementById('stress-normal-rate').textContent = data.normal_rate.toFixed(2) + '%';
+            }
+            if (data.stress_rate !== undefined) {
+                document.getElementById('stress-stress-rate').textContent = data.stress_rate.toFixed(2) + '%';
+            }
+            if (data.resilience_score !== undefined) {
+                const score = Math.round(data.resilience_score);
+                document.getElementById('stress-resilience-score').textContent = score + '分';
+                document.getElementById('stress-resilience-bar').style.width = score + '%';
+            }
+            if (data.profit_drawdown !== undefined) {
+                document.getElementById('stress-drawdown').textContent = (data.profit_drawdown * 100).toFixed(1) + '%';
+            }
+            if (data.recovery_time !== undefined) {
+                document.getElementById('stress-recovery').textContent = data.recovery_time + '个月';
+            }
+            if (data.risk_level !== undefined) {
+                const riskLevels = { 'low': '低', 'medium': '中等', 'high': '高', 'extreme': '极高' };
+                document.getElementById('stress-risk-level').textContent = riskLevels[data.risk_level] || data.risk_level;
+            }
+            if (data.last_event !== undefined) {
+                document.getElementById('stress-last-event').textContent = data.last_event;
+            }
+        }
+        
+        // 更新AI Hub统计数据
+        function updateAIHub(data) {
+            if (data.today_calls !== undefined) {
+                document.getElementById('hub-today-calls').textContent = data.today_calls.toLocaleString();
+            }
+            if (data.today_cost !== undefined) {
+                document.getElementById('hub-today-cost').textContent = '¥' + data.today_cost.toLocaleString();
+            }
+            if (data.active_models !== undefined) {
+                document.getElementById('hub-active-models').textContent = data.active_models + '个';
+            }
+            if (data.error_rate !== undefined) {
+                document.getElementById('hub-error-rate').textContent = (data.error_rate * 100).toFixed(2) + '%';
+            }
+            if (data.avg_latency !== undefined) {
+                document.getElementById('hub-avg-latency').textContent = Math.round(data.avg_latency) + 'ms';
+            }
+            if (data.circuit_breaks !== undefined) {
+                document.getElementById('hub-circuit-breaks').textContent = data.circuit_breaks + '次';
+            }
+        }
+        
+        // 初始化风控压力测试和AI Hub数据
+        async function initStressTestAndAIHub() {
+            try {
+                // 模拟数据，实际应该从API获取
+                const stressTestData = {
+                    normal_rate: 2.15,
+                    stress_rate: 4.82,
+                    resilience_score: 85,
+                    profit_drawdown: -0.125,
+                    recovery_time: 8,
+                    risk_level: 'medium',
+                    last_event: '金融危机模拟 - 2024-01-15 14:30'
+                };
+                updateStressTest(stressTestData);
+                
+                const aiHubData = {
+                    today_calls: 12458,
+                    today_cost: 1245,
+                    active_models: 18,
+                    error_rate: 0.0012,
+                    avg_latency: 245,
+                    circuit_breaks: 2
+                };
+                updateAIHub(aiHubData);
+            } catch (e) {
+                console.error('Init stress test and AI Hub failed:', e);
             }
         }
         
@@ -1798,6 +2009,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             initCharts();
             updateTransactionTable();
+            initStressTestAndAIHub();
             
             // 自动启动实时模式
             setTimeout(startRealtime, 1000);

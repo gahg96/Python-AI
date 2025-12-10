@@ -20,6 +20,7 @@ class Industry(Enum):
     CONSTRUCTION = "建筑业"
     IT = "信息技术"
     FINANCE = "金融业"
+    REAL_ESTATE = "房地产业"
     EDUCATION = "教育"
     HEALTHCARE = "医疗健康"
     AGRICULTURE = "农业"
