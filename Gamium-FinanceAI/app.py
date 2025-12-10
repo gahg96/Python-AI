@@ -223,6 +223,7 @@ def get_default_probability_detail():
     from data_distillation.world_model import WorldModel, LoanOffer, MarketConditions
     
     # 重建客户对象
+    generator = CustomerGenerator()
     type_map = {
         # 个人客户
         '工薪阶层': CustomerType.SALARIED,
