@@ -2320,6 +2320,10 @@ def run_bank_comparison():
         default_sum = 0.0
         factors_sum = 0.0
         factors_count = 0
+        dp_list = []
+        factor_bucket = {}
+        interest_income_sum = 0.0
+        expected_loss_sum = 0.0
 
         for cust in customers:
             # 贷款定价：基础利率 + 银行利差
@@ -2334,20 +2338,39 @@ def run_bank_comparison():
             if dp <= approval_threshold:
                 approved += 1
                 # 简化利润估计：利息收入 × (1 - 违约概率)
-                profit += loan_amount * loan_rate * (1 - dp)
+                interest_income = loan_amount * loan_rate
+                expected_loss = loan_amount * dp
+                net_profit = interest_income * (1 - dp) - expected_loss * 0.0  # 可扩展其他成本，这里置0
+                profit += net_profit
+                interest_income_sum += interest_income
+                expected_loss_sum += expected_loss
                 default_sum += dp
+                dp_list.append(dp)
                 # 记录风险因子均值（只累加数值型）
                 if future.risk_factors:
-                    for v in future.risk_factors.values():
+                    for k, v in future.risk_factors.items():
                         if isinstance(v, (int, float)):
                             factors_sum += v
                             factors_count += 1
+                            factor_bucket.setdefault(k, []).append(v)
             else:
                 rejected += 1
 
         total = approved + rejected
         avg_dp = (default_sum / approved) if approved > 0 else 0
         avg_factor = (factors_sum / factors_count) if factors_count > 0 else 0
+        dp_p95 = float(np.percentile(dp_list, 95)) if dp_list else 0.0
+
+        # 汇总风险因子均值（数值型）
+        factor_means = {
+            k: float(np.mean(vals)) for k, vals in factor_bucket.items() if len(vals) > 0
+        }
+        # 取绝对偏离1.0排序，选前5
+        top_factors = sorted(
+            factor_means.items(),
+            key=lambda x: abs(x[1] - 1.0),
+            reverse=True
+        )[:5]
 
         results.append({
             "name": name,
@@ -2359,6 +2382,15 @@ def run_bank_comparison():
             "est_profit": profit,
             "sample_size": total,
             "risk_factor_mean": avg_factor,
+            "dp_p95": dp_p95,
+            "interest_income": interest_income_sum,
+            "expected_loss": expected_loss_sum,
+            "profit_breakdown": {
+                "interest_income": interest_income_sum,
+                "expected_loss": expected_loss_sum,
+                "net_profit": profit
+            },
+            "factor_top5": top_factors
         })
 
     # 排序：按预估利润降序
@@ -2371,6 +2403,12 @@ def run_bank_comparison():
         "base_rate": base_rate,
         "seed": seed,
         "best_bank": results[0]["name"] if results else None,
+        "calculation_notes": [
+            "审批规则：违约概率 <= 审批阈值 则放款",
+            "预估利润：利息收入 * (1 - DP) - 预期损失(本版置0额外成本)",
+            "违约概率(NPL估)：使用模型预测的违约概率作为估算NPL",
+            "风险因子：只统计数值型风险因子，取绝对偏离1的Top5用于解释"
+        ]
     }
 
     return jsonify({

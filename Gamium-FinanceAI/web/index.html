@@ -10386,8 +10386,26 @@
                     </div>
                     <div class="modal-body" style="max-height: calc(90vh - 100px); overflow-y: auto;">
                         <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">
-                            默认比较 3 家银行（稳健/平衡/激进），同一批客户下的审批率、违约概率（估算NPL）、预估利润。可直接点击运行。
+                            默认比较 3 家银行（稳健/平衡/激进），同一批客户下的审批率、违约概率（估算NPL）、预估利润。可直接点击运行，或调整参数后再运行。
                         </p>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 12px;">
+                            <div>
+                                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">基准利率</label>
+                                <input id="bank-base-rate" type="number" step="0.001" value="0.08" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">贷款金额</label>
+                                <input id="bank-loan-amount" type="number" step="10000" value="100000" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">客户数</label>
+                                <input id="bank-customer-count" type="number" step="50" value="300" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary);">
+                            </div>
+                            <div>
+                                <label style="display:block;font-size:12px;color:var(--text-muted);margin-bottom:4px;">随机种子</label>
+                                <input id="bank-seed" type="number" step="1" value="42" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary);">
+                            </div>
+                        </div>
                         <button class="btn-primary" style="margin-bottom: 12px;" onclick="runBankComparison()">运行对比</button>
                         <div id="bank-comparison-result" style="min-height: 80px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-secondary);"></div>
                     </div>
@@ -10415,16 +10433,20 @@
             if (!resultBox) return;
             resultBox.innerHTML = `<div class="loading"><div class="spinner"></div><p>计算中...</p></div>`;
             try {
+                const baseRate = parseFloat(document.getElementById('bank-base-rate')?.value || 0.08);
+                const loanAmount = parseFloat(document.getElementById('bank-loan-amount')?.value || 100000);
+                const customerCount = parseInt(document.getElementById('bank-customer-count')?.value || 300);
+                const seed = parseInt(document.getElementById('bank-seed')?.value || 42);
                 const payload = {
                     banks: [
                         {"name": "稳健银行", "approval_threshold": 0.12, "rate_spread": 0.01},
                         {"name": "平衡银行", "approval_threshold": 0.18, "rate_spread": 0.015},
                         {"name": "激进银行", "approval_threshold": 0.25, "rate_spread": 0.02}
                     ],
-                    customer_count: 300,
-                    loan_amount: 100000,
-                    base_rate: 0.08,
-                    seed: 42
+                    customer_count: customerCount,
+                    loan_amount: loanAmount,
+                    base_rate: baseRate,
+                    seed: seed
                 };
                 const res = await fetch(`${API_BASE}/api/bank-comparison/run`, {
                     method: 'POST',
@@ -10443,6 +10465,17 @@
                         <td>${r.sample_size}</td>
                     </tr>
                 `).join('');
+                const detailRows = data.results.map((r, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${r.name}</td>
+                        <td>${(r.dp_p95 * 100).toFixed(2)}%</td>
+                        <td>${(r.interest_income / 1e6).toFixed(2)} 百万</td>
+                        <td>${(r.expected_loss / 1e6).toFixed(2)} 百万</td>
+                        <td>${(r.risk_factor_mean).toFixed(3)}</td>
+                        <td>${r.factor_top5.map(f => `${f[0]}:${f[1].toFixed(3)}`).join(' , ')}</td>
+                    </tr>
+                `).join('');
                 resultBox.innerHTML = `
                     <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
                         客户数: ${data.summary.customer_count} · 贷款金额: ¥${data.summary.loan_amount.toLocaleString()} · 基准利率: ${(data.summary.base_rate*100).toFixed(1)}%
@@ -10459,6 +10492,26 @@
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
+                    </table>
+                    <div style="margin-top: 12px; font-size: 13px; color: var(--text-muted);">
+                        <strong>计算说明：</strong> ${data.summary.calculation_notes.join('； ')}
+                    </div>
+                    <div style="margin-top: 12px; font-size: 13px; color: var(--text-muted);">
+                        <strong>高级明细：</strong>
+                    </div>
+                    <table class="data-table" style="width: 100%; font-size: 12px; margin-top: 6px;">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>银行</th>
+                                <th>P95违约率</th>
+                                <th>利息收入</th>
+                                <th>预期损失</th>
+                                <th>风险因子均值</th>
+                                <th>Top5因子</th>
+                            </tr>
+                        </thead>
+                        <tbody>${detailRows}</tbody>
                     </table>
                 `;
             } catch (e) {
