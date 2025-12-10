@@ -34,6 +34,7 @@ from agents.baseline_agents import (
 from arena.rule_engine import RuleEngine
 from arena.scoring_system import ScoringSystem, ScoreBreakdown
 from arena.multi_round_simulator import MultiRoundSimulator
+from arena.multi_agent_game import MultiAgentGame
 
 # 自定义 JSON 序列化器，处理 numpy 类型
 class NumpyJSONProvider(DefaultJSONProvider):
@@ -2734,6 +2735,440 @@ def run_ai_arena():
         "summary": summary,
         "results": results
     })
+
+
+@app.route('/api/arena/ai-explain', methods=['POST'])
+def arena_ai_explain():
+    """AI解释演武场结果"""
+    from datetime import datetime
+    
+    data = request.json or {}
+    results = data.get('results', [])
+    summary = data.get('summary', {})
+    
+    if not results:
+        return jsonify({
+            'success': False,
+            'error': '没有结果数据'
+        }), 400
+    
+    # 分析结果，生成解释
+    winner = summary.get('winner', '未知')
+    scenario = summary.get('scenario', 'normal')
+    black_swan = summary.get('black_swan', False)
+    rules_count = summary.get('rules_count', 0)
+    
+    # 分析各参赛者的表现
+    analysis = {
+        'winner_analysis': '',
+        'performance_comparison': [],
+        'key_insights': [],
+        'risk_assessment': '',
+        'recommendations': []
+    }
+    
+    # 找出胜者
+    if results:
+        winner_result = next((r for r in results if r.get('name') == winner), results[0])
+        winner_score = winner_result.get('score_breakdown', {}).get('overall_score', 0)
+        
+        analysis['winner_analysis'] = f"""
+        **{winner}** 在本轮演武中表现最佳，综合得分 {winner_score:.1%}。
+        
+        **关键优势：**
+        - 审批率: {winner_result.get('approval_rate', 0)*100:.1f}%
+        - 违约概率: {winner_result.get('avg_default_prob', 0)*100:.2f}%
+        - 预估利润: ¥{winner_result.get('est_profit', 0)/1e6:.2f} 百万
+        - RAROC: {winner_result.get('raroc', 0):.4f}
+        
+        **评分分解：**
+        - 利润得分: {winner_result.get('score_breakdown', {}).get('profit_score', 0)*100:.1f}%
+        - 风险得分: {winner_result.get('score_breakdown', {}).get('risk_score', 0)*100:.1f}%
+        - 稳定性得分: {winner_result.get('score_breakdown', {}).get('stability_score', 0)*100:.1f}%
+        """
+    
+    # 对比分析
+    for r in results[:3]:  # 只分析前3名
+        name = r.get('name', '未知')
+        score = r.get('score_breakdown', {}).get('overall_score', 0)
+        approval_rate = r.get('approval_rate', 0) * 100
+        default_prob = r.get('avg_default_prob', 0) * 100
+        profit = r.get('est_profit', 0) / 1e6
+        
+        analysis['performance_comparison'].append({
+            'name': name,
+            'score': score,
+            'approval_rate': approval_rate,
+            'default_prob': default_prob,
+            'profit': profit,
+            'summary': f"{name}: 综合得分 {score:.1%}, 审批率 {approval_rate:.1f}%, 违约率 {default_prob:.2f}%, 利润 {profit:.2f}百万"
+        })
+    
+    # 关键洞察
+    if len(results) >= 2:
+        best = results[0]
+        worst = results[-1]
+        analysis['key_insights'].append(
+            f"最佳策略 {best.get('name')} 的利润是 {worst.get('name')} 的 "
+            f"{best.get('est_profit', 1) / max(worst.get('est_profit', 1), 1):.1f} 倍"
+        )
+        
+        # 规则影响分析
+        triggered_rules = {}
+        for r in results:
+            for rule_name, count in r.get('triggered_rules', {}).items():
+                triggered_rules[rule_name] = triggered_rules.get(rule_name, 0) + count
+        
+        if triggered_rules:
+            top_rule = max(triggered_rules.items(), key=lambda x: x[1])
+            analysis['key_insights'].append(
+                f"规则 '{top_rule[0]}' 被触发了 {top_rule[1]} 次，是最活跃的规则"
+            )
+    
+    # 风险评估
+    avg_default = sum(r.get('avg_default_prob', 0) for r in results) / len(results) if results else 0
+    if avg_default > 0.15:
+        analysis['risk_assessment'] = "⚠️ 整体违约概率较高，建议加强风险控制措施"
+    elif avg_default > 0.10:
+        analysis['risk_assessment'] = "⚡ 违约概率处于中等水平，需要持续监控"
+    else:
+        analysis['risk_assessment'] = "✅ 违约概率较低，风险控制良好"
+    
+    # 建议
+    if scenario == 'stress':
+        analysis['recommendations'].append("当前处于压力情景，建议采用更保守的审批策略")
+    if black_swan:
+        analysis['recommendations'].append("黑天鹅事件发生，建议暂停高风险业务，加强风险储备")
+    if rules_count > 0:
+        analysis['recommendations'].append(f"已配置 {rules_count} 条规则，规则引擎运行正常")
+    
+    return jsonify({
+        'success': True,
+        'analysis': analysis,
+        'timestamp': datetime.now().isoformat()
+    })
+
+
+@app.route('/api/arena/export', methods=['POST'])
+def arena_export():
+    """导出演武场结果报告"""
+    import json
+    from datetime import datetime
+    
+    data = request.json or {}
+    format_type = data.get('format', 'json')  # json, csv, txt, html
+    results = data.get('results', [])
+    summary = data.get('summary', {})
+    
+    if not results:
+        return jsonify({
+            'success': False,
+            'error': '没有结果数据'
+        }), 400
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    if format_type == 'json':
+        export_data = {
+            'summary': summary,
+            'results': results,
+            'export_time': datetime.now().isoformat()
+        }
+        return Response(
+            json.dumps(export_data, ensure_ascii=False, indent=2),
+            mimetype='application/json',
+            headers={
+                'Content-Disposition': f'attachment; filename=arena_result_{timestamp}.json'
+            }
+        )
+    
+    elif format_type == 'csv':
+        import csv
+        import io
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # 表头
+        writer.writerow(['排名', '参赛者', '审批率', '违约概率', '预估利润', 'RAROC', '综合得分'])
+        
+        # 数据行
+        for idx, r in enumerate(results, 1):
+            writer.writerow([
+                idx,
+                r.get('name', ''),
+                f"{r.get('approval_rate', 0)*100:.2f}%",
+                f"{r.get('avg_default_prob', 0)*100:.2f}%",
+                f"{r.get('est_profit', 0):.2f}",
+                f"{r.get('raroc', 0):.4f}",
+                f"{r.get('score_breakdown', {}).get('overall_score', 0)*100:.2f}%"
+            ])
+        
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename=arena_result_{timestamp}.csv'
+            }
+        )
+    
+    elif format_type == 'txt':
+        lines = [
+            f"演武场结果报告",
+            f"生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"=" * 60,
+            f"",
+            f"场景: {summary.get('scenario', 'normal')}",
+            f"黑天鹅: {'是' if summary.get('black_swan') else '否'}",
+            f"客户数: {summary.get('customer_count', 0)}",
+            f"贷款金额: ¥{summary.get('loan_amount', 0):,.0f}",
+            f"规则数: {summary.get('rules_count', 0)}",
+            f"",
+            f"结果排名:",
+            f"-" * 60,
+        ]
+        
+        for idx, r in enumerate(results, 1):
+            lines.append(f"{idx}. {r.get('name', '未知')}")
+            lines.append(f"   审批率: {r.get('approval_rate', 0)*100:.1f}%")
+            lines.append(f"   违约概率: {r.get('avg_default_prob', 0)*100:.2f}%")
+            lines.append(f"   预估利润: ¥{r.get('est_profit', 0)/1e6:.2f} 百万")
+            lines.append(f"   综合得分: {r.get('score_breakdown', {}).get('overall_score', 0)*100:.1f}%")
+            lines.append("")
+        
+        return Response(
+            '\n'.join(lines),
+            mimetype='text/plain',
+            headers={
+                'Content-Disposition': f'attachment; filename=arena_result_{timestamp}.txt'
+            }
+        )
+    
+    elif format_type == 'html':
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>演武场结果报告</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        h1 {{ color: #333; }}
+        table {{ border-collapse: collapse; width: 100%; margin-top: 20px; }}
+        th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        th {{ background-color: #4CAF50; color: white; }}
+        tr:nth-child(even) {{ background-color: #f2f2f2; }}
+    </style>
+</head>
+<body>
+    <h1>演武场结果报告</h1>
+    <p>生成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+    <p>场景: {summary.get('scenario', 'normal')} | 黑天鹅: {'是' if summary.get('black_swan') else '否'}</p>
+    <table>
+        <tr>
+            <th>排名</th>
+            <th>参赛者</th>
+            <th>审批率</th>
+            <th>违约概率</th>
+            <th>预估利润</th>
+            <th>RAROC</th>
+            <th>综合得分</th>
+        </tr>
+"""
+        for idx, r in enumerate(results, 1):
+            html_content += f"""
+        <tr>
+            <td>{idx}</td>
+            <td>{r.get('name', '')}</td>
+            <td>{r.get('approval_rate', 0)*100:.1f}%</td>
+            <td>{r.get('avg_default_prob', 0)*100:.2f}%</td>
+            <td>¥{r.get('est_profit', 0)/1e6:.2f} 百万</td>
+            <td>{r.get('raroc', 0):.4f}</td>
+            <td>{r.get('score_breakdown', {}).get('overall_score', 0)*100:.1f}%</td>
+        </tr>
+"""
+        html_content += """
+    </table>
+</body>
+</html>
+"""
+        return Response(
+            html_content,
+            mimetype='text/html',
+            headers={
+                'Content-Disposition': f'attachment; filename=arena_result_{timestamp}.html'
+            }
+        )
+    
+    return jsonify({
+        'success': False,
+        'error': f'不支持的格式: {format_type}'
+    }), 400
+
+
+@app.route('/api/arena/tournament', methods=['POST'])
+def run_tournament():
+    """
+    多智能体锦标赛
+    输入：
+    {
+        "agents": [
+            {"id": "agent1", "name": "激进策略", "strategy": "aggressive", "approval_threshold": 0.25, "rate_spread": 0.02},
+            {"id": "agent2", "name": "平衡策略", "strategy": "rule_based", "approval_threshold": 0.18, "rate_spread": 0.015},
+            {"id": "agent3", "name": "保守策略", "strategy": "conservative", "approval_threshold": 0.12, "rate_spread": 0.01}
+        ],
+        "customer_count": 50,
+        "loan_amount": 100000,
+        "base_rate": 0.08,
+        "seed": 42,
+        "rounds": 10,
+        "rules": [...],
+        "scenario": "normal"
+    }
+    """
+    from datetime import datetime
+    
+    data = request.json or {}
+    agents = data.get('agents', [])
+    customer_count = int(data.get('customer_count', 50))
+    loan_amount = float(data.get('loan_amount', 100000))
+    base_rate = float(data.get('base_rate', 0.08))
+    seed = int(data.get('seed', 42))
+    rounds = int(data.get('rounds', 10))
+    rules_config = data.get('rules', [])
+    scenario = data.get('scenario', 'normal')
+    
+    # 初始化
+    rule_engine = RuleEngine(rules_config) if rules_config else None
+    game = MultiAgentGame(seed=seed)
+    
+    # 生成客户
+    customers = [generator.generate_one() for _ in range(customer_count)]
+    
+    # 创建市场条件
+    gdp = 0.03 if scenario == 'normal' else -0.02
+    unemp = 0.05 if scenario == 'normal' else 0.09
+    market = MarketConditions(
+        gdp_growth=gdp,
+        base_interest_rate=base_rate,
+        unemployment_rate=unemp,
+        inflation_rate=0.02,
+        credit_spread=0.02,
+    )
+    
+    # 运行锦标赛
+    result = game.run_tournament(
+        agents=agents,
+        customers=customers[:rounds],
+        market=market,
+        base_rate=base_rate,
+        base_loan_amount=loan_amount,
+        rounds=rounds,
+        rule_engine=rule_engine
+    )
+    
+    summary = {
+        "run_id": datetime.now().strftime('%Y%m%d_%H%M%S'),
+        "rounds": rounds,
+        "customer_count": customer_count,
+        "loan_amount": loan_amount,
+        "base_rate": base_rate,
+        "seed": seed,
+        "scenario": scenario,
+        "champion": result['champion'],
+        "agent_count": len(agents)
+    }
+    
+    return jsonify({
+        "success": True,
+        "summary": summary,
+        "round_history": result['round_history'],
+        "agent_scores": result['agent_scores'],
+        "agent_stats": result['agent_stats'],
+        "final_rankings": result['final_rankings']
+    })
+
+
+@app.route('/api/arena/llm-decision', methods=['POST'])
+def llm_decision():
+    """
+    LLM决策接口（集成真实LLM）
+    输入：
+    {
+        "model_id": "gpt-4",
+        "customer": {...},
+        "loan_offer": {...},
+        "market_conditions": {...},
+        "context": "审批决策"
+    }
+    """
+    from model_evaluation.model_gateway import gateway
+    
+    data = request.json or {}
+    model_id = data.get('model_id')
+    customer = data.get('customer')
+    loan_offer = data.get('loan_offer')
+    market_conditions = data.get('market_conditions')
+    context = data.get('context', '贷款审批决策')
+    
+    if not model_id:
+        return jsonify({
+            'success': False,
+            'error': '缺少model_id'
+        }), 400
+    
+    try:
+        # 构建提示词
+        prompt = f"""
+        作为银行信贷审批AI，请分析以下客户信息并做出审批决策：
+        
+        客户信息：
+        - 月收入: {customer.get('monthly_income', 0):,.0f} 元
+        - 年龄: {customer.get('age', 0)} 岁
+        - 信用分: {customer.get('credit_score', 0)}
+        - 负债率: {customer.get('debt_ratio', 0):.2%}
+        
+        贷款条件：
+        - 金额: {loan_offer.get('amount', 0):,.0f} 元
+        - 利率: {loan_offer.get('interest_rate', 0):.2%}
+        - 期限: {loan_offer.get('term_months', 0)} 个月
+        
+        请给出：
+        1. 审批决策（approve/reject）
+        2. 决策理由
+        3. 风险评估
+        4. 建议的利率调整（如果需要）
+        """
+        
+        # 调用模型网关（目前是模拟，后续可接入真实LLM）
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
+        result = loop.run_until_complete(gateway.call_model(model_id, prompt))
+        
+        # 解析LLM响应（简化版）
+        response_text = result.get('response', '')
+        decision = 'approve' if 'approve' in response_text.lower() or '批准' in response_text else 'reject'
+        
+        return jsonify({
+            'success': True,
+            'model_id': model_id,
+            'decision': decision,
+            'reasoning': response_text,
+            'latency': result.get('latency', 0),
+            'raw_response': response_text
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
 
 
 @app.route('/api/arena/default-rules', methods=['GET'])

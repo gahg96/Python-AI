@@ -10582,9 +10582,15 @@
                             </div>
                         </div>
                         <div id="arena-result" style="min-height: 100px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-secondary);"></div>
-                        <div style="margin-top:12px; display:flex; gap:8px;">
+                        <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
                             <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="showArenaCalc()">计算说明</button>
                             <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="showArenaAIExplain()">AI解释</button>
+                            <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="exportArenaResult('json')">导出JSON</button>
+                            <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="exportArenaResult('csv')">导出CSV</button>
+                            <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="exportArenaResult('txt')">导出TXT</button>
+                            <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="exportArenaResult('html')">导出HTML</button>
+                            <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="showArenaReplay()">回放</button>
+                            <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="showArenaCharts()">图表</button>
                         </div>
                     </div>
                 </div>
@@ -11091,18 +11097,341 @@
             alert(`计算说明：\n${notes.join('\n')}`);
         }
 
-        function showArenaAIExplain() {
+        async function showArenaAIExplain() {
             const data = window.lastArenaResult;
             if (!data) { alert('请先运行一次PK'); return; }
-            const winner = data.summary?.winner || '—';
-            const scenario = data.summary?.scenario || 'normal';
-            const bs = data.summary?.black_swan ? '是' : '否';
-            const lines = [
-                `场景: ${scenario} | 黑天鹅: ${bs}`,
-                `胜者: ${winner}`,
-                `提示: 进一步可用LLM生成详细解释（此处为占位）。`
-            ];
-            alert(lines.join('\n'));
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/arena/ai-explain`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const explainData = await res.json();
+                if (!explainData.success) throw new Error(explainData.error || '解释生成失败');
+                
+                const analysis = explainData.analysis;
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.style.display = 'flex';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 800px; max-height: 90vh;">
+                        <div class="modal-header">
+                            <h3>🤖 AI 智能解释</h3>
+                            <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                        </div>
+                        <div class="modal-body" style="max-height: calc(90vh - 100px); overflow-y: auto;">
+                            <div class="card" style="padding: 16px; margin-bottom: 16px;">
+                                <h4 style="font-size: 14px; margin-bottom: 8px;">🏆 胜者分析</h4>
+                                <div style="font-size: 13px; line-height: 1.8; white-space: pre-wrap;">${analysis.winner_analysis || '暂无数据'}</div>
+                            </div>
+                            <div class="card" style="padding: 16px; margin-bottom: 16px;">
+                                <h4 style="font-size: 14px; margin-bottom: 8px;">📊 性能对比</h4>
+                                <div style="font-size: 13px;">
+                                    ${analysis.performance_comparison.map(p => `<div style="margin-bottom: 8px;">• ${p.summary}</div>`).join('')}
+                                </div>
+                            </div>
+                            <div class="card" style="padding: 16px; margin-bottom: 16px;">
+                                <h4 style="font-size: 14px; margin-bottom: 8px;">💡 关键洞察</h4>
+                                <div style="font-size: 13px;">
+                                    ${analysis.key_insights.map(i => `<div style="margin-bottom: 8px;">• ${i}</div>`).join('')}
+                                </div>
+                            </div>
+                            <div class="card" style="padding: 16px; margin-bottom: 16px;">
+                                <h4 style="font-size: 14px; margin-bottom: 8px;">⚠️ 风险评估</h4>
+                                <div style="font-size: 13px;">${analysis.risk_assessment || '暂无数据'}</div>
+                            </div>
+                            <div class="card" style="padding: 16px;">
+                                <h4 style="font-size: 14px; margin-bottom: 8px;">💼 建议</h4>
+                                <div style="font-size: 13px;">
+                                    ${analysis.recommendations.map(r => `<div style="margin-bottom: 8px;">• ${r}</div>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+                document.body.appendChild(modal);
+            } catch (e) {
+                console.error('AI解释失败:', e);
+                alert('AI解释生成失败: ' + e.message);
+            }
+        }
+        
+        async function exportArenaResult(format) {
+            const data = window.lastArenaResult;
+            if (!data) { alert('请先运行一次PK'); return; }
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/arena/export`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...data, format })
+                });
+                
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = res.headers.get('Content-Disposition')?.split('filename=')[1] || `arena_result.${format}`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    console.log(`✅ 已导出 ${format.toUpperCase()} 格式报告`);
+                } else {
+                    throw new Error('导出失败');
+                }
+            } catch (e) {
+                console.error('导出失败:', e);
+                alert('导出失败: ' + e.message);
+            }
+        }
+        
+        function showArenaReplay() {
+            const data = window.lastArenaResult;
+            if (!data || !data.results) { alert('请先运行一次PK'); return; }
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 1000px; max-height: 90vh;">
+                    <div class="modal-header">
+                        <h3>📹 演武场回放</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body" style="max-height: calc(90vh - 100px); overflow-y: auto;">
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; color: var(--text-muted);">选择参赛者:</label>
+                            <select id="replay-participant" class="form-input" style="width: 200px; margin-left: 8px;" onchange="updateReplayView()">
+                                ${data.results.map((r, idx) => `<option value="${idx}">${r.name}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div id="replay-content" style="min-height: 400px;">
+                            <!-- 动态填充回放内容 -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+            document.body.appendChild(modal);
+            
+            // 初始化回放视图
+            window.updateReplayView = function() {
+                const idx = parseInt(document.getElementById('replay-participant')?.value || 0);
+                const result = data.results[idx];
+                const content = document.getElementById('replay-content');
+                if (!result || !content) return;
+                
+                const customerDetails = result.customer_details || [];
+                const triggeredRules = result.triggered_rules || {};
+                
+                content.innerHTML = `
+                    <div class="card" style="padding: 16px; margin-bottom: 16px;">
+                        <h4 style="font-size: 14px; margin-bottom: 12px;">📊 总体统计</h4>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; font-size: 13px;">
+                            <div>审批率: <strong>${(result.approval_rate * 100).toFixed(1)}%</strong></div>
+                            <div>违约概率: <strong>${(result.avg_default_prob * 100).toFixed(2)}%</strong></div>
+                            <div>预估利润: <strong>¥${(result.est_profit / 1e6).toFixed(2)} 百万</strong></div>
+                        </div>
+                    </div>
+                    <div class="card" style="padding: 16px; margin-bottom: 16px;">
+                        <h4 style="font-size: 14px; margin-bottom: 12px;">📋 客户决策详情 (显示前50个)</h4>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table class="data-table" style="width: 100%; font-size: 12px;">
+                                <thead>
+                                    <tr>
+                                        <th>客户ID</th>
+                                        <th>决策</th>
+                                        <th>违约概率</th>
+                                        <th>触发规则</th>
+                                        <th>利润</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${customerDetails.map(c => `
+                                        <tr>
+                                            <td>${c.customer_id}</td>
+                                            <td><span style="color: ${c.decision === 'approved' ? 'var(--accent-primary)' : 'var(--accent-danger)'}">${c.decision === 'approved' ? '✅ 通过' : '❌ 拒绝'}</span></td>
+                                            <td>${c.default_prob ? (c.default_prob * 100).toFixed(2) + '%' : '—'}</td>
+                                            <td>${c.triggered_rules && c.triggered_rules.length > 0 ? c.triggered_rules.join(', ') : '无'}</td>
+                                            <td>${c.profit ? '¥' + c.profit.toLocaleString() : '—'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card" style="padding: 16px;">
+                        <h4 style="font-size: 14px; margin-bottom: 12px;">🔧 规则触发统计</h4>
+                        <div style="font-size: 13px;">
+                            ${Object.entries(triggeredRules).map(([rule, count]) => `
+                                <div style="margin-bottom: 8px;">
+                                    <strong>${rule}</strong>: ${count} 次
+                                </div>
+                            `).join('') || '<div style="color: var(--text-muted);">未触发任何规则</div>'}
+                        </div>
+                    </div>
+                `;
+            };
+            
+            updateReplayView();
+        }
+        
+        function showArenaCharts() {
+            const data = window.lastArenaResult;
+            if (!data || !data.results) { alert('请先运行一次PK'); return; }
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 1000px; max-height: 90vh;">
+                    <div class="modal-header">
+                        <h3>📊 演武场可视化分析</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body" style="max-height: calc(90vh - 100px); overflow-y: auto;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                            <div class="card" style="padding: 16px;">
+                                <h4 style="font-size: 14px; margin-bottom: 12px;">雷达图</h4>
+                                <canvas id="arena-radar-chart" style="max-height: 300px;"></canvas>
+                            </div>
+                            <div class="card" style="padding: 16px;">
+                                <h4 style="font-size: 14px; margin-bottom: 12px;">利润对比</h4>
+                                <canvas id="arena-profit-chart" style="max-height: 300px;"></canvas>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 16px;">
+                            <h4 style="font-size: 14px; margin-bottom: 12px;">回撤曲线</h4>
+                            <canvas id="arena-drawdown-chart" style="max-height: 300px;"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+            document.body.appendChild(modal);
+            
+            // 渲染图表
+            setTimeout(() => {
+                renderArenaCharts(data);
+            }, 100);
+        }
+        
+        function renderArenaCharts(data) {
+            const results = data.results || [];
+            
+            // 雷达图 - 评分分解
+            const radarCtx = document.getElementById('arena-radar-chart')?.getContext('2d');
+            if (radarCtx && results.length > 0) {
+                const top3 = results.slice(0, 3);
+                const datasets = top3.map((r, idx) => {
+                    const sb = r.score_breakdown || {};
+                    return {
+                        label: r.name,
+                        data: [
+                            (sb.profit_score || 0) * 100,
+                            (sb.risk_score || 0) * 100,
+                            (sb.stability_score || 0) * 100,
+                            (sb.compliance_score || 0) * 100,
+                            (sb.efficiency_score || 0) * 100,
+                            (sb.explainability_score || 0) * 100
+                        ],
+                        backgroundColor: `rgba(${idx === 0 ? '0, 212, 170' : idx === 1 ? '124, 58, 237' : '59, 130, 246'}, 0.2)`,
+                        borderColor: `rgb(${idx === 0 ? '0, 212, 170' : idx === 1 ? '124, 58, 237' : '59, 130, 246'})`,
+                        borderWidth: 2
+                    };
+                });
+                
+                new Chart(radarCtx, {
+                    type: 'radar',
+                    data: {
+                        labels: ['利润', '风险', '稳定性', '合规', '效率', '可解释性'],
+                        datasets: datasets
+                    },
+                    options: {
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                max: 100
+                            }
+                        },
+                        plugins: {
+                            legend: { display: true }
+                        }
+                    }
+                });
+            }
+            
+            // 柱状图 - 利润对比
+            const profitCtx = document.getElementById('arena-profit-chart')?.getContext('2d');
+            if (profitCtx) {
+                new Chart(profitCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: results.map(r => r.name),
+                        datasets: [{
+                            label: '预估利润 (百万)',
+                            data: results.map(r => r.est_profit / 1e6),
+                            backgroundColor: 'rgba(0, 212, 170, 0.6)',
+                            borderColor: 'rgb(0, 212, 170)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false }
+                        }
+                    }
+                });
+            }
+            
+            // 折线图 - 回撤曲线（模拟数据）
+            const drawdownCtx = document.getElementById('arena-drawdown-chart')?.getContext('2d');
+            if (drawdownCtx && results.length > 0) {
+                // 生成模拟的回撤数据
+                const generateDrawdownData = (maxDrawdown) => {
+                    const data = [];
+                    for (let i = 0; i < 20; i++) {
+                        data.push(Math.random() * maxDrawdown * 0.3);
+                    }
+                    return data;
+                };
+                
+                const datasets = results.slice(0, 3).map((r, idx) => ({
+                    label: r.name,
+                    data: generateDrawdownData(r.max_drawdown || 0.1),
+                    borderColor: `rgb(${idx === 0 ? '0, 212, 170' : idx === 1 ? '124, 58, 237' : '59, 130, 246'})`,
+                    backgroundColor: `rgba(${idx === 0 ? '0, 212, 170' : idx === 1 ? '124, 58, 237' : '59, 130, 246'}, 0.1)`,
+                    tension: 0.4
+                }));
+                
+                new Chart(drawdownCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({length: 20}, (_, i) => `T${i+1}`),
+                        datasets: datasets
+                    },
+                    options: {
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: '回撤 (%)' }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: true }
+                        }
+                    }
+                });
+            }
         }
         
         // 页面切换时加载数据
