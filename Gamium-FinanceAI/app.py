@@ -252,9 +252,23 @@ def get_default_probability_detail():
     use_prediction_data = prediction_data and 'default_probability' in prediction_data
     
     if use_prediction_data:
+        # 直接使用前端传入的预测结果，并构造一个轻量级的客户占位对象
         # 直接使用预测结果，确保前后一致
         final_prob = prediction_data.get('default_probability', 0.03)
         risk_factors = prediction_data.get('risk_factors', {})
+        
+        # 构造占位的 customer，避免后续访问属性时报错
+        class _CustomerPlaceholder:
+            def __init__(self, is_enterprise: bool, customer_type):
+                self.is_enterprise = is_enterprise
+                self.customer_type = customer_type
+        
+        enterprise_types_cn = {'微型企业', '小型企业', '中型企业', '大型企业', '初创企业', '科技初创', '制造企业', '贸易公司', '服务企业'}
+        enterprise_types_en = {'micro_enterprise', 'small_enterprise', 'medium_enterprise', 'large_enterprise',
+                               'startup', 'tech_startup', 'manufacturing', 'trade_company', 'service_company'}
+        customer_type_raw = customer_data.get('customer_type')
+        is_enterprise = customer_type_raw in enterprise_types_cn or customer_type_raw in enterprise_types_en
+        customer = _CustomerPlaceholder(is_enterprise=is_enterprise, customer_type=customer_type_raw or '未知')
     else:
         # 需要重新计算时，正确重建客户对象
         customer_type = type_map.get(customer_data.get('customer_type'), CustomerType.SALARIED)
