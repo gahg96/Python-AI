@@ -296,27 +296,33 @@ class DistillationPipeline:
             
             # 静态特征
             static_features = [
-                customer['age'] / 100,
-                customer['years_in_business'] / 30,
-                customer['risk_score'],
+                customer.get('age', 35) / 100,
+                customer.get('years_in_business', 5) / 30,
+                customer.get('risk_score', 0.5),
             ]
             
             # 动态行为特征
+            monthly_income = customer.get('monthly_income', 10000.0) or 10000.0
+            debt_to_income = customer.get('debt_to_income', 0)
+            if debt_to_income and debt_to_income != float('inf'):
+                dti_norm = debt_to_income / 10 if debt_to_income < 10 else 1.0
+            else:
+                dti_norm = 0
             behavior_features = [
-                customer['monthly_income'] / 100000,
-                customer['income_volatility'],
-                customer['debt_ratio'],
-                customer['debt_to_income'] / 10 if customer['debt_to_income'] < 10 else 1.0,
-                customer['deposit_balance'] / 500000,
-                customer['deposit_stability'],
+                monthly_income / 100000,
+                customer.get('income_volatility', 0.2),
+                customer.get('debt_ratio', 0.3),
+                dti_norm,
+                customer.get('deposit_balance', 50000) / 500000,
+                customer.get('deposit_stability', 0.7),
             ]
             
             # 信贷历史特征
             credit_features = [
-                customer['previous_loans'] / 10,
-                customer['max_historical_dpd'] / 180,
-                customer['months_since_last_loan'] / 60 if customer['months_since_last_loan'] > 0 else 0,
-                customer['months_as_customer'] / 120,
+                customer.get('previous_loans', 0) / 10,
+                customer.get('max_historical_dpd', 0) / 180,
+                (customer.get('months_since_last_loan', 0) / 60) if customer.get('months_since_last_loan', 0) > 0 else 0,
+                customer.get('months_as_customer', 0) / 120,
             ]
             
             # 贷款条件特征
