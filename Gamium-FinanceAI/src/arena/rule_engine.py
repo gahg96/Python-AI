@@ -3,7 +3,7 @@
 支持条件-动作-惩罚配置，用于贷款审批决策
 """
 from typing import Dict, List, Any, Optional, Tuple
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 
 
@@ -31,23 +31,62 @@ class RuleCondition:
 
 @dataclass
 class RuleAction:
-    """规则动作"""
-    approval_threshold_delta: float = 0.0  # 审批阈值调整
-    rate_spread_delta: float = 0.0  # 利差调整
-    loan_amount_multiplier: float = 1.0  # 贷款金额倍数
-    term_months_delta: int = 0  # 期限调整（月）
+    """规则动作 - 扩展参数"""
+    # 审批相关
+    approval_threshold_delta: float = 0.0  # 审批阈值调整（-0.1到0.1）
+    rate_spread_delta: float = 0.0  # 利差调整（-0.01到0.01）
+    loan_amount_multiplier: float = 1.0  # 贷款金额倍数（0.5到2.0）
+    term_months_delta: int = 0  # 期限调整（月，-12到12）
+    min_loan_amount: float = 0.0  # 最小贷款金额（0表示不限制）
+    max_loan_amount: float = 0.0  # 最大贷款金额（0表示不限制）
+    
+    # 强制决策
     force_approve: bool = False  # 强制通过
     force_reject: bool = False  # 强制拒绝
+    
+    # 风险控制
     require_collateral: bool = False  # 要求抵押
     require_guarantor: bool = False  # 要求担保
+    collateral_ratio: float = 0.0  # 抵押物价值比例要求（0.0到1.0）
+    guarantor_credit_min: float = 0.0  # 担保人最低信用分（0表示不限制）
+    
+    # 额度调整
+    credit_limit_multiplier: float = 1.0  # 信用额度倍数（0.5到2.0）
+    down_payment_ratio: float = 0.0  # 首付比例要求（0.0到1.0）
+    
+    # 还款方式
+    require_installment: bool = False  # 要求分期还款
+    min_installment_months: int = 0  # 最小分期月数（0表示不限制）
+    
+    # 其他
+    require_insurance: bool = False  # 要求购买保险
+    require_audit: bool = False  # 要求人工审核
+    special_notes: str = ""  # 特殊备注
 
 
 @dataclass
 class RulePenalty:
-    """规则惩罚（用于评分）"""
-    score_delta: float = 0.0  # 评分调整
-    risk_multiplier: float = 1.0  # 风险倍数
-    profit_discount: float = 1.0  # 利润折扣
+    """规则惩罚（用于评分）- 扩展参数"""
+    # 评分调整
+    score_delta: float = 0.0  # 综合评分调整（-1.0到1.0）
+    profit_score_delta: float = 0.0  # 利润得分调整（-1.0到1.0）
+    risk_score_delta: float = 0.0  # 风险得分调整（-1.0到1.0）
+    compliance_score_delta: float = 0.0  # 合规得分调整（-1.0到1.0）
+    
+    # 风险调整
+    risk_multiplier: float = 1.0  # 风险倍数（0.5到2.0）
+    default_prob_multiplier: float = 1.0  # 违约概率倍数（0.5到2.0）
+    
+    # 利润调整
+    profit_discount: float = 1.0  # 利润折扣（0.0到1.0）
+    interest_rate_bonus: float = 0.0  # 利率加成（-0.05到0.05）
+    
+    # 成本调整
+    operation_cost_delta: float = 0.0  # 运营成本调整（-10000到10000）
+    risk_reserve_ratio: float = 0.0  # 风险准备金比例（0.0到0.2）
+    
+    # 其他
+    priority_boost: float = 0.0  # 优先级提升（用于规则排序，-10到10）
 
 
 @dataclass
@@ -55,11 +94,11 @@ class Rule:
     """完整规则定义"""
     name: str
     description: str
-    priority: int = 0  # 优先级，数字越大优先级越高
-    enabled: bool = True
     conditions: List[RuleCondition]
     action: RuleAction
-    penalty: RulePenalty = None
+    priority: int = 0  # 优先级，数字越大优先级越高
+    enabled: bool = True
+    penalty: Optional[RulePenalty] = None
     category: str = "default"  # 规则类别：risk_control, profit_optimization, compliance等
 
 
@@ -126,34 +165,53 @@ class RuleEngine:
             if not conditions:
                 return None
             
-            # 解析动作
+            # 解析动作（支持所有扩展参数，使用默认值）
             action_dict = rule_dict.get('action', {})
             action = RuleAction(
                 approval_threshold_delta=float(action_dict.get('approval_threshold_delta', 0.0)),
                 rate_spread_delta=float(action_dict.get('rate_spread_delta', 0.0)),
                 loan_amount_multiplier=float(action_dict.get('loan_amount_multiplier', 1.0)),
                 term_months_delta=int(action_dict.get('term_months_delta', 0)),
+                min_loan_amount=float(action_dict.get('min_loan_amount', 0.0)),
+                max_loan_amount=float(action_dict.get('max_loan_amount', 0.0)),
                 force_approve=bool(action_dict.get('force_approve', False)),
                 force_reject=bool(action_dict.get('force_reject', False)),
                 require_collateral=bool(action_dict.get('require_collateral', False)),
                 require_guarantor=bool(action_dict.get('require_guarantor', False)),
+                collateral_ratio=float(action_dict.get('collateral_ratio', 0.0)),
+                guarantor_credit_min=float(action_dict.get('guarantor_credit_min', 0.0)),
+                credit_limit_multiplier=float(action_dict.get('credit_limit_multiplier', 1.0)),
+                down_payment_ratio=float(action_dict.get('down_payment_ratio', 0.0)),
+                require_installment=bool(action_dict.get('require_installment', False)),
+                min_installment_months=int(action_dict.get('min_installment_months', 0)),
+                require_insurance=bool(action_dict.get('require_insurance', False)),
+                require_audit=bool(action_dict.get('require_audit', False)),
+                special_notes=str(action_dict.get('special_notes', '')),
             )
             
-            # 解析惩罚
+            # 解析惩罚（支持所有扩展参数，使用默认值）
             penalty_dict = rule_dict.get('penalty', {})
             penalty = RulePenalty(
                 score_delta=float(penalty_dict.get('score_delta', 0.0)),
+                profit_score_delta=float(penalty_dict.get('profit_score_delta', 0.0)),
+                risk_score_delta=float(penalty_dict.get('risk_score_delta', 0.0)),
+                compliance_score_delta=float(penalty_dict.get('compliance_score_delta', 0.0)),
                 risk_multiplier=float(penalty_dict.get('risk_multiplier', 1.0)),
+                default_prob_multiplier=float(penalty_dict.get('default_prob_multiplier', 1.0)),
                 profit_discount=float(penalty_dict.get('profit_discount', 1.0)),
+                interest_rate_bonus=float(penalty_dict.get('interest_rate_bonus', 0.0)),
+                operation_cost_delta=float(penalty_dict.get('operation_cost_delta', 0.0)),
+                risk_reserve_ratio=float(penalty_dict.get('risk_reserve_ratio', 0.0)),
+                priority_boost=float(penalty_dict.get('priority_boost', 0.0)),
             )
             
             return Rule(
                 name=name,
                 description=description,
-                priority=priority,
-                enabled=enabled,
                 conditions=conditions,
                 action=action,
+                priority=priority,
+                enabled=enabled,
                 penalty=penalty,
                 category=category
             )
@@ -256,16 +314,49 @@ class RuleEngine:
         if not self.evaluate_conditions(rule.conditions, customer):
             return {}, []
         
-        # 条件满足，应用动作
+        # 条件满足，应用动作（支持所有扩展参数）
+        adjusted_loan_amount = base_loan_amount * rule.action.loan_amount_multiplier
+        # 应用最小/最大贷款金额限制
+        if rule.action.min_loan_amount > 0:
+            adjusted_loan_amount = max(adjusted_loan_amount, rule.action.min_loan_amount)
+        if rule.action.max_loan_amount > 0:
+            adjusted_loan_amount = min(adjusted_loan_amount, rule.action.max_loan_amount)
+        
         adjustments = {
+            # 基础参数
             'approval_threshold': base_threshold + rule.action.approval_threshold_delta,
             'rate_spread': base_spread + rule.action.rate_spread_delta,
-            'loan_amount': base_loan_amount * rule.action.loan_amount_multiplier,
+            'loan_amount': adjusted_loan_amount,
             'term_months': base_term_months + rule.action.term_months_delta,
+            
+            # 贷款金额限制
+            'min_loan_amount': rule.action.min_loan_amount,
+            'max_loan_amount': rule.action.max_loan_amount,
+            
+            # 强制决策
             'force_approve': rule.action.force_approve,
             'force_reject': rule.action.force_reject,
+            
+            # 风险控制
             'require_collateral': rule.action.require_collateral,
             'require_guarantor': rule.action.require_guarantor,
+            'collateral_ratio': rule.action.collateral_ratio,
+            'guarantor_credit_min': rule.action.guarantor_credit_min,
+            
+            # 额度调整
+            'credit_limit_multiplier': rule.action.credit_limit_multiplier,
+            'down_payment_ratio': rule.action.down_payment_ratio,
+            
+            # 还款方式
+            'require_installment': rule.action.require_installment,
+            'min_installment_months': rule.action.min_installment_months,
+            
+            # 其他
+            'require_insurance': rule.action.require_insurance,
+            'require_audit': rule.action.require_audit,
+            'special_notes': rule.action.special_notes,
+            
+            # 规则信息
             'penalty': rule.penalty,
             'rule_name': rule.name,
             'rule_category': rule.category

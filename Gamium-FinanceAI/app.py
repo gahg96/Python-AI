@@ -2736,6 +2736,36 @@ def run_ai_arena():
     })
 
 
+@app.route('/api/arena/default-rules', methods=['GET'])
+def get_default_rules():
+    """获取默认规则模板"""
+    import json
+    from pathlib import Path
+    
+    try:
+        rules_file = Path(__file__).parent / 'data' / 'default_rules.json'
+        if rules_file.exists():
+            with open(rules_file, 'r', encoding='utf-8') as f:
+                rules = json.load(f)
+            return jsonify({
+                'success': True,
+                'rules': rules,
+                'count': len(rules)
+            })
+        else:
+            # 返回空规则列表
+            return jsonify({
+                'success': True,
+                'rules': [],
+                'count': 0
+            })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/api/arena/multi-round', methods=['POST'])
 def run_multi_round_arena():
     """

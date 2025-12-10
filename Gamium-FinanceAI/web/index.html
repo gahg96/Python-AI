@@ -10735,6 +10735,12 @@
                                     <option value="debt_ratio" ${cond.field === 'debt_ratio' ? 'selected' : ''}>负债率</option>
                                     <option value="credit_score" ${cond.field === 'credit_score' ? 'selected' : ''}>信用分</option>
                                     <option value="years_in_business" ${cond.field === 'years_in_business' ? 'selected' : ''}>经营年限</option>
+                                    <option value="annual_revenue" ${cond.field === 'annual_revenue' ? 'selected' : ''}>年收入（企业）</option>
+                                    <option value="total_assets" ${cond.field === 'total_assets' ? 'selected' : ''}>总资产</option>
+                                    <option value="deposit_balance" ${cond.field === 'deposit_balance' ? 'selected' : ''}>存款余额</option>
+                                    <option value="previous_loans" ${cond.field === 'previous_loans' ? 'selected' : ''}>历史贷款数</option>
+                                    <option value="max_historical_dpd" ${cond.field === 'max_historical_dpd' ? 'selected' : ''}>最大逾期天数</option>
+                                    <option value="risk_score" ${cond.field === 'risk_score' ? 'selected' : ''}>风险评分</option>
                                 </select>
                                 <select class="form-input" style="width:80px; font-size:11px;">
                                     <option value=">" ${cond.op === '>' ? 'selected' : ''}>></option>
@@ -10750,18 +10756,44 @@
                     </div>
                     <button class="btn-secondary" style="font-size:11px; padding:4px 8px; margin-top:4px;" onclick="addRuleCondition(this)">+ 添加条件</button>
                 </div>
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
-                    <div>
-                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">动作</div>
-                        <input type="number" class="form-input" value="${rule.action?.approval_threshold_delta || 0}" step="0.01" placeholder="审批阈值调整" style="width:100%; margin-bottom:4px;">
-                        <input type="number" class="form-input" value="${rule.action?.rate_spread_delta || 0}" step="0.001" placeholder="利差调整" style="width:100%;">
+                <details style="margin-bottom:8px;">
+                    <summary style="font-size:12px; color:var(--text-muted); cursor:pointer; padding:4px;">动作参数（点击展开）</summary>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:8px; padding:8px; background:var(--bg-secondary); border-radius:4px;">
+                        <input type="number" class="form-input" value="${rule.action?.approval_threshold_delta || 0}" step="0.01" placeholder="审批阈值调整" style="font-size:11px;" data-action="approval_threshold_delta">
+                        <input type="number" class="form-input" value="${rule.action?.rate_spread_delta || 0}" step="0.001" placeholder="利差调整" style="font-size:11px;" data-action="rate_spread_delta">
+                        <input type="number" class="form-input" value="${rule.action?.loan_amount_multiplier || 1.0}" step="0.1" placeholder="贷款金额倍数" style="font-size:11px;" data-action="loan_amount_multiplier">
+                        <input type="number" class="form-input" value="${rule.action?.term_months_delta || 0}" step="1" placeholder="期限调整（月）" style="font-size:11px;" data-action="term_months_delta">
+                        <input type="number" class="form-input" value="${rule.action?.min_loan_amount || 0}" step="1000" placeholder="最小贷款金额" style="font-size:11px;" data-action="min_loan_amount">
+                        <input type="number" class="form-input" value="${rule.action?.max_loan_amount || 0}" step="1000" placeholder="最大贷款金额" style="font-size:11px;" data-action="max_loan_amount">
+                        <label style="font-size:11px; display:flex; align-items:center; gap:4px;">
+                            <input type="checkbox" ${rule.action?.force_approve ? 'checked' : ''} style="width:14px;height:14px;" data-action="force_approve">强制通过
+                        </label>
+                        <label style="font-size:11px; display:flex; align-items:center; gap:4px;">
+                            <input type="checkbox" ${rule.action?.force_reject ? 'checked' : ''} style="width:14px;height:14px;" data-action="force_reject">强制拒绝
+                        </label>
+                        <label style="font-size:11px; display:flex; align-items:center; gap:4px;">
+                            <input type="checkbox" ${rule.action?.require_collateral ? 'checked' : ''} style="width:14px;height:14px;" data-action="require_collateral">要求抵押
+                        </label>
+                        <label style="font-size:11px; display:flex; align-items:center; gap:4px;">
+                            <input type="checkbox" ${rule.action?.require_guarantor ? 'checked' : ''} style="width:14px;height:14px;" data-action="require_guarantor">要求担保
+                        </label>
+                        <input type="number" class="form-input" value="${rule.action?.collateral_ratio || 0}" step="0.1" placeholder="抵押物比例" style="font-size:11px;" data-action="collateral_ratio">
+                        <input type="number" class="form-input" value="${rule.action?.guarantor_credit_min || 0}" step="10" placeholder="担保人最低信用分" style="font-size:11px;" data-action="guarantor_credit_min">
                     </div>
-                    <div>
-                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">惩罚</div>
-                        <input type="number" class="form-input" value="${rule.penalty?.score_delta || 0}" step="0.01" placeholder="评分调整" style="width:100%; margin-bottom:4px;">
-                        <input type="number" class="form-input" value="${rule.penalty?.profit_discount || 1.0}" step="0.01" placeholder="利润折扣" style="width:100%;">
+                </details>
+                <details style="margin-bottom:8px;">
+                    <summary style="font-size:12px; color:var(--text-muted); cursor:pointer; padding:4px;">惩罚参数（点击展开）</summary>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:8px; padding:8px; background:var(--bg-secondary); border-radius:4px;">
+                        <input type="number" class="form-input" value="${rule.penalty?.score_delta || 0}" step="0.01" placeholder="综合评分调整" style="font-size:11px;" data-penalty="score_delta">
+                        <input type="number" class="form-input" value="${rule.penalty?.profit_score_delta || 0}" step="0.01" placeholder="利润得分调整" style="font-size:11px;" data-penalty="profit_score_delta">
+                        <input type="number" class="form-input" value="${rule.penalty?.risk_score_delta || 0}" step="0.01" placeholder="风险得分调整" style="font-size:11px;" data-penalty="risk_score_delta">
+                        <input type="number" class="form-input" value="${rule.penalty?.compliance_score_delta || 0}" step="0.01" placeholder="合规得分调整" style="font-size:11px;" data-penalty="compliance_score_delta">
+                        <input type="number" class="form-input" value="${rule.penalty?.risk_multiplier || 1.0}" step="0.1" placeholder="风险倍数" style="font-size:11px;" data-penalty="risk_multiplier">
+                        <input type="number" class="form-input" value="${rule.penalty?.default_prob_multiplier || 1.0}" step="0.1" placeholder="违约概率倍数" style="font-size:11px;" data-penalty="default_prob_multiplier">
+                        <input type="number" class="form-input" value="${rule.penalty?.profit_discount || 1.0}" step="0.01" placeholder="利润折扣" style="font-size:11px;" data-penalty="profit_discount">
+                        <input type="number" class="form-input" value="${rule.penalty?.interest_rate_bonus || 0}" step="0.001" placeholder="利率加成" style="font-size:11px;" data-penalty="interest_rate_bonus">
                     </div>
-                </div>
+                </details>
             `;
             container.appendChild(card);
         }
@@ -10777,6 +10809,12 @@
                     <option value="debt_ratio">负债率</option>
                     <option value="credit_score">信用分</option>
                     <option value="years_in_business">经营年限</option>
+                    <option value="annual_revenue">年收入（企业）</option>
+                    <option value="total_assets">总资产</option>
+                    <option value="deposit_balance">存款余额</option>
+                    <option value="previous_loans">历史贷款数</option>
+                    <option value="max_historical_dpd">最大逾期天数</option>
+                    <option value="risk_score">风险评分</option>
                 </select>
                 <select class="form-input" style="width:80px; font-size:11px;">
                     <option value=">">></option>
@@ -10791,31 +10829,24 @@
             container.appendChild(condDiv);
         }
 
-        function loadDefaultRules() {
+        async function loadDefaultRules() {
             const container = document.getElementById('arena-rules');
             if (!container) return;
-            container.innerHTML = '';
-            const defaultRules = [
-                {
-                    name: '高收入优惠',
-                    description: '月收入超过20000的客户降低审批阈值和利差',
-                    priority: 1,
-                    enabled: true,
-                    conditions: [{field: 'monthly_income', op: '>', value: 20000}],
-                    action: {approval_threshold_delta: -0.02, rate_spread_delta: -0.002},
-                    penalty: {score_delta: 0, profit_discount: 1.0}
-                },
-                {
-                    name: '高风险拒绝',
-                    description: '负债率超过0.8的客户提高审批阈值',
-                    priority: 2,
-                    enabled: true,
-                    conditions: [{field: 'debt_ratio', op: '>', value: 0.8}],
-                    action: {approval_threshold_delta: 0.05, rate_spread_delta: 0.01},
-                    penalty: {score_delta: -0.1, profit_discount: 0.9}
+            container.innerHTML = '<div style="padding:12px; text-align:center; color:var(--text-muted);">加载中...</div>';
+            try {
+                const res = await fetch(`${API_BASE}/api/arena/default-rules`);
+                const data = await res.json();
+                if (data.success && data.rules) {
+                    container.innerHTML = '';
+                    data.rules.forEach(rule => addArenaRule(rule));
+                    console.log(`✅ 已加载 ${data.count} 条默认规则`);
+                } else {
+                    container.innerHTML = '<div style="padding:12px; color:var(--accent-danger);">加载失败</div>';
                 }
-            ];
-            defaultRules.forEach(rule => addArenaRule(rule));
+            } catch (e) {
+                console.error('加载默认规则失败:', e);
+                container.innerHTML = '<div style="padding:12px; color:var(--accent-danger);">加载失败: ' + e.message + '</div>';
+            }
         }
 
         function collectArenaRules() {
@@ -10826,6 +10857,8 @@
                 const inputs = card.querySelectorAll('input');
                 const textarea = card.querySelector('textarea');
                 const enabledCheckbox = card.querySelector('input[type="checkbox"]');
+                
+                // 收集条件
                 const conditions = Array.from(card.querySelectorAll('.rule-conditions > div')).map(condDiv => {
                     const selects = condDiv.querySelectorAll('select');
                     const input = condDiv.querySelector('input[type="number"]');
@@ -10835,20 +10868,59 @@
                         value: parseFloat(input?.value || 0)
                     };
                 });
+                
+                // 收集动作参数（使用data-action属性）
+                const actionInputs = card.querySelectorAll('[data-action]');
+                const action = {
+                    approval_threshold_delta: 0,
+                    rate_spread_delta: 0,
+                    loan_amount_multiplier: 1.0,
+                    term_months_delta: 0,
+                    min_loan_amount: 0,
+                    max_loan_amount: 0,
+                    force_approve: false,
+                    force_reject: false,
+                    require_collateral: false,
+                    require_guarantor: false,
+                    collateral_ratio: 0,
+                    guarantor_credit_min: 0
+                };
+                actionInputs.forEach(input => {
+                    const key = input.getAttribute('data-action');
+                    if (input.type === 'checkbox') {
+                        action[key] = input.checked;
+                    } else {
+                        const val = parseFloat(input.value || 0);
+                        action[key] = isNaN(val) ? 0 : val;
+                    }
+                });
+                
+                // 收集惩罚参数（使用data-penalty属性）
+                const penaltyInputs = card.querySelectorAll('[data-penalty]');
+                const penalty = {
+                    score_delta: 0,
+                    profit_score_delta: 0,
+                    risk_score_delta: 0,
+                    compliance_score_delta: 0,
+                    risk_multiplier: 1.0,
+                    default_prob_multiplier: 1.0,
+                    profit_discount: 1.0,
+                    interest_rate_bonus: 0
+                };
+                penaltyInputs.forEach(input => {
+                    const key = input.getAttribute('data-penalty');
+                    const val = parseFloat(input.value || 0);
+                    penalty[key] = isNaN(val) ? (key.includes('multiplier') || key === 'profit_discount' ? 1.0 : 0) : val;
+                });
+                
                 return {
                     name: inputs[0]?.value || '未命名规则',
                     description: textarea?.value || '',
                     priority: parseInt(inputs[1]?.value || 0),
                     enabled: enabledCheckbox?.checked !== false,
                     conditions: conditions,
-                    action: {
-                        approval_threshold_delta: parseFloat(inputs[2]?.value || 0),
-                        rate_spread_delta: parseFloat(inputs[3]?.value || 0)
-                    },
-                    penalty: {
-                        score_delta: parseFloat(inputs[4]?.value || 0),
-                        profit_discount: parseFloat(inputs[5]?.value || 1.0)
-                    }
+                    action: action,
+                    penalty: penalty
                 };
             });
         }

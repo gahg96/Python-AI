@@ -1,0 +1,339 @@
+[
+  {
+    "name": "高收入客户优惠",
+    "description": "月收入超过20000的客户，降低审批阈值和利差，提高贷款额度",
+    "priority": 1,
+    "enabled": true,
+    "category": "profit_optimization",
+    "conditions": [
+      {
+        "field": "monthly_income",
+        "op": ">",
+        "value": 20000
+      }
+    ],
+    "action": {
+      "approval_threshold_delta": -0.02,
+      "rate_spread_delta": -0.002,
+      "loan_amount_multiplier": 1.2,
+      "term_months_delta": 0,
+      "min_loan_amount": 0,
+      "max_loan_amount": 0,
+      "force_approve": false,
+      "force_reject": false,
+      "require_collateral": false,
+      "require_guarantor": false,
+      "collateral_ratio": 0,
+      "guarantor_credit_min": 0,
+      "credit_limit_multiplier": 1.2,
+      "down_payment_ratio": 0,
+      "require_installment": false,
+      "min_installment_months": 0,
+      "require_insurance": false,
+      "require_audit": false,
+      "special_notes": "优质客户，享受优惠利率"
+    },
+    "penalty": {
+      "score_delta": 0.05,
+      "profit_score_delta": 0.1,
+      "risk_score_delta": 0,
+      "compliance_score_delta": 0,
+      "risk_multiplier": 1.0,
+      "default_prob_multiplier": 1.0,
+      "profit_discount": 1.0,
+      "interest_rate_bonus": 0,
+      "operation_cost_delta": 0,
+      "risk_reserve_ratio": 0,
+      "priority_boost": 0
+    }
+  },
+  {
+    "name": "高风险客户拒绝",
+    "description": "负债率超过0.8的客户，提高审批阈值，要求抵押或担保",
+    "priority": 2,
+    "enabled": true,
+    "category": "risk_control",
+    "conditions": [
+      {
+        "field": "debt_ratio",
+        "op": ">",
+        "value": 0.8
+      }
+    ],
+    "action": {
+      "approval_threshold_delta": 0.05,
+      "rate_spread_delta": 0.01,
+      "loan_amount_multiplier": 0.8,
+      "term_months_delta": 0,
+      "min_loan_amount": 0,
+      "max_loan_amount": 0,
+      "force_approve": false,
+      "force_reject": false,
+      "require_collateral": true,
+      "require_guarantor": true,
+      "collateral_ratio": 0.5,
+      "guarantor_credit_min": 650,
+      "credit_limit_multiplier": 0.8,
+      "down_payment_ratio": 0.3,
+      "require_installment": true,
+      "min_installment_months": 12,
+      "require_insurance": true,
+      "require_audit": true,
+      "special_notes": "高风险客户，需要额外风险控制措施"
+    },
+    "penalty": {
+      "score_delta": -0.1,
+      "profit_score_delta": -0.05,
+      "risk_score_delta": -0.15,
+      "compliance_score_delta": 0,
+      "risk_multiplier": 1.2,
+      "default_prob_multiplier": 1.2,
+      "profit_discount": 0.9,
+      "interest_rate_bonus": 0.01,
+      "operation_cost_delta": 1000,
+      "risk_reserve_ratio": 0.1,
+      "priority_boost": 0
+    }
+  },
+  {
+    "name": "优质信用客户",
+    "description": "信用分超过750的客户，享受优惠利率和更高额度",
+    "priority": 1,
+    "enabled": true,
+    "category": "profit_optimization",
+    "conditions": [
+      {
+        "field": "credit_score",
+        "op": ">",
+        "value": 750
+      }
+    ],
+    "action": {
+      "approval_threshold_delta": -0.01,
+      "rate_spread_delta": -0.003,
+      "loan_amount_multiplier": 1.3,
+      "term_months_delta": 0,
+      "min_loan_amount": 0,
+      "max_loan_amount": 0,
+      "force_approve": false,
+      "force_reject": false,
+      "require_collateral": false,
+      "require_guarantor": false,
+      "collateral_ratio": 0,
+      "guarantor_credit_min": 0,
+      "credit_limit_multiplier": 1.3,
+      "down_payment_ratio": 0,
+      "require_installment": false,
+      "min_installment_months": 0,
+      "require_insurance": false,
+      "require_audit": false,
+      "special_notes": "优质信用客户，享受VIP待遇"
+    },
+    "penalty": {
+      "score_delta": 0.08,
+      "profit_score_delta": 0.1,
+      "risk_score_delta": 0.05,
+      "compliance_score_delta": 0,
+      "risk_multiplier": 0.9,
+      "default_prob_multiplier": 0.9,
+      "profit_discount": 1.0,
+      "interest_rate_bonus": -0.003,
+      "operation_cost_delta": -500,
+      "risk_reserve_ratio": 0,
+      "priority_boost": 0
+    }
+  },
+  {
+    "name": "低龄客户限制",
+    "description": "年龄低于25岁的客户，降低贷款额度，要求担保",
+    "priority": 2,
+    "enabled": true,
+    "category": "risk_control",
+    "conditions": [
+      {
+        "field": "age",
+        "op": "<",
+        "value": 25
+      }
+    ],
+    "action": {
+      "approval_threshold_delta": 0.02,
+      "rate_spread_delta": 0.005,
+      "loan_amount_multiplier": 0.7,
+      "term_months_delta": 0,
+      "min_loan_amount": 0,
+      "max_loan_amount": 500000,
+      "force_approve": false,
+      "force_reject": false,
+      "require_collateral": false,
+      "require_guarantor": true,
+      "collateral_ratio": 0,
+      "guarantor_credit_min": 700,
+      "credit_limit_multiplier": 0.7,
+      "down_payment_ratio": 0.2,
+      "require_installment": true,
+      "min_installment_months": 6,
+      "require_insurance": false,
+      "require_audit": true,
+      "special_notes": "低龄客户，需要担保人"
+    },
+    "penalty": {
+      "score_delta": -0.05,
+      "profit_score_delta": -0.03,
+      "risk_score_delta": -0.08,
+      "compliance_score_delta": 0,
+      "risk_multiplier": 1.1,
+      "default_prob_multiplier": 1.1,
+      "profit_discount": 0.95,
+      "interest_rate_bonus": 0.005,
+      "operation_cost_delta": 500,
+      "risk_reserve_ratio": 0.05,
+      "priority_boost": 0
+    }
+  },
+  {
+    "name": "企业客户优惠",
+    "description": "企业客户（经营年限超过3年），享受优惠利率和更高额度",
+    "priority": 1,
+    "enabled": true,
+    "category": "profit_optimization",
+    "conditions": [
+      {
+        "field": "years_in_business",
+        "op": ">=",
+        "value": 3
+      }
+    ],
+    "action": {
+      "approval_threshold_delta": -0.015,
+      "rate_spread_delta": -0.002,
+      "loan_amount_multiplier": 1.5,
+      "term_months_delta": 6,
+      "min_loan_amount": 100000,
+      "max_loan_amount": 0,
+      "force_approve": false,
+      "force_reject": false,
+      "require_collateral": false,
+      "require_guarantor": false,
+      "collateral_ratio": 0,
+      "guarantor_credit_min": 0,
+      "credit_limit_multiplier": 1.5,
+      "down_payment_ratio": 0,
+      "require_installment": false,
+      "min_installment_months": 0,
+      "require_insurance": false,
+      "require_audit": false,
+      "special_notes": "企业客户，经营稳定，享受优惠"
+    },
+    "penalty": {
+      "score_delta": 0.06,
+      "profit_score_delta": 0.08,
+      "risk_score_delta": 0.03,
+      "compliance_score_delta": 0,
+      "risk_multiplier": 0.95,
+      "default_prob_multiplier": 0.95,
+      "profit_discount": 1.0,
+      "interest_rate_bonus": -0.002,
+      "operation_cost_delta": -300,
+      "risk_reserve_ratio": 0,
+      "priority_boost": 0
+    }
+  },
+  {
+    "name": "大额贷款审核",
+    "description": "贷款金额超过50万的，要求抵押和人工审核",
+    "priority": 3,
+    "enabled": true,
+    "category": "compliance",
+    "conditions": [
+      {
+        "field": "loan_amount",
+        "op": ">",
+        "value": 500000
+      }
+    ],
+    "action": {
+      "approval_threshold_delta": 0,
+      "rate_spread_delta": 0,
+      "loan_amount_multiplier": 1.0,
+      "term_months_delta": 0,
+      "min_loan_amount": 500000,
+      "max_loan_amount": 0,
+      "force_approve": false,
+      "force_reject": false,
+      "require_collateral": true,
+      "require_guarantor": true,
+      "collateral_ratio": 0.6,
+      "guarantor_credit_min": 700,
+      "credit_limit_multiplier": 1.0,
+      "down_payment_ratio": 0.3,
+      "require_installment": true,
+      "min_installment_months": 12,
+      "require_insurance": true,
+      "require_audit": true,
+      "special_notes": "大额贷款，需要严格审核和风险控制"
+    },
+    "penalty": {
+      "score_delta": 0,
+      "profit_score_delta": 0,
+      "risk_score_delta": 0.05,
+      "compliance_score_delta": 0.1,
+      "risk_multiplier": 1.0,
+      "default_prob_multiplier": 1.0,
+      "profit_discount": 1.0,
+      "interest_rate_bonus": 0,
+      "operation_cost_delta": 2000,
+      "risk_reserve_ratio": 0.05,
+      "priority_boost": 0
+    }
+  },
+  {
+    "name": "黑名单客户拒绝",
+    "description": "信用分低于400的客户，直接拒绝",
+    "priority": 10,
+    "enabled": true,
+    "category": "risk_control",
+    "conditions": [
+      {
+        "field": "credit_score",
+        "op": "<",
+        "value": 400
+      }
+    ],
+    "action": {
+      "approval_threshold_delta": 0,
+      "rate_spread_delta": 0,
+      "loan_amount_multiplier": 1.0,
+      "term_months_delta": 0,
+      "min_loan_amount": 0,
+      "max_loan_amount": 0,
+      "force_approve": false,
+      "force_reject": true,
+      "require_collateral": false,
+      "require_guarantor": false,
+      "collateral_ratio": 0,
+      "guarantor_credit_min": 0,
+      "credit_limit_multiplier": 1.0,
+      "down_payment_ratio": 0,
+      "require_installment": false,
+      "min_installment_months": 0,
+      "require_insurance": false,
+      "require_audit": false,
+      "special_notes": "信用分过低，直接拒绝"
+    },
+    "penalty": {
+      "score_delta": 0,
+      "profit_score_delta": 0,
+      "risk_score_delta": 0.2,
+      "compliance_score_delta": 0.1,
+      "risk_multiplier": 1.0,
+      "default_prob_multiplier": 1.0,
+      "profit_discount": 1.0,
+      "interest_rate_bonus": 0,
+      "operation_cost_delta": 0,
+      "risk_reserve_ratio": 0,
+      "priority_boost": 0
+    }
+  }
+]
+
