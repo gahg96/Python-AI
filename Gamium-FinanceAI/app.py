@@ -2418,6 +2418,118 @@ def run_bank_comparison():
     })
 
 # ============================================================
+# AI 演武场（简化版，多模型/策略对比）
+# ============================================================
+
+@app.route('/api/arena/run', methods=['POST'])
+def run_ai_arena():
+    """
+    多模型/策略演武场（贷款审批简化版）
+    输入：
+    {
+        "participants": [
+            {"name": "稳健策略", "approval_threshold": 0.12, "rate_spread": 0.01},
+            {"name": "平衡策略", "approval_threshold": 0.18, "rate_spread": 0.015},
+            {"name": "激进策略", "approval_threshold": 0.25, "rate_spread": 0.02}
+        ],
+        "customer_count": 300,
+        "loan_amount": 100000,
+        "base_rate": 0.08,
+        "seed": 42
+    }
+    输出：各参赛者审批率、违约概率、预估利润、风险指标
+    """
+    data = request.json or {}
+    participants = data.get('participants') or [
+        {"name": "稳健策略", "approval_threshold": 0.12, "rate_spread": 0.01},
+        {"name": "平衡策略", "approval_threshold": 0.18, "rate_spread": 0.015},
+        {"name": "激进策略", "approval_threshold": 0.25, "rate_spread": 0.02},
+    ]
+    customer_count = int(data.get('customer_count', 300))
+    loan_amount = float(data.get('loan_amount', 100000))
+    base_rate = float(data.get('base_rate', 0.08))
+    seed = int(data.get('seed', 42))
+
+    rng = np.random.default_rng(seed)
+    local_world_model = WorldModel(seed=seed)
+    results = []
+
+    market = MarketConditions(
+        gdp_growth=0.03,
+        base_interest_rate=base_rate,
+        unemployment_rate=0.05,
+        inflation_rate=0.02,
+        credit_spread=0.02,
+    )
+
+    # 准备统一客户集
+    customers = [generator.generate_one() for _ in range(customer_count)]
+
+    for p in participants:
+        threshold = float(p.get('approval_threshold', 0.18))
+        spread = float(p.get('rate_spread', 0.01))
+        name = p.get('name', '未命名')
+
+        approved = 0
+        rejected = 0
+        profit = 0.0
+        default_probs = []
+        factors_sum = 0.0
+        factors_cnt = 0
+
+        for cust in customers:
+            rate = base_rate + spread
+            loan = LoanOffer(amount=loan_amount, interest_rate=rate, term_months=24)
+            future = local_world_model.predict_customer_future(cust, loan, market, add_noise=False)
+            dp = float(future.default_probability)
+            if dp <= threshold:
+                approved += 1
+                profit += loan_amount * rate * (1 - dp)
+                default_probs.append(dp)
+                if future.risk_factors:
+                    for v in future.risk_factors.values():
+                        if isinstance(v, (int, float)):
+                            factors_sum += v
+                            factors_cnt += 1
+            else:
+                rejected += 1
+
+        total = approved + rejected
+        avg_dp = np.mean(default_probs) if default_probs else 0.0
+        est_npl = avg_dp
+        avg_factor = factors_sum / factors_cnt if factors_cnt > 0 else 0.0
+        approval_rate = approved / total if total > 0 else 0
+
+        # 简单风险调整收益（利润 / (违约概率+1e-3)）
+        raroc = profit / max(1.0, (est_npl * loan_amount * approved) + 1e3)
+
+        results.append({
+            "name": name,
+            "approval_rate": approval_rate,
+            "avg_default_prob": avg_dp,
+            "est_npl": est_npl,
+            "est_profit": profit,
+            "risk_factor_mean": avg_factor,
+            "sample_size": total,
+            "raroc": raroc
+        })
+
+    results.sort(key=lambda x: x["est_profit"], reverse=True)
+    summary = {
+        "run_id": datetime.now().strftime('%Y%m%d_%H%M%S'),
+        "customer_count": customer_count,
+        "loan_amount": loan_amount,
+        "base_rate": base_rate,
+        "seed": seed,
+        "winner": results[0]["name"] if results else None
+    }
+
+    return jsonify({
+        "success": True,
+        "summary": summary,
+        "results": results
+    })
+# ============================================================
 # 数据蒸馏 API
 # ============================================================
 
