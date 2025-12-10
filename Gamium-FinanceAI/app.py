@@ -2336,10 +2336,12 @@ def run_bank_comparison():
                 # 简化利润估计：利息收入 × (1 - 违约概率)
                 profit += loan_amount * loan_rate * (1 - dp)
                 default_sum += dp
-                # 记录风险因子均值（展示解释用）
+                # 记录风险因子均值（只累加数值型）
                 if future.risk_factors:
-                    factors_sum += sum(future.risk_factors.values())
-                    factors_count += len(future.risk_factors)
+                    for v in future.risk_factors.values():
+                        if isinstance(v, (int, float)):
+                            factors_sum += v
+                            factors_count += 1
             else:
                 rejected += 1
 
