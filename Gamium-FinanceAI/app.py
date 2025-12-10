@@ -2435,7 +2435,9 @@ def run_ai_arena():
         "customer_count": 300,
         "loan_amount": 100000,
         "base_rate": 0.08,
-        "seed": 42
+        "seed": 42,
+        "scenario": "normal",   # normal / stress
+        "black_swan": false
     }
     输出：各参赛者审批率、违约概率、预估利润、风险指标
     """
@@ -2449,17 +2451,35 @@ def run_ai_arena():
     loan_amount = float(data.get('loan_amount', 100000))
     base_rate = float(data.get('base_rate', 0.08))
     seed = int(data.get('seed', 42))
+    scenario = data.get('scenario', 'normal')
+    black_swan = bool(data.get('black_swan', False))
 
     rng = np.random.default_rng(seed)
     local_world_model = WorldModel(seed=seed)
     results = []
 
+    # 根据情景调整宏观参数
+    gdp = 0.03
+    unemp = 0.05
+    base_ir = base_rate
+    infl = 0.02
+    credit_spread = 0.02
+    if scenario == 'stress':
+        gdp = -0.02
+        unemp = 0.09
+        base_ir = base_rate + 0.01
+        credit_spread = 0.05
+    if black_swan:
+        gdp -= 0.02
+        unemp += 0.02
+        credit_spread += 0.03
+
     market = MarketConditions(
-        gdp_growth=0.03,
-        base_interest_rate=base_rate,
-        unemployment_rate=0.05,
-        inflation_rate=0.02,
-        credit_spread=0.02,
+        gdp_growth=gdp,
+        base_interest_rate=base_ir,
+        unemployment_rate=unemp,
+        inflation_rate=infl,
+        credit_spread=credit_spread,
     )
 
     # 准备统一客户集
@@ -2476,6 +2496,10 @@ def run_ai_arena():
         default_probs = []
         factors_sum = 0.0
         factors_cnt = 0
+        factor_bucket = {}
+        dp_list = []
+        interest_income_sum = 0.0
+        expected_loss_sum = 0.0
 
         for cust in customers:
             rate = base_rate + spread
@@ -2484,13 +2508,20 @@ def run_ai_arena():
             dp = float(future.default_probability)
             if dp <= threshold:
                 approved += 1
-                profit += loan_amount * rate * (1 - dp)
+                interest_income = loan_amount * rate
+                expected_loss = loan_amount * dp
+                net_profit = interest_income * (1 - dp) - expected_loss * 0.0
+                profit += net_profit
+                interest_income_sum += interest_income
+                expected_loss_sum += expected_loss
                 default_probs.append(dp)
+                dp_list.append(dp)
                 if future.risk_factors:
-                    for v in future.risk_factors.values():
+                    for k, v in future.risk_factors.items():
                         if isinstance(v, (int, float)):
                             factors_sum += v
                             factors_cnt += 1
+                            factor_bucket.setdefault(k, []).append(v)
             else:
                 rejected += 1
 
@@ -2499,6 +2530,10 @@ def run_ai_arena():
         est_npl = avg_dp
         avg_factor = factors_sum / factors_cnt if factors_cnt > 0 else 0.0
         approval_rate = approved / total if total > 0 else 0
+        dp_p95 = float(np.percentile(dp_list, 95)) if dp_list else 0.0
+
+        factor_means = {k: float(np.mean(vs)) for k, vs in factor_bucket.items() if vs}
+        top_factors = sorted(factor_means.items(), key=lambda x: abs(x[1] - 1.0), reverse=True)[:5]
 
         # 简单风险调整收益（利润 / (违约概率+1e-3)）
         raroc = profit / max(1.0, (est_npl * loan_amount * approved) + 1e3)
@@ -2511,7 +2546,14 @@ def run_ai_arena():
             "est_profit": profit,
             "risk_factor_mean": avg_factor,
             "sample_size": total,
-            "raroc": raroc
+            "raroc": raroc,
+            "dp_p95": dp_p95,
+            "profit_breakdown": {
+                "interest_income": interest_income_sum,
+                "expected_loss": expected_loss_sum,
+                "net_profit": profit
+            },
+            "factor_top5": top_factors
         })
 
     results.sort(key=lambda x: x["est_profit"], reverse=True)
@@ -2521,7 +2563,16 @@ def run_ai_arena():
         "loan_amount": loan_amount,
         "base_rate": base_rate,
         "seed": seed,
-        "winner": results[0]["name"] if results else None
+        "scenario": scenario,
+        "black_swan": black_swan,
+        "winner": results[0]["name"] if results else None,
+        "calculation_notes": [
+            "审批规则：违约概率 <= 审批阈值 则放款",
+            "预估利润：利息收入 * (1 - DP)，预期损失在此版本置0额外成本",
+            "NPL估：使用模型预测的违约概率作为估算",
+            "风险因子：仅统计数值型，展示偏离1.0最大的Top5",
+            f"情景: {scenario}, 黑天鹅: {black_swan}"
+        ]
     }
 
     return jsonify({

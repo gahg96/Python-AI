@@ -10555,9 +10555,27 @@
                             <label style="font-size: 12px; color: var(--text-muted);">种子</label>
                             <input id="arena-seed" type="number" value="42" step="1"
                                    style="width: 90px; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                            <label style="font-size: 12px; color: var(--text-muted);">情景</label>
+                            <select id="arena-scenario" style="padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary);">
+                                <option value="normal">正常</option>
+                                <option value="stress">压力</option>
+                            </select>
+                            <label style="font-size: 12px; color: var(--text-muted);">黑天鹅</label>
+                            <input id="arena-black-swan" type="checkbox" style="width:16px;height:16px; margin-top: 8px;">
                             <button class="btn-primary" onclick="runArena()" style="margin-left: auto;">运行PK</button>
                         </div>
+                        <div style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:12px; color:var(--text-muted);">参赛者</span>
+                            <button class="btn-secondary" style="font-size:12px; padding:4px 8px;" onclick="addArenaParticipant()">+ 添加</button>
+                        </div>
+                        <div id="arena-participants" style="display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 10px; margin-bottom: 12px;">
+                            <!-- 动态填充参赛者卡片 -->
+                        </div>
                         <div id="arena-result" style="min-height: 100px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-secondary);"></div>
+                        <div style="margin-top:12px; display:flex; gap:8px;">
+                            <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="showArenaCalc()">计算说明</button>
+                            <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="showArenaAIExplain()">AI解释</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -10568,6 +10586,7 @@
 
         function openArenaModal() {
             ensureArenaModal().style.display = 'flex';
+            initArenaParticipants();
             runArena();
         }
 
@@ -10576,21 +10595,72 @@
             if (modal) modal.style.display = 'none';
         }
 
+        function initArenaParticipants(defaults) {
+            const container = document.getElementById('arena-participants');
+            if (!container) return;
+            container.innerHTML = '';
+            (defaults || [
+                { name: '稳健策略', approval_threshold: 0.12, rate_spread: 0.01 },
+                { name: '平衡策略', approval_threshold: 0.18, rate_spread: 0.015 },
+                { name: '激进策略', approval_threshold: 0.25, rate_spread: 0.02 },
+            ]).forEach(addArenaParticipantCard);
+        }
+
+        function addArenaParticipantCard(p) {
+            const container = document.getElementById('arena-participants');
+            if (!container) return;
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.padding = '10px';
+            card.style.display = 'grid';
+            card.style.gap = '6px';
+            card.innerHTML = `
+                <div style="display:flex; justify-content: space-between; align-items:center;">
+                    <input type="text" class="form-input" value="${p.name || ''}" placeholder="名称" style="flex:1; margin-right:6px;">
+                    <button class="btn-secondary" style="padding:4px 8px;font-size:12px;" onclick="this.parentElement.parentElement.remove()">删除</button>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px;">
+                    <input type="number" class="form-input" value="${p.approval_threshold || 0.18}" step="0.01" placeholder="审批阈值">
+                    <input type="number" class="form-input" value="${p.rate_spread || 0.01}" step="0.001" placeholder="利差">
+                </div>
+                <input type="text" class="form-input" value="${p.model_id || ''}" placeholder="模型ID(可选)">
+            `;
+            container.appendChild(card);
+        }
+
+        function addArenaParticipant() {
+            addArenaParticipantCard({name: '新策略', approval_threshold: 0.18, rate_spread: 0.01});
+        }
+
+        function collectArenaParticipants() {
+            const container = document.getElementById('arena-participants');
+            if (!container) return [];
+            const cards = Array.from(container.children);
+            return cards.map(c => {
+                const inputs = c.querySelectorAll('input');
+                return {
+                    name: inputs[0]?.value || '未命名',
+                    approval_threshold: parseFloat(inputs[1]?.value || 0.18),
+                    rate_spread: parseFloat(inputs[2]?.value || 0.01),
+                    model_id: inputs[3]?.value || null
+                };
+            });
+        }
+
         async function runArena() {
             const box = document.getElementById('arena-result');
             if (!box) return;
             box.innerHTML = `<div class="loading"><div class="spinner"></div><p>计算中...</p></div>`;
             try {
+                const participants = collectArenaParticipants();
                 const payload = {
-                    participants: [
-                        {"name": "稳健策略", "approval_threshold": 0.12, "rate_spread": 0.01},
-                        {"name": "平衡策略", "approval_threshold": 0.18, "rate_spread": 0.015},
-                        {"name": "激进策略", "approval_threshold": 0.25, "rate_spread": 0.02}
-                    ],
+                    participants,
                     customer_count: parseInt(document.getElementById('arena-customer-count')?.value || 300),
                     loan_amount: parseFloat(document.getElementById('arena-loan-amount')?.value || 100000),
                     base_rate: parseFloat(document.getElementById('arena-base-rate')?.value || 0.08),
-                    seed: parseInt(document.getElementById('arena-seed')?.value || 42)
+                    seed: parseInt(document.getElementById('arena-seed')?.value || 42),
+                    scenario: document.getElementById('arena-scenario')?.value || 'normal',
+                    black_swan: !!document.getElementById('arena-black-swan')?.checked
                 };
                 const res = await fetch(`${API_BASE}/api/arena/run`, {
                     method: 'POST',
@@ -10599,6 +10669,7 @@
                 });
                 const data = await res.json();
                 if (!data.success) throw new Error(data.error || '请求失败');
+                window.lastArenaResult = data;
                 const rows = data.results.map((r, idx) => `
                     <tr>
                         <td>${idx + 1}</td>
@@ -10608,12 +10679,14 @@
                         <td>${(r.est_profit / 1e6).toFixed(2)} 百万</td>
                         <td>${r.sample_size}</td>
                         <td>${r.risk_factor_mean?.toFixed(3)}</td>
+                        <td>${r.dp_p95 ? (r.dp_p95*100).toFixed(2)+'%' : '—'}</td>
                         <td>${r.raroc ? r.raroc.toFixed(4) : '—'}</td>
+                        <td>${r.factor_top5 ? r.factor_top5.map(f => `${f[0]}:${f[1].toFixed(2)}`).join('<br>') : '—'}</td>
                     </tr>
                 `).join('');
                 box.innerHTML = `
                     <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
-                        客户数: ${data.summary.customer_count} · 贷款金额: ¥${data.summary.loan_amount.toLocaleString()} · 基准利率: ${(data.summary.base_rate*100).toFixed(1)}%
+                        客户数: ${data.summary.customer_count} · 贷款金额: ¥${data.summary.loan_amount.toLocaleString()} · 基准利率: ${(data.summary.base_rate*100).toFixed(1)}% · 场景: ${data.summary.scenario} · 黑天鹅: ${data.summary.black_swan}
                     </div>
                     <table class="data-table" style="width: 100%; font-size: 13px;">
                         <thead>
@@ -10625,7 +10698,9 @@
                                 <th>预估利润</th>
                                 <th>样本数</th>
                                 <th>风险因子均值</th>
+                                <th>违约P95</th>
                                 <th>RAROC</th>
+                                <th>Top风险因子</th>
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
@@ -10635,6 +10710,27 @@
                 console.error(e);
                 box.innerHTML = `<div style="color: var(--text-danger);">运行失败: ${e.message}</div>`;
             }
+        }
+
+        function showArenaCalc() {
+            const data = window.lastArenaResult;
+            if (!data) { alert('请先运行一次PK'); return; }
+            const notes = data.summary?.calculation_notes || [];
+            alert(`计算说明：\n${notes.join('\n')}`);
+        }
+
+        function showArenaAIExplain() {
+            const data = window.lastArenaResult;
+            if (!data) { alert('请先运行一次PK'); return; }
+            const winner = data.summary?.winner || '—';
+            const scenario = data.summary?.scenario || 'normal';
+            const bs = data.summary?.black_swan ? '是' : '否';
+            const lines = [
+                `场景: ${scenario} | 黑天鹅: ${bs}`,
+                `胜者: ${winner}`,
+                `提示: 进一步可用LLM生成详细解释（此处为占位）。`
+            ];
+            alert(lines.join('\n'));
         }
         
         // 页面切换时加载数据
