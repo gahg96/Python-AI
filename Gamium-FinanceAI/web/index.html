@@ -10571,6 +10571,16 @@
                         <div id="arena-participants" style="display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 10px; margin-bottom: 12px;">
                             <!-- 动态填充参赛者卡片 -->
                         </div>
+                        <div style="margin-bottom:12px; border-top: 1px solid var(--border-color); padding-top: 12px;">
+                            <div style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+                                <span style="font-size:12px; color:var(--text-muted);">规则引擎配置</span>
+                                <button class="btn-secondary" style="font-size:12px; padding:4px 8px;" onclick="addArenaRule()">+ 添加规则</button>
+                                <button class="btn-secondary" style="font-size:12px; padding:4px 8px;" onclick="loadDefaultRules()">加载默认规则</button>
+                            </div>
+                            <div id="arena-rules" style="display: grid; gap: 10px; margin-bottom: 8px;">
+                                <!-- 动态填充规则卡片 -->
+                            </div>
+                        </div>
                         <div id="arena-result" style="min-height: 100px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-secondary);"></div>
                         <div style="margin-top:12px; display:flex; gap:8px;">
                             <button class="btn-secondary" style="font-size:12px; padding:6px 10px;" onclick="showArenaCalc()">计算说明</button>
@@ -10686,14 +10696,173 @@
             });
         }
 
+        // 规则配置相关函数
+        function addArenaRule(ruleData) {
+            const container = document.getElementById('arena-rules');
+            if (!container) return;
+            const rule = ruleData || {
+                name: '新规则',
+                description: '',
+                priority: 0,
+                enabled: true,
+                conditions: [{field: 'monthly_income', op: '>', value: 0}],
+                action: {approval_threshold_delta: 0, rate_spread_delta: 0},
+                penalty: {score_delta: 0}
+            };
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.padding = '12px';
+            card.style.border = '1px solid var(--border-color)';
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <input type="text" class="form-input" value="${rule.name || ''}" placeholder="规则名称" style="flex:1; margin-right:8px;">
+                    <label style="font-size:11px; color:var(--text-muted); display:flex; align-items:center; gap:4px;">
+                        <input type="checkbox" ${rule.enabled ? 'checked' : ''} style="width:14px;height:14px;">
+                        启用
+                    </label>
+                    <input type="number" class="form-input" value="${rule.priority || 0}" placeholder="优先级" style="width:80px; margin-right:8px;">
+                    <button class="btn-secondary" style="padding:4px 8px;font-size:12px;" onclick="this.closest('.card').remove()">删除</button>
+                </div>
+                <textarea class="form-input" placeholder="规则描述" style="width:100%; min-height:40px; margin-bottom:8px;">${rule.description || ''}</textarea>
+                <div style="margin-bottom:8px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">条件</div>
+                    <div class="rule-conditions" style="display:grid; gap:6px;">
+                        ${(rule.conditions || []).map((cond, idx) => `
+                            <div style="display:flex; gap:6px; align-items:center;">
+                                <select class="form-input" style="flex:1; font-size:11px;">
+                                    <option value="monthly_income" ${cond.field === 'monthly_income' ? 'selected' : ''}>月收入</option>
+                                    <option value="age" ${cond.field === 'age' ? 'selected' : ''}>年龄</option>
+                                    <option value="debt_ratio" ${cond.field === 'debt_ratio' ? 'selected' : ''}>负债率</option>
+                                    <option value="credit_score" ${cond.field === 'credit_score' ? 'selected' : ''}>信用分</option>
+                                    <option value="years_in_business" ${cond.field === 'years_in_business' ? 'selected' : ''}>经营年限</option>
+                                </select>
+                                <select class="form-input" style="width:80px; font-size:11px;">
+                                    <option value=">" ${cond.op === '>' ? 'selected' : ''}>></option>
+                                    <option value=">=" ${cond.op === '>=' ? 'selected' : ''}>>=</option>
+                                    <option value="<" ${cond.op === '<' ? 'selected' : ''}><</option>
+                                    <option value="<=" ${cond.op === '<=' ? 'selected' : ''}><=</option>
+                                    <option value="==" ${cond.op === '==' ? 'selected' : ''}>==</option>
+                                </select>
+                                <input type="number" class="form-input" value="${cond.value || 0}" step="0.01" style="width:100px; font-size:11px;">
+                                <button class="btn-secondary" style="padding:2px 6px;font-size:11px;" onclick="this.parentElement.remove()">×</button>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button class="btn-secondary" style="font-size:11px; padding:4px 8px; margin-top:4px;" onclick="addRuleCondition(this)">+ 添加条件</button>
+                </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:8px;">
+                    <div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">动作</div>
+                        <input type="number" class="form-input" value="${rule.action?.approval_threshold_delta || 0}" step="0.01" placeholder="审批阈值调整" style="width:100%; margin-bottom:4px;">
+                        <input type="number" class="form-input" value="${rule.action?.rate_spread_delta || 0}" step="0.001" placeholder="利差调整" style="width:100%;">
+                    </div>
+                    <div>
+                        <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">惩罚</div>
+                        <input type="number" class="form-input" value="${rule.penalty?.score_delta || 0}" step="0.01" placeholder="评分调整" style="width:100%; margin-bottom:4px;">
+                        <input type="number" class="form-input" value="${rule.penalty?.profit_discount || 1.0}" step="0.01" placeholder="利润折扣" style="width:100%;">
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        }
+
+        function addRuleCondition(btn) {
+            const container = btn.previousElementSibling;
+            const condDiv = document.createElement('div');
+            condDiv.style.cssText = 'display:flex; gap:6px; align-items:center;';
+            condDiv.innerHTML = `
+                <select class="form-input" style="flex:1; font-size:11px;">
+                    <option value="monthly_income">月收入</option>
+                    <option value="age">年龄</option>
+                    <option value="debt_ratio">负债率</option>
+                    <option value="credit_score">信用分</option>
+                    <option value="years_in_business">经营年限</option>
+                </select>
+                <select class="form-input" style="width:80px; font-size:11px;">
+                    <option value=">">></option>
+                    <option value=">=">>=</option>
+                    <option value="<"><</option>
+                    <option value="<="><=</option>
+                    <option value="==">==</option>
+                </select>
+                <input type="number" class="form-input" value="0" step="0.01" style="width:100px; font-size:11px;">
+                <button class="btn-secondary" style="padding:2px 6px;font-size:11px;" onclick="this.parentElement.remove()">×</button>
+            `;
+            container.appendChild(condDiv);
+        }
+
+        function loadDefaultRules() {
+            const container = document.getElementById('arena-rules');
+            if (!container) return;
+            container.innerHTML = '';
+            const defaultRules = [
+                {
+                    name: '高收入优惠',
+                    description: '月收入超过20000的客户降低审批阈值和利差',
+                    priority: 1,
+                    enabled: true,
+                    conditions: [{field: 'monthly_income', op: '>', value: 20000}],
+                    action: {approval_threshold_delta: -0.02, rate_spread_delta: -0.002},
+                    penalty: {score_delta: 0, profit_discount: 1.0}
+                },
+                {
+                    name: '高风险拒绝',
+                    description: '负债率超过0.8的客户提高审批阈值',
+                    priority: 2,
+                    enabled: true,
+                    conditions: [{field: 'debt_ratio', op: '>', value: 0.8}],
+                    action: {approval_threshold_delta: 0.05, rate_spread_delta: 0.01},
+                    penalty: {score_delta: -0.1, profit_discount: 0.9}
+                }
+            ];
+            defaultRules.forEach(rule => addArenaRule(rule));
+        }
+
+        function collectArenaRules() {
+            const container = document.getElementById('arena-rules');
+            if (!container) return [];
+            const cards = Array.from(container.children);
+            return cards.map(card => {
+                const inputs = card.querySelectorAll('input');
+                const textarea = card.querySelector('textarea');
+                const enabledCheckbox = card.querySelector('input[type="checkbox"]');
+                const conditions = Array.from(card.querySelectorAll('.rule-conditions > div')).map(condDiv => {
+                    const selects = condDiv.querySelectorAll('select');
+                    const input = condDiv.querySelector('input[type="number"]');
+                    return {
+                        field: selects[0]?.value || 'monthly_income',
+                        op: selects[1]?.value || '>',
+                        value: parseFloat(input?.value || 0)
+                    };
+                });
+                return {
+                    name: inputs[0]?.value || '未命名规则',
+                    description: textarea?.value || '',
+                    priority: parseInt(inputs[1]?.value || 0),
+                    enabled: enabledCheckbox?.checked !== false,
+                    conditions: conditions,
+                    action: {
+                        approval_threshold_delta: parseFloat(inputs[2]?.value || 0),
+                        rate_spread_delta: parseFloat(inputs[3]?.value || 0)
+                    },
+                    penalty: {
+                        score_delta: parseFloat(inputs[4]?.value || 0),
+                        profit_discount: parseFloat(inputs[5]?.value || 1.0)
+                    }
+                };
+            });
+        }
+
         async function runArena() {
             const box = document.getElementById('arena-result');
             if (!box) return;
             box.innerHTML = `<div class="loading"><div class="spinner"></div><p>计算中...</p></div>`;
             try {
                 const participants = collectArenaParticipants();
+                const rules = collectArenaRules();
                 const payload = {
                     participants,
+                    rules,
                     customer_count: parseInt(document.getElementById('arena-customer-count')?.value || 300),
                     loan_amount: parseFloat(document.getElementById('arena-loan-amount')?.value || 100000),
                     base_rate: parseFloat(document.getElementById('arena-base-rate')?.value || 0.08),
@@ -10709,23 +10878,37 @@
                 const data = await res.json();
                 if (!data.success) throw new Error(data.error || '请求失败');
                 window.lastArenaResult = data;
-                const rows = data.results.map((r, idx) => `
+                const rows = data.results.map((r, idx) => {
+                    const scoreBreakdown = r.score_breakdown || {};
+                    const triggeredRules = r.triggered_rules || {};
+                    const triggeredRulesList = r.triggered_rules_list || [];
+                    return `
                     <tr>
                         <td>${idx + 1}</td>
-                        <td>${r.name}</td>
+                        <td><strong>${r.name}</strong><br><span style="font-size:11px; color:var(--text-muted);">综合得分: ${(scoreBreakdown.overall_score * 100).toFixed(1)}%</span></td>
                         <td>${(r.approval_rate * 100).toFixed(1)}%</td>
                         <td>${(r.avg_default_prob * 100).toFixed(2)}%</td>
                         <td>${(r.est_profit / 1e6).toFixed(2)} 百万</td>
                         <td>${r.sample_size}</td>
-                        <td>${r.risk_factor_mean?.toFixed(3)}</td>
-                        <td>${r.dp_p95 ? (r.dp_p95*100).toFixed(2)+'%' : '—'}</td>
                         <td>${r.raroc ? r.raroc.toFixed(4) : '—'}</td>
-                        <td>${r.factor_top5 ? r.factor_top5.map(f => `${f[0]}:${f[1].toFixed(2)}`).join('<br>') : '—'}</td>
+                        <td style="font-size:11px;">
+                            ${scoreBreakdown.profit_score ? `利润: ${(scoreBreakdown.profit_score*100).toFixed(0)}%<br>` : ''}
+                            ${scoreBreakdown.risk_score ? `风险: ${(scoreBreakdown.risk_score*100).toFixed(0)}%<br>` : ''}
+                            ${scoreBreakdown.stability_score ? `稳定: ${(scoreBreakdown.stability_score*100).toFixed(0)}%<br>` : ''}
+                            ${scoreBreakdown.compliance_score ? `合规: ${(scoreBreakdown.compliance_score*100).toFixed(0)}%` : ''}
+                        </td>
+                        <td style="font-size:11px;">
+                            ${triggeredRulesList.length > 0 ? triggeredRulesList.slice(0, 3).map(rule => `${rule}`).join('<br>') + (triggeredRulesList.length > 3 ? '<br>...' : '') : '—'}
+                        </td>
+                        <td>
+                            <button class="btn-secondary" style="font-size:11px; padding:4px 8px;" onclick="showArenaDetail('${r.name}', ${idx})">详情</button>
+                        </td>
                     </tr>
-                `).join('');
+                `;
+                }).join('');
                 box.innerHTML = `
                     <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
-                        客户数: ${data.summary.customer_count} · 贷款金额: ¥${data.summary.loan_amount.toLocaleString()} · 基准利率: ${(data.summary.base_rate*100).toFixed(1)}% · 场景: ${data.summary.scenario} · 黑天鹅: ${data.summary.black_swan}
+                        客户数: ${data.summary.customer_count} · 贷款金额: ¥${data.summary.loan_amount.toLocaleString()} · 基准利率: ${(data.summary.base_rate*100).toFixed(1)}% · 场景: ${data.summary.scenario} · 黑天鹅: ${data.summary.black_swan} · 规则数: ${data.summary.rules_count || 0}
                     </div>
                     <table class="data-table" style="width: 100%; font-size: 13px;">
                         <thead>
@@ -10733,13 +10916,13 @@
                                 <th>#</th>
                                 <th>参赛者</th>
                                 <th>审批率</th>
-                                <th>违约概率(NPL估)</th>
+                                <th>违约概率</th>
                                 <th>预估利润</th>
                                 <th>样本数</th>
-                                <th>风险因子均值</th>
-                                <th>违约P95</th>
                                 <th>RAROC</th>
-                                <th>Top风险因子</th>
+                                <th>评分分解</th>
+                                <th>触发规则</th>
+                                <th>操作</th>
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
@@ -10749,6 +10932,84 @@
                 console.error(e);
                 box.innerHTML = `<div style="color: var(--text-danger);">运行失败: ${e.message}</div>`;
             }
+        }
+
+        function showArenaDetail(participantName, index) {
+            const data = window.lastArenaResult;
+            if (!data || !data.results || !data.results[index]) return;
+            const result = data.results[index];
+            const scoreBreakdown = result.score_breakdown || {};
+            const triggeredRules = result.triggered_rules || {};
+            const triggeredRulesList = result.triggered_rules_list || [];
+            const profitBreakdown = result.profit_breakdown || {};
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px; max-height: 90vh;">
+                    <div class="modal-header">
+                        <h3>${participantName} - 详细分析</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body" style="max-height: calc(90vh - 100px); overflow-y: auto;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                            <div class="card" style="padding: 12px;">
+                                <h4 style="font-size: 14px; margin-bottom: 8px;">基础指标</h4>
+                                <div style="font-size: 12px; line-height: 1.8;">
+                                    <div>审批率: ${(result.approval_rate * 100).toFixed(1)}%</div>
+                                    <div>违约概率: ${(result.avg_default_prob * 100).toFixed(2)}%</div>
+                                    <div>违约P95: ${result.dp_p95 ? (result.dp_p95*100).toFixed(2)+'%' : '—'}</div>
+                                    <div>RAROC: ${result.raroc ? result.raroc.toFixed(4) : '—'}</div>
+                                    <div>利润波动率: ${result.profit_volatility ? (result.profit_volatility / 1e6).toFixed(2) + ' 百万' : '—'}</div>
+                                    <div>最大回撤: ${result.max_drawdown ? (result.max_drawdown * 100).toFixed(2) + '%' : '—'}</div>
+                                </div>
+                            </div>
+                            <div class="card" style="padding: 12px;">
+                                <h4 style="font-size: 14px; margin-bottom: 8px;">评分分解</h4>
+                                <div style="font-size: 12px; line-height: 1.8;">
+                                    <div>综合得分: <strong>${(scoreBreakdown.overall_score * 100).toFixed(1)}%</strong></div>
+                                    <div>利润得分: ${(scoreBreakdown.profit_score * 100).toFixed(1)}%</div>
+                                    <div>风险得分: ${(scoreBreakdown.risk_score * 100).toFixed(1)}%</div>
+                                    <div>稳定性得分: ${(scoreBreakdown.stability_score * 100).toFixed(1)}%</div>
+                                    <div>合规得分: ${(scoreBreakdown.compliance_score * 100).toFixed(1)}%</div>
+                                    <div>效率得分: ${(scoreBreakdown.efficiency_score * 100).toFixed(1)}%</div>
+                                    <div>可解释性得分: ${(scoreBreakdown.explainability_score * 100).toFixed(1)}%</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 12px; margin-bottom: 16px;">
+                            <h4 style="font-size: 14px; margin-bottom: 8px;">利润分解</h4>
+                            <div style="font-size: 12px; line-height: 1.8;">
+                                <div>利息收入: ¥${profitBreakdown.interest_income ? profitBreakdown.interest_income.toLocaleString() : '0'}</div>
+                                <div>预期损失: ¥${profitBreakdown.expected_loss ? profitBreakdown.expected_loss.toLocaleString() : '0'}</div>
+                                <div>净利润: ¥${profitBreakdown.net_profit ? profitBreakdown.net_profit.toLocaleString() : '0'}</div>
+                            </div>
+                        </div>
+                        <div class="card" style="padding: 12px; margin-bottom: 16px;">
+                            <h4 style="font-size: 14px; margin-bottom: 8px;">触发规则统计</h4>
+                            <div style="font-size: 12px;">
+                                ${Object.keys(triggeredRules).length > 0 ? 
+                                    Object.entries(triggeredRules).map(([rule, count]) => 
+                                        `<div style="margin-bottom: 4px;">${rule}: ${count} 次</div>`
+                                    ).join('') : 
+                                    '<div style="color: var(--text-muted);">未触发任何规则</div>'
+                                }
+                            </div>
+                        </div>
+                        ${result.factor_top5 && result.factor_top5.length > 0 ? `
+                        <div class="card" style="padding: 12px;">
+                            <h4 style="font-size: 14px; margin-bottom: 8px;">Top 5 风险因子</h4>
+                            <div style="font-size: 12px;">
+                                ${result.factor_top5.map(f => `<div style="margin-bottom: 4px;">${f[0]}: ${f[1].toFixed(3)}</div>`).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+            modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+            document.body.appendChild(modal);
         }
 
         function showArenaCalc() {

@@ -31,6 +31,9 @@ from environment.economic_cycle import CyclePhase
 from agents.baseline_agents import (
     RandomAgent, RuleBasedAgent, ConservativeAgent, AggressiveAgent
 )
+from arena.rule_engine import RuleEngine
+from arena.scoring_system import ScoringSystem, ScoreBreakdown
+from arena.multi_round_simulator import MultiRoundSimulator
 
 # 自定义 JSON 序列化器，处理 numpy 类型
 class NumpyJSONProvider(DefaultJSONProvider):
@@ -2424,23 +2427,42 @@ def run_bank_comparison():
 @app.route('/api/arena/run', methods=['POST'])
 def run_ai_arena():
     """
-    多模型/策略演武场（贷款审批简化版）
+    多模型/策略演武场（增强版：规则引擎 + 评分系统）
     输入：
     {
         "participants": [
-            {"name": "稳健策略", "approval_threshold": 0.12, "rate_spread": 0.01},
-            {"name": "平衡策略", "approval_threshold": 0.18, "rate_spread": 0.015},
-            {"name": "激进策略", "approval_threshold": 0.25, "rate_spread": 0.02}
+            {"name": "稳健策略", "approval_threshold": 0.12, "rate_spread": 0.01, "model_id": null},
+            {"name": "平衡策略", "approval_threshold": 0.18, "rate_spread": 0.015, "model_id": "gpt-4"}
         ],
         "customer_count": 300,
         "loan_amount": 100000,
         "base_rate": 0.08,
         "seed": 42,
         "scenario": "normal",   # normal / stress
-        "black_swan": false
+        "black_swan": false,
+        "rules": [
+            {
+                "name": "高收入调低阈值",
+                "description": "月收入超过20000的客户降低审批阈值",
+                "priority": 1,
+                "conditions": [{"field": "monthly_income", "op": ">", "value": 20000}],
+                "action": {"approval_threshold_delta": -0.02, "rate_spread_delta": -0.002},
+                "penalty": {"score_delta": 0.0}
+            }
+        ],
+        "scoring_weights": {
+            "profit": 0.30,
+            "risk": 0.30,
+            "stability": 0.10,
+            "compliance": 0.20,
+            "efficiency": 0.05,
+            "explainability": 0.05
+        }
     }
-    输出：各参赛者审批率、违约概率、预估利润、风险指标
+    输出：各参赛者审批率、违约概率、预估利润、风险指标、评分分解、触发规则列表
     """
+    from datetime import datetime
+    
     data = request.json or {}
     participants = data.get('participants') or [
         {"name": "稳健策略", "approval_threshold": 0.12, "rate_spread": 0.01},
@@ -2453,6 +2475,12 @@ def run_ai_arena():
     seed = int(data.get('seed', 42))
     scenario = data.get('scenario', 'normal')
     black_swan = bool(data.get('black_swan', False))
+    rules_config = data.get('rules', [])
+    scoring_weights = data.get('scoring_weights', {})
+
+    # 初始化规则引擎和评分系统
+    rule_engine = RuleEngine(rules_config)
+    scoring_system = ScoringSystem(scoring_weights)
 
     rng = np.random.default_rng(seed)
     local_world_model = WorldModel(seed=seed)
@@ -2489,6 +2517,7 @@ def run_ai_arena():
         threshold = float(p.get('approval_threshold', 0.18))
         spread = float(p.get('rate_spread', 0.01))
         name = p.get('name', '未命名')
+        model_id = p.get('model_id')  # 预留：后续接入LLM
 
         approved = 0
         rejected = 0
@@ -2500,30 +2529,110 @@ def run_ai_arena():
         dp_list = []
         interest_income_sum = 0.0
         expected_loss_sum = 0.0
+        triggered_rules_list = []  # 所有触发的规则名称列表
+        triggered_rules_count = {}  # 规则触发次数统计
+        all_customer_details = []  # 存储所有客户详情用于回放
+        profit_history = []  # 利润历史用于计算波动率
 
         for cust in customers:
-            rate = base_rate + spread
-            loan = LoanOffer(amount=loan_amount, interest_rate=rate, term_months=24)
+            # 使用规则引擎处理客户
+            adjustments, triggered, score_adjustments = rule_engine.process_customer(
+                cust, threshold, spread, loan_amount, 24
+            )
+            
+            # 记录触发的规则
+            triggered_rules_list.extend(triggered)
+            for rule_name in triggered:
+                triggered_rules_count[rule_name] = triggered_rules_count.get(rule_name, 0) + 1
+            
+            # 使用调整后的参数
+            final_threshold = adjustments['approval_threshold']
+            final_spread = adjustments['rate_spread']
+            final_loan_amount = adjustments['loan_amount']
+            final_term = adjustments['term_months']
+            
+            # 强制通过/拒绝
+            if adjustments['force_reject']:
+                rejected += 1
+                all_customer_details.append({
+                    'customer_id': cust.customer_id,
+                    'decision': 'rejected',
+                    'reason': '规则强制拒绝',
+                    'triggered_rules': triggered,
+                    'default_prob': None
+                })
+                continue
+            if adjustments['force_approve']:
+                # 强制通过，但仍需计算违约概率
+                approved += 1
+                rate = base_rate + final_spread
+                loan = LoanOffer(amount=final_loan_amount, interest_rate=rate, term_months=final_term)
+                future = local_world_model.predict_customer_future(cust, loan, market, add_noise=False)
+                dp = float(future.default_probability)
+                interest_income = final_loan_amount * rate
+                expected_loss = final_loan_amount * dp
+                net_profit = interest_income * (1 - dp) - expected_loss
+                profit += net_profit * score_adjustments['profit_discount']
+                interest_income_sum += interest_income
+                expected_loss_sum += expected_loss
+                default_probs.append(dp)
+                dp_list.append(dp)
+                profit_history.append(net_profit)
+                all_customer_details.append({
+                    'customer_id': cust.customer_id,
+                    'decision': 'approved',
+                    'reason': '规则强制通过',
+                    'triggered_rules': triggered,
+                    'default_prob': dp,
+                    'profit': net_profit
+                })
+                continue
+
+            # 正常审批流程
+            rate = base_rate + final_spread
+            loan = LoanOffer(amount=final_loan_amount, interest_rate=rate, term_months=final_term)
             future = local_world_model.predict_customer_future(cust, loan, market, add_noise=False)
             dp = float(future.default_probability)
-            if dp <= threshold:
+            
+            if dp <= final_threshold:
                 approved += 1
-                interest_income = loan_amount * rate
-                expected_loss = loan_amount * dp
-                net_profit = interest_income * (1 - dp) - expected_loss * 0.0
+                interest_income = final_loan_amount * rate
+                expected_loss = final_loan_amount * dp
+                net_profit = interest_income * (1 - dp) - expected_loss
+                # 应用利润折扣
+                net_profit *= score_adjustments['profit_discount']
                 profit += net_profit
                 interest_income_sum += interest_income
                 expected_loss_sum += expected_loss
                 default_probs.append(dp)
                 dp_list.append(dp)
+                profit_history.append(net_profit)
+                
                 if future.risk_factors:
                     for k, v in future.risk_factors.items():
                         if isinstance(v, (int, float)):
-                            factors_sum += v
+                            factors_sum += v * score_adjustments['risk_multiplier']
                             factors_cnt += 1
                             factor_bucket.setdefault(k, []).append(v)
+                
+                all_customer_details.append({
+                    'customer_id': cust.customer_id,
+                    'decision': 'approved',
+                    'reason': f'违约概率{dp:.4f} <= 阈值{final_threshold:.4f}',
+                    'triggered_rules': triggered,
+                    'default_prob': dp,
+                    'profit': net_profit,
+                    'adjustments': adjustments
+                })
             else:
                 rejected += 1
+                all_customer_details.append({
+                    'customer_id': cust.customer_id,
+                    'decision': 'rejected',
+                    'reason': f'违约概率{dp:.4f} > 阈值{final_threshold:.4f}',
+                    'triggered_rules': triggered,
+                    'default_prob': dp
+                })
 
         total = approved + rejected
         avg_dp = np.mean(default_probs) if default_probs else 0.0
@@ -2535,10 +2644,22 @@ def run_ai_arena():
         factor_means = {k: float(np.mean(vs)) for k, vs in factor_bucket.items() if vs}
         top_factors = sorted(factor_means.items(), key=lambda x: abs(x[1] - 1.0), reverse=True)[:5]
 
-        # 简单风险调整收益（利润 / (违约概率+1e-3)）
-        raroc = profit / max(1.0, (est_npl * loan_amount * approved) + 1e3)
+        # 计算RAROC
+        raroc = profit / max(1.0, (est_npl * loan_amount * approved) + 1e3) if approved > 0 else 0.0
+        
+        # 计算利润波动率
+        profit_volatility = float(np.std(profit_history)) if profit_history else 0.0
+        
+        # 计算最大回撤（简化版：基于利润历史）
+        max_drawdown = 0.0
+        if profit_history:
+            cumulative = np.cumsum(profit_history)
+            running_max = np.maximum.accumulate(cumulative)
+            drawdowns = (cumulative - running_max) / (running_max + 1e-6)
+            max_drawdown = float(np.min(drawdowns)) if len(drawdowns) > 0 else 0.0
 
-        results.append({
+        # 构建结果字典
+        result_dict = {
             "name": name,
             "approval_rate": approval_rate,
             "avg_default_prob": avg_dp,
@@ -2553,10 +2674,40 @@ def run_ai_arena():
                 "expected_loss": expected_loss_sum,
                 "net_profit": profit
             },
-            "factor_top5": top_factors
-        })
+            "factor_top5": top_factors,
+            "triggered_rules": triggered_rules_count,
+            "triggered_rules_list": list(set(triggered_rules_list)),  # 去重
+            "profit_volatility": profit_volatility,
+            "max_drawdown": abs(max_drawdown),
+            "recovery_time": 0.0,  # 多轮场景中计算
+            "compliance_violations": 0,  # 预留：合规检查
+            "avg_latency": 0.0,  # 预留：LLM延迟
+            "total_rules_count": len(rules_config),
+            "customer_details": all_customer_details[:50]  # 只返回前50个客户详情
+        }
 
-    results.sort(key=lambda x: x["est_profit"], reverse=True)
+        results.append(result_dict)
+
+    # 计算评分分解（需要所有结果用于归一化）
+    for result in results:
+        breakdown = scoring_system.create_score_breakdown(
+            result,
+            triggered_rules=result.get('triggered_rules_list', []),
+            all_results=results
+        )
+        result['score_breakdown'] = {
+            'profit_score': breakdown.profit_score,
+            'risk_score': breakdown.risk_score,
+            'stability_score': breakdown.stability_score,
+            'compliance_score': breakdown.compliance_score,
+            'efficiency_score': breakdown.efficiency_score,
+            'explainability_score': breakdown.explainability_score,
+            'overall_score': breakdown.overall_score
+        }
+
+    # 按综合得分排序
+    results.sort(key=lambda x: x.get('score_breakdown', {}).get('overall_score', x.get('est_profit', 0)), reverse=True)
+    
     summary = {
         "run_id": datetime.now().strftime('%Y%m%d_%H%M%S'),
         "customer_count": customer_count,
@@ -2566,11 +2717,14 @@ def run_ai_arena():
         "scenario": scenario,
         "black_swan": black_swan,
         "winner": results[0]["name"] if results else None,
+        "rules_count": len(rules_config),
         "calculation_notes": [
-            "审批规则：违约概率 <= 审批阈值 则放款",
-            "预估利润：利息收入 * (1 - DP)，预期损失在此版本置0额外成本",
+            "审批规则：违约概率 <= 审批阈值 则放款（规则引擎可动态调整阈值）",
+            "预估利润：利息收入 * (1 - DP) - 预期损失，应用规则利润折扣",
             "NPL估：使用模型预测的违约概率作为估算",
             "风险因子：仅统计数值型，展示偏离1.0最大的Top5",
+            "评分系统：综合利润、风险、稳定性、合规、效率、可解释性六个维度",
+            "规则触发：记录每个客户触发的规则列表，用于可解释性分析",
             f"情景: {scenario}, 黑天鹅: {black_swan}"
         ]
     }
@@ -2580,6 +2734,79 @@ def run_ai_arena():
         "summary": summary,
         "results": results
     })
+
+
+@app.route('/api/arena/multi-round', methods=['POST'])
+def run_multi_round_arena():
+    """
+    多轮多场景演武场
+    输入：
+    {
+        "participants": [...],
+        "rounds": 6,
+        "customer_count": 300,
+        "loan_amount": 100000,
+        "base_rate": 0.08,
+        "seed": 42,
+        "scenario_sequence": ["normal", "stress", "normal"],
+        "black_swan_rounds": [3, 6],
+        "rules": [...],
+        "scoring_weights": {...}
+    }
+    """
+    from datetime import datetime
+    
+    data = request.json or {}
+    participants = data.get('participants', [])
+    rounds = int(data.get('rounds', 6))
+    customer_count = int(data.get('customer_count', 300))
+    loan_amount = float(data.get('loan_amount', 100000))
+    base_rate = float(data.get('base_rate', 0.08))
+    seed = int(data.get('seed', 42))
+    scenario_sequence = data.get('scenario_sequence', ['normal'] * rounds)
+    black_swan_rounds = data.get('black_swan_rounds', [])
+    rules_config = data.get('rules', [])
+    scoring_weights = data.get('scoring_weights', {})
+    
+    # 初始化
+    rule_engine = RuleEngine(rules_config) if rules_config else None
+    scoring_system = ScoringSystem(scoring_weights) if scoring_weights else None
+    simulator = MultiRoundSimulator(seed=seed)
+    
+    # 运行多轮模拟
+    result = simulator.simulate_multi_rounds(
+        rounds=rounds,
+        participants=participants,
+        customer_count=customer_count,
+        rules=rules_config,
+        base_rate=base_rate,
+        loan_amount=loan_amount,
+        seed=seed,
+        scenario_sequence=scenario_sequence,
+        black_swan_rounds=black_swan_rounds,
+        rule_engine=rule_engine,
+        scoring_system=scoring_system
+    )
+    
+    summary = {
+        "run_id": datetime.now().strftime('%Y%m%d_%H%M%S'),
+        "rounds": rounds,
+        "customer_count": customer_count,
+        "loan_amount": loan_amount,
+        "base_rate": base_rate,
+        "seed": seed,
+        "winner": result['winner'],
+        "final_scores": result['final_scores']
+    }
+    
+    return jsonify({
+        "success": True,
+        "summary": summary,
+        "round_history": result['round_history'],
+        "final_scores": result['final_scores']
+    })
+
+
 # ============================================================
 # 数据蒸馏 API
 # ============================================================
