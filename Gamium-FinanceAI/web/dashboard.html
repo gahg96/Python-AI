@@ -1458,9 +1458,18 @@
                 backgroundColor: 'transparent',
                 tooltip: { trigger: 'axis' },
                 legend: {
+                    show: true,
                     data: ['累计利润(亿)', 'NPL率(%)', '客户增长(万)', '审批量(千)'],
-                    textStyle: { color: '#fff' },
-                    top: 10
+                    textStyle: { 
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 'normal'
+                    },
+                    top: 10,
+                    left: 'center',
+                    itemGap: 20,
+                    itemWidth: 14,
+                    itemHeight: 14
                 },
                 grid: { left: 60, right: 60, top: 60, bottom: 40 },
                 xAxis: {
@@ -1569,9 +1578,18 @@
                     ]
                 }],
                 legend: {
+                    show: true,
                     data: ['AlphaZero策略', '传统规则策略'],
-                    textStyle: { color: '#fff', fontSize: 11 },
-                    bottom: 0
+                    textStyle: { 
+                        color: '#fff', 
+                        fontSize: 12,
+                        fontWeight: 'normal'
+                    },
+                    bottom: 0,
+                    left: 'center',
+                    itemGap: 20,
+                    itemWidth: 14,
+                    itemHeight: 14
                 }
             });
             
@@ -1581,10 +1599,18 @@
                 backgroundColor: 'transparent',
                 tooltip: { trigger: 'item' },
                 legend: {
+                    show: true,
                     orient: 'vertical',
                     right: 20,
                     top: 'center',
-                    textStyle: { color: '#fff', fontSize: 12 }
+                    textStyle: { 
+                        color: '#fff', 
+                        fontSize: 12,
+                        fontWeight: 'normal'
+                    },
+                    itemGap: 12,
+                    itemWidth: 14,
+                    itemHeight: 14
                 },
                 series: [{
                     type: 'pie',
