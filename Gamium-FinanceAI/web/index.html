@@ -1652,6 +1652,11 @@
                             <div class="quick-start-title">风控压测</div>
                             <div class="quick-start-desc">压力测试与风险控制评估</div>
                         </div>
+                        <div class="quick-start-card" onclick="openBankComparison()" style="cursor: pointer;">
+                            <div class="quick-start-icon" style="font-size: 48px; margin-bottom: 12px;">🏦</div>
+                            <div class="quick-start-title">多银行对比</div>
+                            <div class="quick-start-desc">快速对比不同银行的审批与收益表现</div>
+                        </div>
                         <div class="quick-start-card" onclick="switchPage('modeleval')" style="cursor: pointer;">
                             <div class="quick-start-icon" style="font-size: 48px; margin-bottom: 12px;">🤖</div>
                             <div class="quick-start-title">模型评测</div>
@@ -10363,6 +10368,102 @@
             } catch (error) {
                 console.error('测试连接失败:', error);
                 alert('测试失败: ' + error.message);
+            }
+        }
+
+        // 多银行对比（最小可行版）
+        function ensureBankComparisonModal() {
+            let modal = document.getElementById('bank-comparison-modal');
+            if (modal) return modal;
+            modal = document.createElement('div');
+            modal.id = 'bank-comparison-modal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 900px; max-height: 90vh;">
+                    <div class="modal-header">
+                        <h3>🏦 多银行对比</h3>
+                        <button class="modal-close" onclick="closeBankComparisonModal()">×</button>
+                    </div>
+                    <div class="modal-body" style="max-height: calc(90vh - 100px); overflow-y: auto;">
+                        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">
+                            默认比较 3 家银行（稳健/平衡/激进），同一批客户下的审批率、违约概率（估算NPL）、预估利润。可直接点击运行。
+                        </p>
+                        <button class="btn-primary" style="margin-bottom: 12px;" onclick="runBankComparison()">运行对比</button>
+                        <div id="bank-comparison-result" style="min-height: 80px; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; background: var(--bg-secondary);"></div>
+                    </div>
+                </div>
+            `;
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeBankComparisonModal();
+            });
+            document.body.appendChild(modal);
+            return modal;
+        }
+
+        function openBankComparison() {
+            ensureBankComparisonModal().style.display = 'flex';
+            runBankComparison();
+        }
+
+        function closeBankComparisonModal() {
+            const modal = document.getElementById('bank-comparison-modal');
+            if (modal) modal.style.display = 'none';
+        }
+
+        async function runBankComparison() {
+            const resultBox = document.getElementById('bank-comparison-result');
+            if (!resultBox) return;
+            resultBox.innerHTML = `<div class="loading"><div class="spinner"></div><p>计算中...</p></div>`;
+            try {
+                const payload = {
+                    banks: [
+                        {"name": "稳健银行", "approval_threshold": 0.12, "rate_spread": 0.01},
+                        {"name": "平衡银行", "approval_threshold": 0.18, "rate_spread": 0.015},
+                        {"name": "激进银行", "approval_threshold": 0.25, "rate_spread": 0.02}
+                    ],
+                    customer_count: 300,
+                    loan_amount: 100000,
+                    base_rate: 0.08,
+                    seed: 42
+                };
+                const res = await fetch(`${API_BASE}/api/bank-comparison/run`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || '请求失败');
+                const rows = data.results.map((r, idx) => `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td>${r.name}</td>
+                        <td>${(r.approval_rate * 100).toFixed(1)}%</td>
+                        <td>${(r.avg_default_prob * 100).toFixed(2)}%</td>
+                        <td>${(r.est_profit / 1e6).toFixed(2)} 百万</td>
+                        <td>${r.sample_size}</td>
+                    </tr>
+                `).join('');
+                resultBox.innerHTML = `
+                    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+                        客户数: ${data.summary.customer_count} · 贷款金额: ¥${data.summary.loan_amount.toLocaleString()} · 基准利率: ${(data.summary.base_rate*100).toFixed(1)}%
+                    </div>
+                    <table class="data-table" style="width: 100%; font-size: 13px;">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>银行</th>
+                                <th>审批率</th>
+                                <th>违约概率(NPL估)</th>
+                                <th>预估利润</th>
+                                <th>样本数</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                `;
+            } catch (e) {
+                console.error(e);
+                resultBox.innerHTML = `<div style="color: var(--text-danger);">运行失败: ${e.message}</div>`;
             }
         }
         
