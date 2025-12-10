@@ -2260,6 +2260,124 @@ def get_comparison_trace():
     })
 
 # ============================================================
+# 多银行对比（最小可行版）
+# ============================================================
+
+@app.route('/api/bank-comparison/run', methods=['POST'])
+def run_bank_comparison():
+    """
+    最小可行版：对比多家银行在同一客户集下的审批与风险收益表现
+    请求示例：
+    {
+        "banks": [
+            {"name": "稳健银行", "approval_threshold": 0.12, "rate_spread": 0.01},
+            {"name": "平衡银行", "approval_threshold": 0.18, "rate_spread": 0.015},
+            {"name": "激进银行", "approval_threshold": 0.25, "rate_spread": 0.02}
+        ],
+        "customer_count": 300,
+        "loan_amount": 100000,
+        "base_rate": 0.08
+    }
+    """
+    data = request.json or {}
+    banks = data.get('banks') or [
+        {"name": "稳健银行", "approval_threshold": 0.12, "rate_spread": 0.01},
+        {"name": "平衡银行", "approval_threshold": 0.18, "rate_spread": 0.015},
+        {"name": "激进银行", "approval_threshold": 0.25, "rate_spread": 0.02},
+    ]
+    customer_count = int(data.get('customer_count', 300))
+    loan_amount = float(data.get('loan_amount', 100000))
+    base_rate = float(data.get('base_rate', 0.08))
+    seed = int(data.get('seed', 42))
+
+    rng = np.random.default_rng(seed)
+    local_world_model = WorldModel(seed=seed)
+    results = []
+
+    # 固定市场情景，保持可比性
+    market = MarketConditions(
+        gdp_growth=0.03,
+        base_interest_rate=base_rate,
+        unemployment_rate=0.05,
+        inflation_rate=0.02,
+        credit_spread=0.02,
+    )
+
+    # 预生成客户，确保每家银行用同一批客户
+    customers = []
+    for _ in range(customer_count):
+        cust = generator.generate_one()
+        customers.append(cust)
+
+    for bank in banks:
+        approval_threshold = float(bank.get('approval_threshold', 0.18))
+        rate_spread = float(bank.get('rate_spread', 0.01))
+        name = bank.get('name', '未命名银行')
+
+        approved = 0
+        rejected = 0
+        profit = 0.0
+        default_sum = 0.0
+        factors_sum = 0.0
+        factors_count = 0
+
+        for cust in customers:
+            # 贷款定价：基础利率 + 银行利差
+            loan_rate = base_rate + rate_spread
+            loan = LoanOffer(
+                amount=loan_amount,
+                interest_rate=loan_rate,
+                term_months=24,
+            )
+            future = local_world_model.predict_customer_future(cust, loan, market, add_noise=False)
+            dp = float(future.default_probability)
+            if dp <= approval_threshold:
+                approved += 1
+                # 简化利润估计：利息收入 × (1 - 违约概率)
+                profit += loan_amount * loan_rate * (1 - dp)
+                default_sum += dp
+                # 记录风险因子均值（展示解释用）
+                if future.risk_factors:
+                    factors_sum += sum(future.risk_factors.values())
+                    factors_count += len(future.risk_factors)
+            else:
+                rejected += 1
+
+        total = approved + rejected
+        avg_dp = (default_sum / approved) if approved > 0 else 0
+        avg_factor = (factors_sum / factors_count) if factors_count > 0 else 0
+
+        results.append({
+            "name": name,
+            "approval_threshold": approval_threshold,
+            "rate_spread": rate_spread,
+            "approval_rate": approved / total if total > 0 else 0,
+            "avg_default_prob": avg_dp,
+            "est_npl": avg_dp,  # 估算值，用违约概率代表
+            "est_profit": profit,
+            "sample_size": total,
+            "risk_factor_mean": avg_factor,
+        })
+
+    # 排序：按预估利润降序
+    results.sort(key=lambda x: x["est_profit"], reverse=True)
+
+    summary = {
+        "run_id": datetime.now().strftime('%Y%m%d_%H%M%S'),
+        "customer_count": customer_count,
+        "loan_amount": loan_amount,
+        "base_rate": base_rate,
+        "seed": seed,
+        "best_bank": results[0]["name"] if results else None,
+    }
+
+    return jsonify({
+        "success": True,
+        "summary": summary,
+        "results": results,
+    })
+
+# ============================================================
 # 数据蒸馏 API
 # ============================================================
 
