@@ -5,8 +5,8 @@
 flask>=3.0.0
 flask-cors>=4.0.0
 gunicorn
-pyyaml
-requests>=21.0.0
+pyyaml>=6.0
+requests>=2.31.0
 
 # Deep Learning
 torch>=2.0.0
@@ -27,5 +27,4 @@ rich>=13.0.0
 
 # Utilities
 tqdm>=4.65.0
-pyyaml>=6.0
-requests>=2.31.0  # 用于云存储下载
+httpx>=0.24.0  # 用于异步HTTP请求
