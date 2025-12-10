@@ -1405,6 +1405,26 @@
         setInterval(updateDateTime, 1000);
         updateDateTime();
         
+        // 检测当前主题并返回合适的文字颜色
+        function getTextColor() {
+            const body = document.body;
+            const computedStyle = window.getComputedStyle(body);
+            const bgColor = computedStyle.backgroundColor;
+            // 检测是否为明亮主题（背景色较亮）
+            const rgb = bgColor.match(/\d+/g);
+            if (rgb && rgb.length >= 3) {
+                const brightness = (parseInt(rgb[0]) * 299 + parseInt(rgb[1]) * 587 + parseInt(rgb[2]) * 114) / 1000;
+                return brightness > 128 ? '#333' : '#fff'; // 明亮背景用深色文字，暗色背景用浅色文字
+            }
+            // 检查body的class
+            if (body.classList.contains('theme-bright')) {
+                return '#333';
+            } else if (body.classList.contains('theme-neutral')) {
+                return '#666';
+            }
+            return '#fff'; // 默认暗色主题
+        }
+        
         // ECharts 主题
         const chartTheme = {
             backgroundColor: 'transparent',
@@ -1415,38 +1435,63 @@
         
         // 初始化图表
         function initCharts() {
+            const textColor = getTextColor();
             // 经济周期对比图
             const cycleChart = echarts.init(document.getElementById('chart-cycle'));
+            // 原始数据
+            const cycleData = [12.18, 12.10, 28.32, 15.77];
+            // 归一化到100%
+            const cycleTotal = cycleData.reduce((a, b) => a + b, 0);
+            const cycleDataNormalized = cycleData.map(v => (v / cycleTotal * 100).toFixed(2));
+            
             cycleChart.setOption({
                 backgroundColor: 'transparent',
-                tooltip: { trigger: 'axis' },
-                grid: { left: 50, right: 20, top: 20, bottom: 40 },
+                tooltip: { 
+                    trigger: 'axis',
+                    formatter: function(params) {
+                        const param = params[0];
+                        const originalValue = cycleData[param.dataIndex];
+                        const normalizedValue = cycleDataNormalized[param.dataIndex];
+                        return `${param.name}<br/>原始值: ${originalValue}%<br/>占比: ${normalizedValue}%`;
+                    }
+                },
+                grid: { left: 50, right: 20, top: 40, bottom: 40 },
                 xAxis: {
                     type: 'category',
                     data: ['正常期', '繁荣期', '萧条期', '衰退期'],
                     axisLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } },
-                    axisLabel: { color: '#fff' }
+                    axisLabel: { color: textColor }
                 },
                 yAxis: {
                     type: 'value',
+                    max: 100,
                     axisLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } },
                     splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
-                    axisLabel: { color: '#fff', formatter: '{value}%' }
+                    axisLabel: { color: textColor, formatter: '{value}%' }
                 },
                 series: [{
                     type: 'bar',
-                    data: [
-                        { value: 12.18, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#00f5ff' }, { offset: 1, color: '#0080ff' }] } } },
-                        { value: 12.10, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#00ff88' }, { offset: 1, color: '#00aa44' }] } } },
-                        { value: 28.32, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#ff3366' }, { offset: 1, color: '#cc0033' }] } } },
-                        { value: 15.77, itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#ff9500' }, { offset: 1, color: '#cc7700' }] } } }
-                    ],
+                    data: cycleDataNormalized.map((v, i) => ({
+                        value: parseFloat(v),
+                        itemStyle: { 
+                            color: { 
+                                type: 'linear', 
+                                x: 0, y: 0, x2: 0, y2: 1, 
+                                colorStops: [
+                                    { offset: 0, color: i === 0 ? '#00f5ff' : i === 1 ? '#00ff88' : i === 2 ? '#ff3366' : '#ff9500' }, 
+                                    { offset: 1, color: i === 0 ? '#0080ff' : i === 1 ? '#00aa44' : i === 2 ? '#cc0033' : '#cc7700' }
+                                ] 
+                            } 
+                        } 
+                    })),
                     barWidth: '50%',
                     label: {
                         show: true,
                         position: 'top',
-                        color: '#fff',
-                        formatter: '{c}%'
+                        color: textColor,
+                        formatter: '{c}%',
+                        fontSize: 12,
+                        fontWeight: 'bold'
                     }
                 }]
             });
@@ -1461,7 +1506,7 @@
                     show: true,
                     data: ['累计利润(亿)', 'NPL率(%)', '客户增长(万)', '审批量(千)'],
                     textStyle: { 
-                        color: '#fff',
+                        color: textColor,
                         fontSize: 12,
                         fontWeight: 'normal'
                     },
@@ -1476,7 +1521,7 @@
                     type: 'category',
                     data: months,
                     axisLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } },
-                    axisLabel: { color: '#fff' }
+                    axisLabel: { color: textColor }
                 },
                 yAxis: [
                     {
@@ -1484,7 +1529,7 @@
                         name: '金额/数量',
                         axisLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } },
                         splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)' } },
-                        axisLabel: { color: '#fff' }
+                        axisLabel: { color: textColor }
                     },
                     {
                         type: 'value',
@@ -1553,7 +1598,7 @@
                         { name: '客户满意度', max: 100 },
                         { name: '创新指数', max: 100 }
                     ],
-                    axisName: { color: '#fff', fontSize: 11 },
+                    axisName: { color: textColor, fontSize: 11 },
                     splitArea: { areaStyle: { color: ['rgba(0,245,255,0.05)', 'rgba(0,245,255,0.1)'] } },
                     splitLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } },
                     axisLine: { lineStyle: { color: 'rgba(0,245,255,0.3)' } }
@@ -1581,7 +1626,7 @@
                     show: true,
                     data: ['AlphaZero策略', '传统规则策略'],
                     textStyle: { 
-                        color: '#fff', 
+                        color: textColor, 
                         fontSize: 12,
                         fontWeight: 'normal'
                     },
@@ -1595,22 +1640,47 @@
             
             // 风险分布饼图
             const riskChart = echarts.init(document.getElementById('chart-risk'));
+            // 饼图数据（确保总和为100%）
+            const pieData = [
+                { value: 45, name: '工薪阶层', itemStyle: { color: '#00ff88' } },
+                { value: 25, name: '小微企业', itemStyle: { color: '#ff9500' } },
+                { value: 18, name: '自由职业', itemStyle: { color: '#ff3366' } },
+                { value: 12, name: '农户', itemStyle: { color: '#00f5ff' } }
+            ];
+            const pieTotal = pieData.reduce((sum, item) => sum + item.value, 0);
+            // 如果总和不是100，归一化
+            const pieDataNormalized = pieTotal === 100 ? pieData : pieData.map(item => ({
+                ...item,
+                value: (item.value / pieTotal * 100).toFixed(2)
+            }));
+            
             riskChart.setOption({
                 backgroundColor: 'transparent',
-                tooltip: { trigger: 'item' },
+                tooltip: { 
+                    trigger: 'item',
+                    formatter: '{b}: {c}% ({d}%)'
+                },
                 legend: {
                     show: true,
                     orient: 'vertical',
                     right: 20,
                     top: 'center',
                     textStyle: { 
-                        color: '#fff', 
+                        color: textColor, 
                         fontSize: 12,
                         fontWeight: 'normal'
                     },
                     itemGap: 12,
                     itemWidth: 14,
-                    itemHeight: 14
+                    itemHeight: 14,
+                    formatter: function(name) {
+                        const item = pieDataNormalized.find(d => d.name === name);
+                        if (item) {
+                            const percent = typeof item.value === 'number' ? item.value : parseFloat(item.value);
+                            return `${name}: ${percent.toFixed(1)}%`;
+                        }
+                        return name;
+                    }
                 },
                 series: [{
                     type: 'pie',
@@ -1622,17 +1692,34 @@
                         borderColor: '#0a0e1a',
                         borderWidth: 2
                     },
-                    label: { show: false },
+                    label: {
+                        show: true,
+                        position: 'outside',
+                        formatter: '{b}\n{d}%',
+                        color: textColor,
+                        fontSize: 11,
+                        fontWeight: 'normal'
+                    },
+                    labelLine: {
+                        show: true,
+                        length: 15,
+                        length2: 10,
+                        lineStyle: {
+                            color: textColor,
+                            opacity: 0.5
+                        }
+                    },
                     emphasis: {
-                        label: { show: true, fontSize: 14, fontWeight: 'bold', color: '#fff' },
+                        label: { 
+                            show: true, 
+                            fontSize: 14, 
+                            fontWeight: 'bold', 
+                            color: textColor,
+                            formatter: '{b}\n{d}%'
+                        },
                         itemStyle: { shadowBlur: 20, shadowColor: 'rgba(0, 0, 0, 0.5)' }
                     },
-                    data: [
-                        { value: 45, name: '工薪阶层', itemStyle: { color: '#00ff88' } },
-                        { value: 25, name: '小微企业', itemStyle: { color: '#ff9500' } },
-                        { value: 18, name: '自由职业', itemStyle: { color: '#ff3366' } },
-                        { value: 12, name: '农户', itemStyle: { color: '#00f5ff' } }
-                    ]
+                    data: pieDataNormalized
                 }]
             });
             
