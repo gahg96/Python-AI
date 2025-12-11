@@ -2,6 +2,7 @@
 报表字段详细说明
 提供每个报表字段的详细说明、监管要求、计算公式等信息
 """
+from typing import Dict
 
 FIELD_DESCRIPTIONS = {
     # G01 资本充足率报表字段
