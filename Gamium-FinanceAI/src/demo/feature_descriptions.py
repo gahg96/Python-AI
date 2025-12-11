@@ -77,6 +77,18 @@ FEATURE_DESCRIPTIONS = {
         'category': '衍生特征',
         'calculation': '基于ROI的分段'
     },
+    'credit_score_category': {
+        'name': '信用分分类',
+        'description': '将信用分分为很差、较差、一般、良好、优秀五个等级，用于风险分层。',
+        'category': '衍生特征',
+        'calculation': '基于信用分的分段（0-550:很差, 550-650:较差, 650-700:一般, 700-750:良好, 750-850:优秀）'
+    },
+    'annual_payment_to_revenue_': {
+        'name': '年还款额营收比',
+        'description': '年还款额与年营收的比值，衡量企业的还款压力。值越小表示还款压力越小。',
+        'category': '衍生特征',
+        'calculation': '年还款额 / 年营收'
+    },
     
     # 时间特征
     'application_year': {
