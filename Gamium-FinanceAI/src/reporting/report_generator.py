@@ -173,7 +173,7 @@ class ReportGenerator:
         instance.report_data[field_id] = value
         return True
         
-    def submit_instance(self, instance_id: str) -> bool:
+    def submit_instance(self, instance_id: str) -> Tuple[bool, Optional[str]]:
         """
         提交报表实例
         
@@ -181,19 +181,19 @@ class ReportGenerator:
             instance_id: 实例ID
         
         Returns:
-            是否成功
+            (是否成功, 错误信息)
         """
         instance = self.instances.get(instance_id)
         if not instance:
-            return False
+            return False, '报表实例不存在'
             
         if instance.status != ReportStatus.DRAFT:
-            return False  # 只能提交草稿状态的报表
+            return False, f'报表状态为{instance.status.value}，只能提交草稿状态的报表'
             
         # 再次校验
         template = self.template_manager.get_template(instance.template_id)
         if not template:
-            return False
+            return False, '报表模板不存在'
             
         all_fields = []
         for section in template.sections:
@@ -218,10 +218,15 @@ class ReportGenerator:
         
         # 如果有校验失败，不允许提交
         if validation_summary['failed'] > 0:
-            return False
+            failed_fields = validation_summary.get('failed_fields', [])
+            error_messages = [f"{f['field_name']}: {f['message']}" for f in failed_fields[:5]]  # 最多显示5个错误
+            error_msg = '数据校验未通过：\n' + '\n'.join(error_messages)
+            if len(failed_fields) > 5:
+                error_msg += f'\n...还有{len(failed_fields) - 5}个字段校验失败'
+            return False, error_msg
             
         instance.status = ReportStatus.SUBMITTED
         instance.submitted_at = datetime.now()
         instance.validation_results = [r.to_dict() for r in validation_results]
-        return True
+        return True, None
 
