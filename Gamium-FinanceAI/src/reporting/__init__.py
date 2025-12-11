@@ -5,6 +5,7 @@ from reporting.report_template import ReportTemplateManager, ReportTemplate, Rep
 from reporting.data_collector import DataCollector
 from reporting.data_validator import DataValidator
 from reporting.report_generator import ReportGenerator, ReportInstance
+from reporting.approval_workflow import ApprovalWorkflowManager, ApprovalWorkflow, ApprovalInstance, ApprovalStatus, ApprovalResult
 
 __all__ = [
     'ReportTemplateManager',
@@ -14,6 +15,11 @@ __all__ = [
     'DataCollector',
     'DataValidator',
     'ReportGenerator',
-    'ReportInstance'
+    'ReportInstance',
+    'ApprovalWorkflowManager',
+    'ApprovalWorkflow',
+    'ApprovalInstance',
+    'ApprovalStatus',
+    'ApprovalResult'
 ]
 
