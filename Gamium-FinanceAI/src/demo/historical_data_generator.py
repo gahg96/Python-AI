@@ -215,14 +215,27 @@ class HistoricalLoanDataGenerator:
     
     def expert_decision(self, customer: Dict, loan: Dict, default_prob: float) -> Dict:
         """模拟专家审批决策"""
-        # 基础审批阈值
+        # 基础审批阈值（更严格，使审批率更合理）
         if customer['customer_type'] == 'personal':
-            base_threshold = 0.18
+            base_threshold = 0.15  # 降低阈值，更严格
+            # 额外考虑：信用分、收入稳定性等
+            credit_score = customer.get('credit_score', 650)
+            if credit_score < 600:
+                base_threshold = 0.12  # 信用分低，更严格
+            elif credit_score < 550:
+                base_threshold = 0.10  # 信用分很低，非常严格
         else:
-            base_threshold = 0.15
+            base_threshold = 0.12  # 对公更严格
+            # 额外考虑：经营年限、资产负债率
+            operating_years = customer.get('operating_years', 5)
+            if operating_years < 2:
+                base_threshold = 0.10  # 新企业更严格
         
-        # 专家决策逻辑
-        if default_prob <= base_threshold:
+        # 专家决策逻辑（添加一些随机性，模拟专家判断的不确定性）
+        # 在阈值附近有10%的随机性
+        adjusted_threshold = base_threshold + self.rng.normal(0, base_threshold * 0.1)
+        
+        if default_prob <= adjusted_threshold:
             decision = 'approve'
             
             # 确定贷款条件

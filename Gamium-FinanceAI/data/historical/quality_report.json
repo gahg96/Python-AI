@@ -1,0 +1,183 @@
+{
+  "completeness": {
+    "completeness_score": 0.8079739130434782,
+    "total_missing_cells": 88332,
+    "total_cells": 460000,
+    "missing_rates": {
+      "age": 0.3,
+      "monthly_income": 0.3,
+      "credit_score": 0.3,
+      "debt_ratio": 0.3,
+      "employment_status": 0.3,
+      "education_level": 0.3,
+      "marital_status": 0.3,
+      "years_in_job": 0.3,
+      "has_collateral": 0.3,
+      "collateral_value": 0.3,
+      "default_date": 0.9332,
+      "registered_capital": 0.7,
+      "operating_years": 0.7,
+      "annual_revenue": 0.7,
+      "debt_to_asset_ratio": 0.7,
+      "current_ratio": 0.7,
+      "industry": 0.7,
+      "company_size": 0.7
+    },
+    "missing_counts": {
+      "age": 3000,
+      "monthly_income": 3000,
+      "credit_score": 3000,
+      "debt_ratio": 3000,
+      "employment_status": 3000,
+      "education_level": 3000,
+      "marital_status": 3000,
+      "years_in_job": 3000,
+      "has_collateral": 3000,
+      "collateral_value": 3000,
+      "default_date": 9332,
+      "registered_capital": 7000,
+      "operating_years": 7000,
+      "annual_revenue": 7000,
+      "debt_to_asset_ratio": 7000,
+      "current_ratio": 7000,
+      "industry": 7000,
+      "company_size": 7000
+    },
+    "critical_issues": [],
+    "is_acceptable": "False"
+  },
+  "consistency": {
+    "consistency_score": 1,
+    "total_issues": 0,
+    "issues": [],
+    "is_acceptable": true
+  },
+  "temporal_consistency": {
+    "temporal_consistency_score": 1,
+    "total_issues": 0,
+    "issues": [],
+    "is_acceptable": true
+  },
+  "business_rules": {
+    "rule_score": 0.9976,
+    "total_violations": 24,
+    "violations": [
+      {
+        "rule": "对私贷款金额/年收入比 <= 0.5",
+        "count": 21,
+        "severity": "medium"
+      },
+      {
+        "rule": "对公贷款金额/年营收比 <= 0.3",
+        "count": 3,
+        "severity": "medium"
+      }
+    ],
+    "is_acceptable": true
+  },
+  "distribution": {
+    "warnings": [
+      {
+        "field": "approval_rate",
+        "description": "审批率异常: 97.46% (正常范围: 50%-95%)",
+        "severity": "medium"
+      }
+    ],
+    "warning_count": 1
+  },
+  "overall": {
+    "overall_score": 0.9513934782608695,
+    "is_acceptable": false,
+    "completeness": {
+      "completeness_score": 0.8079739130434782,
+      "total_missing_cells": 88332,
+      "total_cells": 460000,
+      "missing_rates": {
+        "age": 0.3,
+        "monthly_income": 0.3,
+        "credit_score": 0.3,
+        "debt_ratio": 0.3,
+        "employment_status": 0.3,
+        "education_level": 0.3,
+        "marital_status": 0.3,
+        "years_in_job": 0.3,
+        "has_collateral": 0.3,
+        "collateral_value": 0.3,
+        "default_date": 0.9332,
+        "registered_capital": 0.7,
+        "operating_years": 0.7,
+        "annual_revenue": 0.7,
+        "debt_to_asset_ratio": 0.7,
+        "current_ratio": 0.7,
+        "industry": 0.7,
+        "company_size": 0.7
+      },
+      "missing_counts": {
+        "age": 3000,
+        "monthly_income": 3000,
+        "credit_score": 3000,
+        "debt_ratio": 3000,
+        "employment_status": 3000,
+        "education_level": 3000,
+        "marital_status": 3000,
+        "years_in_job": 3000,
+        "has_collateral": 3000,
+        "collateral_value": 3000,
+        "default_date": 9332,
+        "registered_capital": 7000,
+        "operating_years": 7000,
+        "annual_revenue": 7000,
+        "debt_to_asset_ratio": 7000,
+        "current_ratio": 7000,
+        "industry": 7000,
+        "company_size": 7000
+      },
+      "critical_issues": [],
+      "is_acceptable": "False"
+    },
+    "consistency": {
+      "consistency_score": 1,
+      "total_issues": 0,
+      "issues": [],
+      "is_acceptable": true
+    },
+    "temporal_consistency": {
+      "temporal_consistency_score": 1,
+      "total_issues": 0,
+      "issues": [],
+      "is_acceptable": true
+    },
+    "business_rules": {
+      "rule_score": 0.9976,
+      "total_violations": 24,
+      "violations": [
+        {
+          "rule": "对私贷款金额/年收入比 <= 0.5",
+          "count": 21,
+          "severity": "medium"
+        },
+        {
+          "rule": "对公贷款金额/年营收比 <= 0.3",
+          "count": 3,
+          "severity": "medium"
+        }
+      ],
+      "is_acceptable": true
+    },
+    "distribution": {
+      "warnings": [
+        {
+          "field": "approval_rate",
+          "description": "审批率异常: 97.46% (正常范围: 50%-95%)",
+          "severity": "medium"
+        }
+      ],
+      "warning_count": 1
+    },
+    "summary": {
+      "total_records": 10000,
+      "total_issues": 88356,
+      "critical_issues": 0
+    }
+  }
+}
