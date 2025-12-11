@@ -7345,7 +7345,7 @@ def api_get_template_detail(template_id):
         }), 500
 
 @app.route('/api/reporting/generate', methods=['POST'])
-def api_generate_report():
+def api_generate_reporting_report():
     """生成报表"""
     try:
         if not report_generator:
