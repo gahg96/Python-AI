@@ -515,6 +515,10 @@
 
         function updateProgress(step, status) {
             const statusEl = document.getElementById(`step${step}-status`);
+            if (!statusEl) {
+                console.warn(`Status element for step ${step} not found`);
+                return;
+            }
             statusEl.className = `step-status status-${status}`;
             
             const statusText = {
@@ -529,11 +533,14 @@
             let completed = 0;
             for (let i = 1; i <= totalSteps; i++) {
                 const el = document.getElementById(`step${i}-status`);
-                if (el.classList.contains('status-success')) completed++;
+                if (el && el.classList.contains('status-success')) completed++;
             }
             const progress = (completed / totalSteps) * 100;
-            document.getElementById('overall-progress').style.width = progress + '%';
-            document.getElementById('overall-progress').textContent = Math.round(progress) + '%';
+            const progressEl = document.getElementById('overall-progress');
+            if (progressEl) {
+                progressEl.style.width = progress + '%';
+                progressEl.textContent = Math.round(progress) + '%';
+            }
         }
 
         function addLog(step, message, type = 'info') {
@@ -547,10 +554,14 @@
 
         function showResults(step, data) {
             const resultsEl = document.getElementById(`step${step}-results`);
+            if (!resultsEl) {
+                console.warn(`Results element for step ${step} not found`);
+                return;
+            }
             resultsEl.style.display = 'block';
             
             let html = '<h3>执行结果：</h3>';
-            if (typeof data === 'object') {
+            if (typeof data === 'object' && data !== null) {
                 for (const [key, value] of Object.entries(data)) {
                     html += `<div class="result-item">
                         <span class="result-label">${key}:</span>
@@ -558,7 +569,7 @@
                     </div>`;
                 }
             } else {
-                html += `<div class="result-item">${data}</div>`;
+                html += `<div class="result-item">${data || '无数据'}</div>`;
             }
             resultsEl.innerHTML = html;
         }
@@ -584,10 +595,12 @@
                 
                 if (data.success) {
                     addLog(1, '✅ 历史数据生成成功！', 'success');
-                    showResults(1, data.stats);
+                    if (data.stats) {
+                        showResults(1, data.stats);
+                    }
                     updateProgress(1, 'success');
                 } else {
-                    addLog(1, `❌ 错误: ${data.error}`, 'error');
+                    addLog(1, `❌ 错误: ${data.error || '未知错误'}`, 'error');
                     updateProgress(1, 'error');
                 }
             } catch (error) {
