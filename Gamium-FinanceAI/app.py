@@ -118,6 +118,11 @@ def regulatory_page():
     """监管要求与核心指标监控界面"""
     return send_from_directory('web', 'regulatory.html')
 
+@app.route('/reporting')
+def reporting_page():
+    """监管报送系统界面"""
+    return send_from_directory('web', 'reporting.html')
+
 @app.route('/')
 def index():
     """大屏展示页面 - 首页"""
@@ -6755,16 +6760,37 @@ regulatory_monitor = None
 compliance_checker = None
 emergency_plan_manager = None
 
+# 全局监管报送实例
+report_template_manager = None
+data_collector = None
+data_validator = None
+report_generator = None
+
 def init_regulatory_system():
     """初始化监管系统"""
     global regulatory_monitor, compliance_checker, emergency_plan_manager
+    global report_template_manager, data_collector, data_validator, report_generator
     from regulatory.regulatory_monitor import RegulatoryMonitor, BankMetrics
     from regulatory.compliance_checker import ComplianceChecker
     from regulatory.emergency_plan import EmergencyPlanManager
+    from reporting.report_template import ReportTemplateManager
+    from reporting.data_collector import DataCollector
+    from reporting.data_validator import DataValidator
+    from reporting.report_generator import ReportGenerator
     
     regulatory_monitor = RegulatoryMonitor()
     compliance_checker = ComplianceChecker()
     emergency_plan_manager = EmergencyPlanManager()
+    
+    # 初始化监管报送系统
+    report_template_manager = ReportTemplateManager()
+    data_collector = DataCollector(regulatory_monitor=regulatory_monitor)
+    data_validator = DataValidator()
+    report_generator = ReportGenerator(
+        template_manager=report_template_manager,
+        data_collector=data_collector,
+        data_validator=data_validator
+    )
     
     # 初始化示例数据（实际应从业务系统获取）
     sample_metrics = BankMetrics(
@@ -7252,6 +7278,232 @@ def api_trigger_check():
                 }
                 for plan in triggered_plans
             ]
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+# ============================================================
+# 监管报送 API
+# ============================================================
+
+@app.route('/api/reporting/templates', methods=['GET'])
+def api_get_report_templates():
+    """获取所有报表模板"""
+    try:
+        if not report_template_manager:
+            return jsonify({
+                'success': False,
+                'error': '报表模板管理器未初始化'
+            }), 500
+        
+        templates = report_template_manager.get_all_templates()
+        return jsonify({
+            'success': True,
+            'templates': templates,
+            'total': len(templates)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/templates/<template_id>', methods=['GET'])
+def api_get_template_detail(template_id):
+    """获取报表模板详情"""
+    try:
+        if not report_template_manager:
+            return jsonify({
+                'success': False,
+                'error': '报表模板管理器未初始化'
+            }), 500
+        
+        template = report_template_manager.get_template_detail(template_id)
+        if not template:
+            return jsonify({
+                'success': False,
+                'error': f'模板 {template_id} 不存在'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'template': template
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/generate', methods=['POST'])
+def api_generate_report():
+    """生成报表"""
+    try:
+        if not report_generator:
+            return jsonify({
+                'success': False,
+                'error': '报表生成器未初始化'
+            }), 500
+        
+        data = request.get_json() or {}
+        template_id = data.get('template_id')
+        report_period = data.get('report_period')
+        
+        if not template_id:
+            return jsonify({
+                'success': False,
+                'error': '缺少参数: template_id'
+            }), 400
+        
+        if not report_period:
+            # 默认使用当前季度
+            from datetime import datetime
+            now = datetime.now()
+            quarter = (now.month - 1) // 3 + 1
+            report_period = f"{now.year}年第{quarter}季度"
+        
+        instance = report_generator.generate_report(template_id, report_period)
+        if not instance:
+            return jsonify({
+                'success': False,
+                'error': f'生成报表失败，模板 {template_id} 不存在'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'instance': instance.to_dict()
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/instances', methods=['GET'])
+def api_get_report_instances():
+    """获取所有报表实例"""
+    try:
+        if not report_generator:
+            return jsonify({
+                'success': False,
+                'error': '报表生成器未初始化'
+            }), 500
+        
+        instances = report_generator.get_all_instances()
+        return jsonify({
+            'success': True,
+            'instances': instances,
+            'total': len(instances)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/instances/<instance_id>', methods=['GET'])
+def api_get_report_instance(instance_id):
+    """获取报表实例详情"""
+    try:
+        if not report_generator:
+            return jsonify({
+                'success': False,
+                'error': '报表生成器未初始化'
+            }), 500
+        
+        instance = report_generator.get_instance(instance_id)
+        if not instance:
+            return jsonify({
+                'success': False,
+                'error': f'报表实例 {instance_id} 不存在'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'instance': instance.to_dict()
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/instances/<instance_id>/update', methods=['POST'])
+def api_update_report_instance(instance_id):
+    """更新报表实例数据"""
+    try:
+        if not report_generator:
+            return jsonify({
+                'success': False,
+                'error': '报表生成器未初始化'
+            }), 500
+        
+        data = request.get_json() or {}
+        field_id = data.get('field_id')
+        value = data.get('value')
+        
+        if not field_id:
+            return jsonify({
+                'success': False,
+                'error': '缺少参数: field_id'
+            }), 400
+        
+        success = report_generator.update_instance_data(instance_id, field_id, value)
+        if not success:
+            return jsonify({
+                'success': False,
+                'error': '更新失败，报表实例不存在或状态不允许修改'
+            }), 400
+        
+        instance = report_generator.get_instance(instance_id)
+        return jsonify({
+            'success': True,
+            'instance': instance.to_dict()
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/instances/<instance_id>/submit', methods=['POST'])
+def api_submit_report_instance(instance_id):
+    """提交报表实例"""
+    try:
+        if not report_generator:
+            return jsonify({
+                'success': False,
+                'error': '报表生成器未初始化'
+            }), 500
+        
+        success = report_generator.submit_instance(instance_id)
+        if not success:
+            return jsonify({
+                'success': False,
+                'error': '提交失败，报表实例不存在、状态不允许提交或数据校验未通过'
+            }), 400
+        
+        instance = report_generator.get_instance(instance_id)
+        return jsonify({
+            'success': True,
+            'instance': instance.to_dict()
         })
     except Exception as e:
         import traceback
