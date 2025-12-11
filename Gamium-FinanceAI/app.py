@@ -7435,9 +7435,28 @@ def api_get_report_instance(instance_id):
                 'error': f'报表实例 {instance_id} 不存在'
             }), 404
         
+        # 获取模板信息，包含所有字段定义
+        template = report_template_manager.get_template_detail(instance.template_id) if report_template_manager else None
+        
+        instance_dict = instance.to_dict()
+        if template:
+            instance_dict['template_fields'] = []
+            for section in template.get('sections', []):
+                for field in section.get('fields', []):
+                    instance_dict['template_fields'].append({
+                        'field_id': field['field_id'],
+                        'field_name': field['field_name'],
+                        'field_type': field['field_type'],
+                        'required': field['required'],
+                        'formula': field.get('formula'),
+                        'description': field.get('description', ''),
+                        'unit': field.get('unit', ''),
+                        'regulatory_requirement': field.get('regulatory_requirement', '')
+                    })
+        
         return jsonify({
             'success': True,
-            'instance': instance.to_dict()
+            'instance': instance_dict
         })
     except Exception as e:
         import traceback

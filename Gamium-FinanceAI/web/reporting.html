@@ -807,7 +807,34 @@
                     const failed = total - passed;
                     const failedFields = validationResults.filter(r => !r.passed);
                     
+                    // 创建失败字段映射，用于快速查找
+                    const failedFieldMap = {};
+                    failedFields.forEach(f => {
+                        failedFieldMap[f.field_id] = f;
+                    });
+                    
+                    // 获取所有字段（从模板或report_data）
+                    const allFields = instance.template_fields || [];
+                    const reportData = instance.report_data || {};
+                    
+                    // 如果没有模板字段，从report_data生成
+                    if (allFields.length === 0) {
+                        Object.keys(reportData).forEach(key => {
+                            allFields.push({
+                                field_id: key,
+                                field_name: key,
+                                field_type: typeof reportData[key] === 'number' ? 'number' : 'text',
+                                required: false,
+                                formula: null
+                            });
+                        });
+                    }
+                    
                     modalBody.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                            <h3 class="modal-title">报表详情</h3>
+                            <button class="close-btn" onclick="closeModal()">&times;</button>
+                        </div>
                         <div class="instance-details">
                             <div class="detail-item">
                                 <div class="detail-label">实例ID</div>
@@ -819,7 +846,7 @@
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">报表期间</div>
-                                <div class="detail-value">${instance.report_period}</div>
+                                <div class="detail-value">${instance.report_period || '<span style="color: #dc3545;">未填写</span>'}</div>
                             </div>
                             <div class="detail-item">
                                 <div class="detail-label">状态</div>
@@ -856,7 +883,7 @@
                         </div>
                         
                         <h4 style="margin-top: 30px; margin-bottom: 15px;">
-                            报表数据
+                            报表数据（共${allFields.length}个字段）
                             ${instance.status === 'draft' ? `
                                 <button class="btn btn-secondary" onclick="enableEditMode('${instance.instance_id}')" style="margin-left: 10px; padding: 6px 12px; font-size: 14px;">编辑数据</button>
                             ` : ''}
@@ -873,35 +900,52 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${Object.entries(instance.report_data || {}).map(([key, value]) => {
-                                        // 尝试从模板中获取字段说明
-                                        const fieldInfo = getFieldDescription(key);
-                                        const isEditable = instance.status === 'draft' && (key === 'report_period' || key === 'report_date' || fieldInfo.name);
+                                    ${allFields.map(field => {
+                                        const fieldId = field.field_id;
+                                        const value = reportData[fieldId];
+                                        const isFailed = failedFieldMap[fieldId];
+                                        const fieldName = field.field_name || fieldId;
+                                        const isEditable = instance.status === 'draft' && !field.formula && (field.field_type !== 'formula');
+                                        const hasValue = value !== undefined && value !== null && value !== '';
+                                        
+                                        // 判断是否可编辑：非公式字段且草稿状态
+                                        const canEdit = instance.status === 'draft' && !field.formula;
+                                        
                                         return `
-                                        <tr data-field-id="${key}">
-                                            <td><strong>${fieldInfo.name || key}</strong></td>
+                                        <tr data-field-id="${fieldId}" ${isFailed ? 'style="background-color: #fff5f5; border-left: 4px solid #dc3545;"' : ''}>
                                             <td>
-                                                ${isEditable ? `
-                                                    <input type="${key === 'report_date' ? 'date' : 'text'}" 
+                                                <strong ${isFailed ? 'style="color: #dc3545;"' : ''}>
+                                                    ${fieldName}
+                                                    ${field.required ? '<span style="color: #dc3545;">*</span>' : ''}
+                                                    ${isFailed ? '<span style="color: #dc3545; margin-left: 5px;">❌</span>' : ''}
+                                                </strong>
+                                            </td>
+                                            <td>
+                                                ${canEdit ? `
+                                                    <input type="${fieldId === 'report_date' ? 'date' : field.field_type === 'number' ? 'number' : 'text'}" 
                                                            class="form-input" 
-                                                           value="${value}" 
-                                                           id="field-${key}"
-                                                           style="width: 100%; padding: 6px; font-size: 14px;"
-                                                           onchange="updateFieldValue('${instance.instance_id}', '${key}', this.value)">
+                                                           value="${hasValue ? (fieldId === 'report_date' ? value : value) : ''}" 
+                                                           id="field-${fieldId}"
+                                                           placeholder="${field.required ? '必填' : '可选'}"
+                                                           style="width: 100%; padding: 6px; font-size: 14px; ${isFailed ? 'border-color: #dc3545;' : ''}"
+                                                           onchange="updateFieldValue('${instance.instance_id}', '${fieldId}', this.value)">
                                                 ` : `
-                                                    <span>${typeof value === 'number' ? value.toLocaleString('zh-CN') : value}</span>
+                                                    <span style="${!hasValue && field.required ? 'color: #dc3545;' : ''}">
+                                                        ${hasValue ? (typeof value === 'number' ? value.toLocaleString('zh-CN') : value) : '<span style="color: #999; font-style: italic;">未填写</span>'}
+                                                    </span>
                                                 `}
                                             </td>
-                                            <td>${fieldInfo.unit || ''}</td>
+                                            <td>${field.unit || ''}</td>
                                             <td style="max-width: 300px; font-size: 12px; color: #666;">
-                                                ${fieldInfo.description ? fieldInfo.description.substring(0, 100) + (fieldInfo.description.length > 100 ? '...' : '') : ''}
-                                                ${fieldInfo.regulatory_requirement ? '<br><span style="color: #dc3545;">监管要求：' + fieldInfo.regulatory_requirement.substring(0, 80) + '...</span>' : ''}
+                                                ${field.description ? field.description.substring(0, 100) + (field.description.length > 100 ? '...' : '') : ''}
+                                                ${field.regulatory_requirement ? '<br><span style="color: #dc3545;">监管要求：' + field.regulatory_requirement.substring(0, 80) + '...</span>' : ''}
+                                                ${field.formula ? '<br><span style="color: #999;">公式：' + field.formula + '</span>' : ''}
                                             </td>
                                             ${instance.status === 'draft' ? `
                                                 <td>
-                                                    ${isEditable ? `
+                                                    ${canEdit ? `
                                                         <button class="btn btn-secondary" 
-                                                                onclick="saveFieldValue('${instance.instance_id}', '${key}')"
+                                                                onclick="saveFieldValue('${instance.instance_id}', '${fieldId}')"
                                                                 style="padding: 4px 8px; font-size: 12px;">保存</button>
                                                     ` : '<span style="color: #999; font-size: 12px;">公式字段</span>'}
                                                 </td>

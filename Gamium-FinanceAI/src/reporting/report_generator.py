@@ -35,7 +35,8 @@ class ReportInstance:
             'submitted_at': self.submitted_at.isoformat() if self.submitted_at else None,
             'approved_at': self.approved_at.isoformat() if self.approved_at else None,
             'sent_at': self.sent_at.isoformat() if self.sent_at else None,
-            'validation_results': self.validation_results
+            'validation_results': self.validation_results,
+            'template_fields': []  # 将在API层填充
         }
 
 
