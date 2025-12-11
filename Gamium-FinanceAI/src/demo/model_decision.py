@@ -171,45 +171,114 @@ class ModelDecisionMaker:
     
     def _build_features(self, customer: Dict, loan: Dict, market: Dict) -> np.ndarray:
         """构建特征向量（用于违约预测）"""
-        # 这里需要与训练时的特征顺序一致
-        # 简化处理，使用常见特征
+        # 需要与训练时的特征顺序和数量完全一致
+        # 根据world_model_trainer.py中的特征列表构建
         features = []
         
-        # 客户特征
-        features.append(customer.get('age', 35))
-        features.append(customer.get('monthly_income', 8000))
-        features.append(customer.get('credit_score', 650))
-        features.append(customer.get('debt_ratio', 0.5))
-        features.append(customer.get('years_in_job', 5))
+        # 对私特征（如果是对私客户）
+        if customer.get('customer_type') == 'personal':
+            features.append(customer.get('age', 35))
+            features.append(customer.get('monthly_income', 8000))
+            features.append(customer.get('credit_score', 650))
+            features.append(customer.get('debt_ratio', 0.5))
+            features.append(customer.get('years_in_job', 5))
+            # 衍生特征
+            loan_to_income = loan.get('loan_amount', 50000) / (customer.get('monthly_income', 8000) * 12 + 1e-6)
+            features.append(loan_to_income)
+            # 综合风险评分（简化计算）
+            credit_norm = (customer.get('credit_score', 650) - 300) / 550
+            debt_norm = customer.get('debt_ratio', 0.5)
+            income_norm = (customer.get('monthly_income', 8000) - 3000) / 47000
+            risk_score = 0.5 * (1 - credit_norm) + 0.3 * debt_norm + 0.2 * (1 - income_norm)
+            features.append(risk_score)
+            # 工作稳定性
+            job_stability = customer.get('years_in_job', 5) / (customer.get('age', 35) - 18 + 1e-6)
+            features.append(job_stability)
+        else:
+            # 对公客户，填充对私特征为0或默认值
+            features.extend([0, 0, 0, 0, 0, 0, 0, 0])
         
-        # 贷款特征
+        # 对公特征（如果是对公客户）
+        if customer.get('customer_type') == 'corporate':
+            features.append(customer.get('registered_capital', 1000000))
+            features.append(customer.get('operating_years', 5))
+            features.append(customer.get('annual_revenue', 5000000))
+            features.append(customer.get('debt_to_asset_ratio', 0.6))
+            features.append(customer.get('current_ratio', 1.5))
+            loan_to_revenue = loan.get('loan_amount', 50000) / (customer.get('annual_revenue', 5000000) + 1e-6)
+            features.append(loan_to_revenue)
+        else:
+            # 对私客户，填充对公特征为0或默认值
+            features.extend([0, 0, 0, 0, 0, 0])
+        
+        # 贷款特征（通用）
         features.append(loan.get('loan_amount', 50000))
         features.append(loan.get('requested_term_months', 12))
         
-        # 市场特征
+        # 市场环境特征
         features.append(market.get('gdp_growth', 0.03))
         features.append(market.get('base_interest_rate', 0.05))
         features.append(market.get('unemployment_rate', 0.05))
         features.append(market.get('inflation_rate', 0.02))
         features.append(market.get('credit_spread', 0.02))
         
-        return np.array(features)
+        # 时间特征（简化，使用当前日期）
+        from datetime import datetime
+        current_date = datetime.now()
+        features.append(current_date.year)
+        features.append(current_date.month)
+        features.append(current_date.month // 3 + 1)  # quarter
+        
+        # 确保特征数量为24（与训练时一致）
+        while len(features) < 24:
+            features.append(0.0)
+        
+        return np.array(features[:24])
     
     def _build_profit_features(self, customer: Dict, loan: Dict, market: Dict) -> np.ndarray:
         """构建特征向量（用于利润预测）"""
+        # 需要与训练时的特征顺序和数量完全一致（14个特征）
         features = []
         
         # 客户特征
-        features.append(customer.get('age', 35))
-        features.append(customer.get('monthly_income', 8000))
-        features.append(customer.get('credit_score', 650))
-        features.append(customer.get('debt_ratio', 0.5))
-        features.append(customer.get('years_in_job', 5))
+        if customer.get('customer_type') == 'personal':
+            features.append(customer.get('age', 35))
+            features.append(customer.get('monthly_income', 8000))
+            features.append(customer.get('credit_score', 650))
+            features.append(customer.get('debt_ratio', 0.5))
+            features.append(customer.get('years_in_job', 5))
+            # 综合风险评分
+            credit_norm = (customer.get('credit_score', 650) - 300) / 550
+            debt_norm = customer.get('debt_ratio', 0.5)
+            income_norm = (customer.get('monthly_income', 8000) - 3000) / 47000
+            risk_score = 0.5 * (1 - credit_norm) + 0.3 * debt_norm + 0.2 * (1 - income_norm)
+            features.append(risk_score)
+        else:
+            # 对公客户
+            features.append(0)  # age
+            features.append(0)  # monthly_income
+            features.append(0)  # credit_score
+            features.append(customer.get('debt_to_asset_ratio', 0.6))
+            features.append(customer.get('operating_years', 5))
+            # 综合风险评分（对公）
+            debt_norm = customer.get('debt_to_asset_ratio', 0.6)
+            current_norm = 1 / (customer.get('current_ratio', 1.5) + 0.5)
+            years_norm = 1 / (customer.get('operating_years', 5) + 1)
+            risk_score = 0.4 * debt_norm + 0.3 * current_norm + 0.3 * years_norm
+            features.append(risk_score)
         
         # 贷款特征
         features.append(loan.get('loan_amount', 50000))
         features.append(loan.get('approved_rate', 0.08))
         features.append(loan.get('approved_term_months', 12))
+        
+        # 衍生特征
+        if customer.get('customer_type') == 'personal':
+            loan_to_income = loan.get('loan_amount', 50000) / (customer.get('monthly_income', 8000) * 12 + 1e-6)
+            features.append(loan_to_income)
+        else:
+            loan_to_revenue = loan.get('loan_amount', 50000) / (customer.get('annual_revenue', 5000000) + 1e-6)
+            features.append(loan_to_revenue)
         
         # 市场特征
         features.append(market.get('gdp_growth', 0.03))
@@ -217,7 +286,11 @@ class ModelDecisionMaker:
         features.append(market.get('unemployment_rate', 0.05))
         features.append(market.get('credit_spread', 0.02))
         
-        return np.array(features)
+        # 确保特征数量为14（与训练时一致）
+        while len(features) < 14:
+            features.append(0.0)
+        
+        return np.array(features[:14])
     
     def make_decision(self, customer: Dict, loan: Dict, market: Dict,
                      approval_threshold: float = 0.18,

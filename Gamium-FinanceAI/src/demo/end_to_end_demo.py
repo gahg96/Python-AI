@@ -258,6 +258,7 @@ class EndToEndDemo:
             result = {
                 **customer,
                 **loan,
+                'expert_decision': fused_decision.final_decision,  # 添加expert_decision字段
                 'decision': fused_decision.final_decision,
                 'default_probability': fused_decision.default_probability,
                 'expected_profit': fused_decision.expected_profit,
@@ -265,7 +266,9 @@ class EndToEndDemo:
                 'actual_profit': repayment_result.total_interest_paid - (
                     recovery_result.default_amount - recovery_result.recovery_amount
                 ) if recovery_result else repayment_result.total_interest_paid if repayment_result else 0,
-                'recovery_rate': recovery_result.recovery_rate if recovery_result else 0
+                'recovery_rate': recovery_result.recovery_rate if recovery_result else 0,
+                'recovery_amount': recovery_result.recovery_amount if recovery_result else 0,
+                'default_amount': recovery_result.default_amount if recovery_result else 0
             }
             results.append(result)
         

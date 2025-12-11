@@ -31,11 +31,22 @@ class ResultValidator:
         print("=" * 80)
         
         # 历史违约率
-        hist_approved = self.historical[self.historical['expert_decision'] == 'approve']
+        if 'expert_decision' in self.historical.columns:
+            hist_approved = self.historical[self.historical['expert_decision'] == 'approve']
+        else:
+            # 如果没有expert_decision字段，假设所有记录都是已批准的
+            hist_approved = self.historical
         hist_default_rate = hist_approved['actual_defaulted'].mean() if len(hist_approved) > 0 else 0
         
         # 模拟违约率
-        sim_approved = self.simulated[self.simulated['expert_decision'] == 'approve']
+        if 'expert_decision' in self.simulated.columns:
+            sim_approved = self.simulated[self.simulated['expert_decision'] == 'approve']
+        elif 'decision' in self.simulated.columns:
+            # 使用decision字段作为fallback
+            sim_approved = self.simulated[self.simulated['decision'] == 'approve']
+        else:
+            # 如果没有决策字段，假设所有记录都是已批准的
+            sim_approved = self.simulated
         sim_default_rate = sim_approved['actual_defaulted'].mean() if len(sim_approved) > 0 else 0
         
         # 差异
@@ -86,11 +97,19 @@ class ResultValidator:
         print("=" * 80)
         
         # 历史利润
-        hist_approved = self.historical[self.historical['expert_decision'] == 'approve']
+        if 'expert_decision' in self.historical.columns:
+            hist_approved = self.historical[self.historical['expert_decision'] == 'approve']
+        else:
+            hist_approved = self.historical
         hist_profit = hist_approved['actual_profit']
         
         # 模拟利润
-        sim_approved = self.simulated[self.simulated['expert_decision'] == 'approve']
+        if 'expert_decision' in self.simulated.columns:
+            sim_approved = self.simulated[self.simulated['expert_decision'] == 'approve']
+        elif 'decision' in self.simulated.columns:
+            sim_approved = self.simulated[self.simulated['decision'] == 'approve']
+        else:
+            sim_approved = self.simulated
         sim_profit = sim_approved['actual_profit']
         
         if len(hist_profit) == 0 or len(sim_profit) == 0:
@@ -138,24 +157,35 @@ class ResultValidator:
         print("=" * 80)
         
         # 历史回收率
-        hist_defaulted = self.historical[
-            (self.historical['expert_decision'] == 'approve') &
-            (self.historical['actual_defaulted'] == True)
-        ]
+        if 'expert_decision' in self.historical.columns:
+            hist_defaulted = self.historical[
+                (self.historical['expert_decision'] == 'approve') &
+                (self.historical['actual_defaulted'] == True)
+            ]
+        else:
+            hist_defaulted = self.historical[self.historical['actual_defaulted'] == True]
         
         if len(hist_defaulted) == 0:
             print("⚠️  历史数据中没有违约记录")
             return {'error': '数据不足'}
         
-        hist_recovery_rate = hist_defaulted['recovery_rate'].mean()
-        hist_recovery_amount = hist_defaulted['recovery_amount'].sum()
-        hist_default_amount = hist_defaulted['default_amount'].sum()
+        hist_recovery_rate = hist_defaulted['recovery_rate'].mean() if 'recovery_rate' in hist_defaulted.columns else 0
+        hist_recovery_amount = hist_defaulted['recovery_amount'].sum() if 'recovery_amount' in hist_defaulted.columns else 0
+        hist_default_amount = hist_defaulted['default_amount'].sum() if 'default_amount' in hist_defaulted.columns else 0
         
         # 模拟回收率
-        sim_defaulted = self.simulated[
-            (self.simulated['expert_decision'] == 'approve') &
-            (self.simulated['actual_defaulted'] == True)
-        ]
+        if 'expert_decision' in self.simulated.columns:
+            sim_defaulted = self.simulated[
+                (self.simulated['expert_decision'] == 'approve') &
+                (self.simulated['actual_defaulted'] == True)
+            ]
+        elif 'decision' in self.simulated.columns:
+            sim_defaulted = self.simulated[
+                (self.simulated['decision'] == 'approve') &
+                (self.simulated['actual_defaulted'] == True)
+            ]
+        else:
+            sim_defaulted = self.simulated[self.simulated['actual_defaulted'] == True]
         
         if len(sim_defaulted) == 0:
             print("⚠️  模拟数据中没有违约记录")
