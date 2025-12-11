@@ -113,6 +113,11 @@ def demo_page():
     """端到端Demo交互界面"""
     return send_from_directory('web', 'demo.html')
 
+@app.route('/regulatory')
+def regulatory_page():
+    """监管要求与核心指标监控界面"""
+    return send_from_directory('web', 'regulatory.html')
+
 @app.route('/')
 def index():
     """大屏展示页面 - 首页"""
@@ -6732,6 +6737,328 @@ def api_validate_results():
             'profit_valid': results.get('profit_distribution', {}).get('is_acceptable', False),
             'recovery_valid': results.get('recovery_rate', {}).get('is_acceptable', False),
             'overall_acceptable': results.get('overall_acceptable', False)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+# ============================================================
+# 监管要求与核心指标监控 API
+# ============================================================
+
+# 全局监管监控器实例
+regulatory_monitor = None
+compliance_checker = None
+
+def init_regulatory_system():
+    """初始化监管系统"""
+    global regulatory_monitor, compliance_checker
+    from regulatory.regulatory_monitor import RegulatoryMonitor, BankMetrics
+    from regulatory.compliance_checker import ComplianceChecker
+    
+    regulatory_monitor = RegulatoryMonitor()
+    compliance_checker = ComplianceChecker()
+    
+    # 初始化示例数据（实际应从业务系统获取）
+    sample_metrics = BankMetrics(
+        # 资本数据
+        core_tier1_capital=1000000000,  # 10亿
+        other_tier1_capital=200000000,  # 2亿
+        tier2_capital=300000000,  # 3亿
+        total_capital=1500000000,  # 15亿
+        
+        # 资产数据
+        risk_weighted_assets=12000000000,  # 120亿
+        total_assets=15000000000,  # 150亿
+        adjusted_assets=18000000000,  # 180亿
+        
+        # 贷款数据
+        total_loans=10000000000,  # 100亿
+        non_performing_loans=200000000,  # 2亿（不良贷款率2%）
+        loan_loss_provision=300000000,  # 3亿（拨备覆盖率150%）
+        required_provision=200000000,  # 2亿
+        
+        # 流动性数据
+        high_quality_liquid_assets=5000000000,  # 50亿
+        net_cash_outflow_30d=4000000000,  # 40亿
+        available_stable_funding=8000000000,  # 80亿
+        required_stable_funding=7000000000,  # 70亿
+        deposits=12000000000,  # 120亿
+        
+        # 集中度数据
+        single_customer_exposure=800000000,  # 8亿
+        single_industry_exposure=2000000000,  # 20亿
+        related_party_exposure=5000000000,  # 50亿
+        
+        # 合规数据
+        regulatory_reports_on_time=12,
+        regulatory_reports_total=12,
+        violations_count=0,
+        compliant_customers=10000,
+        total_customers=10000
+    )
+    
+    regulatory_monitor.update_metrics(sample_metrics)
+
+# 初始化监管系统
+init_regulatory_system()
+
+@app.route('/api/regulatory/indicators', methods=['GET'])
+def api_get_regulatory_indicators():
+    """获取所有监管指标"""
+    try:
+        if not regulatory_monitor:
+            return jsonify({
+                'success': False,
+                'error': '监管监控器未初始化'
+            }), 500
+        
+        indicators = regulatory_monitor.get_all_indicators()
+        alerts = regulatory_monitor.check_alerts()
+        
+        return jsonify({
+            'success': True,
+            'indicators': indicators,
+            'alerts': alerts,
+            'alert_count': len(alerts)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/regulatory/update-metrics', methods=['POST'])
+def api_update_metrics():
+    """更新银行指标数据"""
+    try:
+        if not regulatory_monitor:
+            return jsonify({
+                'success': False,
+                'error': '监管监控器未初始化'
+            }), 500
+        
+        data = request.get_json() or {}
+        from regulatory.regulatory_monitor import BankMetrics
+        
+        metrics = BankMetrics(
+            core_tier1_capital=data.get('core_tier1_capital', 1000000000),
+            other_tier1_capital=data.get('other_tier1_capital', 200000000),
+            tier2_capital=data.get('tier2_capital', 300000000),
+            total_capital=data.get('total_capital', 1500000000),
+            risk_weighted_assets=data.get('risk_weighted_assets', 12000000000),
+            total_assets=data.get('total_assets', 15000000000),
+            adjusted_assets=data.get('adjusted_assets', 18000000000),
+            total_loans=data.get('total_loans', 10000000000),
+            non_performing_loans=data.get('non_performing_loans', 200000000),
+            loan_loss_provision=data.get('loan_loss_provision', 300000000),
+            required_provision=data.get('required_provision', 200000000),
+            high_quality_liquid_assets=data.get('high_quality_liquid_assets', 5000000000),
+            net_cash_outflow_30d=data.get('net_cash_outflow_30d', 4000000000),
+            available_stable_funding=data.get('available_stable_funding', 8000000000),
+            required_stable_funding=data.get('required_stable_funding', 7000000000),
+            deposits=data.get('deposits', 12000000000),
+            single_customer_exposure=data.get('single_customer_exposure', 800000000),
+            single_industry_exposure=data.get('single_industry_exposure', 2000000000),
+            related_party_exposure=data.get('related_party_exposure', 5000000000),
+            regulatory_reports_on_time=data.get('regulatory_reports_on_time', 12),
+            regulatory_reports_total=data.get('regulatory_reports_total', 12),
+            violations_count=data.get('violations_count', 0),
+            compliant_customers=data.get('compliant_customers', 10000),
+            total_customers=data.get('total_customers', 10000)
+        )
+        
+        regulatory_monitor.update_metrics(metrics)
+        indicators = regulatory_monitor.get_all_indicators()
+        alerts = regulatory_monitor.check_alerts()
+        
+        return jsonify({
+            'success': True,
+            'indicators': indicators,
+            'alerts': alerts,
+            'alert_count': len(alerts)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/regulatory/alerts', methods=['GET'])
+def api_get_alerts():
+    """获取告警信息"""
+    try:
+        if not regulatory_monitor:
+            return jsonify({
+                'success': False,
+                'error': '监管监控器未初始化'
+            }), 500
+        
+        alerts = regulatory_monitor.check_alerts()
+        alert_history = regulatory_monitor.alert_history[-50:]  # 最近50条
+        
+        return jsonify({
+            'success': True,
+            'current_alerts': alerts,
+            'alert_history': alert_history,
+            'total_alerts': len(alerts)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/regulatory/compliance/check', methods=['POST'])
+def api_compliance_check():
+    """合规性检查"""
+    try:
+        if not compliance_checker:
+            return jsonify({
+                'success': False,
+                'error': '合规检查器未初始化'
+            }), 500
+        
+        data = request.get_json() or {}
+        customer_data = data.get('customer_data', {})
+        loan_data = data.get('loan_data', {})
+        bank_metrics = data.get('bank_metrics', {})
+        
+        # 如果没有提供bank_metrics，从regulatory_monitor获取
+        if not bank_metrics and regulatory_monitor and regulatory_monitor.metrics:
+            m = regulatory_monitor.metrics
+            capital_net = m.core_tier1_capital + m.other_tier1_capital + m.tier2_capital
+            bank_metrics = {
+                'capital_net': capital_net,
+                'risk_weighted_assets': m.risk_weighted_assets,
+                'total_capital': m.total_capital,
+                'customer_exposures': {},
+                'related_party_exposure': m.related_party_exposure,
+                'max_interest_rate': 0.24
+            }
+        
+        results = compliance_checker.check_approval(customer_data, loan_data, bank_metrics)
+        
+        all_passed = all(r.passed for r in results)
+        critical_failures = [r for r in results if not r.passed and r.severity == 'critical']
+        
+        return jsonify({
+            'success': True,
+            'all_passed': all_passed,
+            'results': [
+                {
+                    'rule_id': r.rule_id,
+                    'rule_name': r.rule_name,
+                    'passed': r.passed,
+                    'message': r.message,
+                    'severity': r.severity,
+                    'timestamp': r.timestamp.isoformat()
+                }
+                for r in results
+            ],
+            'critical_failures': len(critical_failures),
+            'block_approval': len(critical_failures) > 0
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/regulatory/compliance/summary', methods=['GET'])
+def api_compliance_summary():
+    """获取合规性检查汇总"""
+    try:
+        if not compliance_checker:
+            return jsonify({
+                'success': False,
+                'error': '合规检查器未初始化'
+            }), 500
+        
+        summary = compliance_checker.get_check_summary()
+        
+        return jsonify({
+            'success': True,
+            'summary': summary
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/regulatory/reports/generate', methods=['POST'])
+def api_generate_report():
+    """生成监管报表"""
+    try:
+        if not regulatory_monitor:
+            return jsonify({
+                'success': False,
+                'error': '监管监控器未初始化'
+            }), 500
+        
+        data = request.get_json() or {}
+        report_type = data.get('report_type', 'capital_adequacy')  # capital_adequacy, asset_quality, liquidity, concentration, compliance
+        
+        indicators = regulatory_monitor.get_all_indicators()
+        alerts = regulatory_monitor.check_alerts()
+        
+        # 根据报表类型生成不同的报表
+        report = {
+            'report_type': report_type,
+            'generated_at': datetime.now().isoformat(),
+            'indicators': {},
+            'summary': {},
+            'alerts': alerts
+        }
+        
+        if report_type == 'capital_adequacy':
+            report['indicators'] = {
+                k: v for k, v in indicators.items() 
+                if k in ['capital_adequacy_ratio', 'tier1_capital_ratio', 'core_tier1_ratio', 'leverage_ratio']
+            }
+        elif report_type == 'asset_quality':
+            report['indicators'] = {
+                k: v for k, v in indicators.items() 
+                if k in ['npl_ratio', 'provision_coverage_ratio', 'provision_adequacy_ratio']
+            }
+        elif report_type == 'liquidity':
+            report['indicators'] = {
+                k: v for k, v in indicators.items() 
+                if k in ['lcr', 'nsfr', 'loan_to_deposit_ratio']
+            }
+        elif report_type == 'concentration':
+            report['indicators'] = {
+                k: v for k, v in indicators.items() 
+                if k in ['single_customer_concentration', 'single_industry_concentration', 'related_party_concentration']
+            }
+        elif report_type == 'compliance':
+            if compliance_checker:
+                report['summary'] = compliance_checker.get_check_summary()
+            report['indicators'] = {
+                k: v for k, v in indicators.items() 
+                if k in ['report_timeliness', 'violations_count', 'customer_info_compliance']
+            }
+        else:
+            report['indicators'] = indicators
+        
+        return jsonify({
+            'success': True,
+            'report': report
         })
     except Exception as e:
         import traceback
