@@ -40,6 +40,9 @@ class ReportField:
     validation_rules: List[Dict[str, Any]] = field(default_factory=list)
     required: bool = True
     default_value: Any = None
+    description: str = ""  # 字段详细说明
+    unit: str = ""  # 单位
+    regulatory_requirement: str = ""  # 监管要求
 
 
 @dataclass
@@ -77,6 +80,20 @@ class ReportTemplateManager:
         self.templates: Dict[str, ReportTemplate] = {}
         self._init_default_templates()
         
+    def _get_field_info(self, field_id: str) -> Dict[str, str]:
+        """获取字段详细信息"""
+        try:
+            from reporting.field_descriptions import get_field_description
+            return get_field_description(field_id)
+        except:
+            return {
+                'description': '',
+                'unit': '',
+                'regulatory_requirement': '',
+                'calculation_method': '',
+                'data_source': ''
+            }
+        
     def _init_default_templates(self):
         """初始化默认报表模板"""
         
@@ -105,10 +122,22 @@ class ReportTemplateManager:
                     section_name='资本构成',
                     section_type='body',
                     fields=[
-                        ReportField('core_tier1_capital', '核心一级资本', 'number', 'regulatory_monitor.core_tier1_capital', required=True),
-                        ReportField('other_tier1_capital', '其他一级资本', 'number', 'regulatory_monitor.other_tier1_capital', required=True),
-                        ReportField('tier2_capital', '二级资本', 'number', 'regulatory_monitor.tier2_capital', required=True),
-                        ReportField('total_capital', '总资本', 'number', 'formula', formula='core_tier1_capital + other_tier1_capital + tier2_capital', required=True)
+                        ReportField('core_tier1_capital', '核心一级资本', 'number', 'regulatory_monitor.core_tier1_capital', required=True,
+                                  description=self._get_field_info('core_tier1_capital')['description'],
+                                  unit=self._get_field_info('core_tier1_capital')['unit'],
+                                  regulatory_requirement=self._get_field_info('core_tier1_capital')['regulatory_requirement']),
+                        ReportField('other_tier1_capital', '其他一级资本', 'number', 'regulatory_monitor.other_tier1_capital', required=True,
+                                  description=self._get_field_info('other_tier1_capital')['description'],
+                                  unit=self._get_field_info('other_tier1_capital')['unit'],
+                                  regulatory_requirement=self._get_field_info('other_tier1_capital')['regulatory_requirement']),
+                        ReportField('tier2_capital', '二级资本', 'number', 'regulatory_monitor.tier2_capital', required=True,
+                                  description=self._get_field_info('tier2_capital')['description'],
+                                  unit=self._get_field_info('tier2_capital')['unit'],
+                                  regulatory_requirement=self._get_field_info('tier2_capital')['regulatory_requirement']),
+                        ReportField('total_capital', '总资本', 'number', 'formula', formula='core_tier1_capital + other_tier1_capital + tier2_capital', required=True,
+                                  description=self._get_field_info('total_capital')['description'],
+                                  unit=self._get_field_info('total_capital')['unit'],
+                                  regulatory_requirement=self._get_field_info('total_capital')['regulatory_requirement'])
                     ]
                 ),
                 ReportSection(
@@ -116,10 +145,22 @@ class ReportTemplateManager:
                     section_name='风险加权资产',
                     section_type='body',
                     fields=[
-                        ReportField('credit_risk_rwa', '信用风险加权资产', 'number', 'regulatory_monitor.risk_weighted_assets', required=True),
-                        ReportField('market_risk_rwa', '市场风险加权资产', 'number', 'system', default_value=0, required=False),
-                        ReportField('operational_risk_rwa', '操作风险加权资产', 'number', 'system', default_value=0, required=False),
-                        ReportField('total_rwa', '风险加权资产合计', 'number', 'formula', formula='credit_risk_rwa + market_risk_rwa + operational_risk_rwa', required=True)
+                        ReportField('credit_risk_rwa', '信用风险加权资产', 'number', 'regulatory_monitor.risk_weighted_assets', required=True,
+                                  description=self._get_field_info('credit_risk_rwa')['description'],
+                                  unit=self._get_field_info('credit_risk_rwa')['unit'],
+                                  regulatory_requirement=self._get_field_info('credit_risk_rwa')['regulatory_requirement']),
+                        ReportField('market_risk_rwa', '市场风险加权资产', 'number', 'system', default_value=0, required=False,
+                                  description=self._get_field_info('market_risk_rwa')['description'],
+                                  unit=self._get_field_info('market_risk_rwa')['unit'],
+                                  regulatory_requirement=self._get_field_info('market_risk_rwa')['regulatory_requirement']),
+                        ReportField('operational_risk_rwa', '操作风险加权资产', 'number', 'system', default_value=0, required=False,
+                                  description=self._get_field_info('operational_risk_rwa')['description'],
+                                  unit=self._get_field_info('operational_risk_rwa')['unit'],
+                                  regulatory_requirement=self._get_field_info('operational_risk_rwa')['regulatory_requirement']),
+                        ReportField('total_rwa', '风险加权资产合计', 'number', 'formula', formula='credit_risk_rwa + market_risk_rwa + operational_risk_rwa', required=True,
+                                  description=self._get_field_info('total_rwa')['description'],
+                                  unit=self._get_field_info('total_rwa')['unit'],
+                                  regulatory_requirement=self._get_field_info('total_rwa')['regulatory_requirement'])
                     ]
                 ),
                 ReportSection(
@@ -128,11 +169,20 @@ class ReportTemplateManager:
                     section_type='summary',
                     fields=[
                         ReportField('capital_adequacy_ratio', '资本充足率', 'number', 'formula', 
-                                 formula='(total_capital / total_rwa) * 100', required=True),
+                                 formula='(total_capital / total_rwa) * 100', required=True,
+                                 description=self._get_field_info('capital_adequacy_ratio')['description'],
+                                 unit=self._get_field_info('capital_adequacy_ratio')['unit'],
+                                 regulatory_requirement=self._get_field_info('capital_adequacy_ratio')['regulatory_requirement']),
                         ReportField('tier1_capital_ratio', '一级资本充足率', 'number', 'formula',
-                                 formula='((core_tier1_capital + other_tier1_capital) / total_rwa) * 100', required=True),
+                                 formula='((core_tier1_capital + other_tier1_capital) / total_rwa) * 100', required=True,
+                                 description=self._get_field_info('tier1_capital_ratio')['description'],
+                                 unit=self._get_field_info('tier1_capital_ratio')['unit'],
+                                 regulatory_requirement=self._get_field_info('tier1_capital_ratio')['regulatory_requirement']),
                         ReportField('core_tier1_ratio', '核心一级资本充足率', 'number', 'formula',
-                                 formula='(core_tier1_capital / total_rwa) * 100', required=True)
+                                 formula='(core_tier1_capital / total_rwa) * 100', required=True,
+                                 description=self._get_field_info('core_tier1_ratio')['description'],
+                                 unit=self._get_field_info('core_tier1_ratio')['unit'],
+                                 regulatory_requirement=self._get_field_info('core_tier1_ratio')['regulatory_requirement'])
                     ]
                 )
             ]
@@ -154,8 +204,14 @@ class ReportTemplateManager:
                     section_name='表头',
                     section_type='header',
                     fields=[
-                        ReportField('report_period', '报表期间', 'text', 'system', required=True),
-                        ReportField('report_date', '报表日期', 'date', 'system', required=True)
+                        ReportField('report_period', '报表期间', 'text', 'system', required=True,
+                                  description=self._get_field_info('report_period')['description'],
+                                  unit=self._get_field_info('report_period')['unit'],
+                                  regulatory_requirement=self._get_field_info('report_period')['regulatory_requirement']),
+                        ReportField('report_date', '报表日期', 'date', 'system', required=True,
+                                  description=self._get_field_info('report_date')['description'],
+                                  unit=self._get_field_info('report_date')['unit'],
+                                  regulatory_requirement=self._get_field_info('report_date')['regulatory_requirement'])
                     ]
                 ),
                 ReportSection(
@@ -163,17 +219,41 @@ class ReportTemplateManager:
                     section_name='贷款分类',
                     section_type='body',
                     fields=[
-                        ReportField('normal_loans', '正常类贷款', 'number', 'loan_system.normal_loans', required=True),
-                        ReportField('special_mention_loans', '关注类贷款', 'number', 'loan_system.special_mention_loans', required=True),
-                        ReportField('substandard_loans', '次级类贷款', 'number', 'loan_system.substandard_loans', required=True),
-                        ReportField('doubtful_loans', '可疑类贷款', 'number', 'loan_system.doubtful_loans', required=True),
-                        ReportField('loss_loans', '损失类贷款', 'number', 'loan_system.loss_loans', required=True),
+                        ReportField('normal_loans', '正常类贷款', 'number', 'loan_system.normal_loans', required=True,
+                                  description=self._get_field_info('normal_loans')['description'],
+                                  unit=self._get_field_info('normal_loans')['unit'],
+                                  regulatory_requirement=self._get_field_info('normal_loans')['regulatory_requirement']),
+                        ReportField('special_mention_loans', '关注类贷款', 'number', 'loan_system.special_mention_loans', required=True,
+                                  description=self._get_field_info('special_mention_loans')['description'],
+                                  unit=self._get_field_info('special_mention_loans')['unit'],
+                                  regulatory_requirement=self._get_field_info('special_mention_loans')['regulatory_requirement']),
+                        ReportField('substandard_loans', '次级类贷款', 'number', 'loan_system.substandard_loans', required=True,
+                                  description=self._get_field_info('substandard_loans')['description'],
+                                  unit=self._get_field_info('substandard_loans')['unit'],
+                                  regulatory_requirement=self._get_field_info('substandard_loans')['regulatory_requirement']),
+                        ReportField('doubtful_loans', '可疑类贷款', 'number', 'loan_system.doubtful_loans', required=True,
+                                  description=self._get_field_info('doubtful_loans')['description'],
+                                  unit=self._get_field_info('doubtful_loans')['unit'],
+                                  regulatory_requirement=self._get_field_info('doubtful_loans')['regulatory_requirement']),
+                        ReportField('loss_loans', '损失类贷款', 'number', 'loan_system.loss_loans', required=True,
+                                  description=self._get_field_info('loss_loans')['description'],
+                                  unit=self._get_field_info('loss_loans')['unit'],
+                                  regulatory_requirement=self._get_field_info('loss_loans')['regulatory_requirement']),
                         ReportField('total_loans', '贷款总额', 'number', 'formula',
-                                 formula='normal_loans + special_mention_loans + substandard_loans + doubtful_loans + loss_loans', required=True),
+                                 formula='normal_loans + special_mention_loans + substandard_loans + doubtful_loans + loss_loans', required=True,
+                                 description=self._get_field_info('total_loans')['description'],
+                                 unit=self._get_field_info('total_loans')['unit'],
+                                 regulatory_requirement=self._get_field_info('total_loans')['regulatory_requirement']),
                         ReportField('npl_loans', '不良贷款', 'number', 'formula',
-                                 formula='substandard_loans + doubtful_loans + loss_loans', required=True),
+                                 formula='substandard_loans + doubtful_loans + loss_loans', required=True,
+                                 description=self._get_field_info('npl_loans')['description'],
+                                 unit=self._get_field_info('npl_loans')['unit'],
+                                 regulatory_requirement=self._get_field_info('npl_loans')['regulatory_requirement']),
                         ReportField('npl_ratio', '不良贷款率', 'number', 'formula',
-                                 formula='(npl_loans / total_loans) * 100', required=True)
+                                 formula='(npl_loans / total_loans) * 100', required=True,
+                                 description=self._get_field_info('npl_ratio')['description'],
+                                 unit=self._get_field_info('npl_ratio')['unit'],
+                                 regulatory_requirement=self._get_field_info('npl_ratio')['regulatory_requirement'])
                     ]
                 )
             ]
@@ -195,8 +275,14 @@ class ReportTemplateManager:
                     section_name='表头',
                     section_type='header',
                     fields=[
-                        ReportField('report_period', '报表期间', 'text', 'system', required=True),
-                        ReportField('report_date', '报表日期', 'date', 'system', required=True)
+                        ReportField('report_period', '报表期间', 'text', 'system', required=True,
+                                  description=self._get_field_info('report_period')['description'],
+                                  unit=self._get_field_info('report_period')['unit'],
+                                  regulatory_requirement=self._get_field_info('report_period')['regulatory_requirement']),
+                        ReportField('report_date', '报表日期', 'date', 'system', required=True,
+                                  description=self._get_field_info('report_date')['description'],
+                                  unit=self._get_field_info('report_date')['unit'],
+                                  regulatory_requirement=self._get_field_info('report_date')['regulatory_requirement'])
                     ]
                 ),
                 ReportSection(
@@ -205,7 +291,10 @@ class ReportTemplateManager:
                     section_type='body',
                     fields=[
                         ReportField('high_quality_liquid_assets', '优质流动性资产', 'number', 
-                                 'regulatory_monitor.high_quality_liquid_assets', required=True)
+                                 'regulatory_monitor.high_quality_liquid_assets', required=True,
+                                 description=self._get_field_info('high_quality_liquid_assets')['description'],
+                                 unit=self._get_field_info('high_quality_liquid_assets')['unit'],
+                                 regulatory_requirement=self._get_field_info('high_quality_liquid_assets')['regulatory_requirement'])
                     ]
                 ),
                 ReportSection(
@@ -214,7 +303,10 @@ class ReportTemplateManager:
                     section_type='body',
                     fields=[
                         ReportField('net_cash_outflow_30d', '未来30天现金净流出', 'number',
-                                 'regulatory_monitor.net_cash_outflow_30d', required=True)
+                                 'regulatory_monitor.net_cash_outflow_30d', required=True,
+                                 description=self._get_field_info('net_cash_outflow_30d')['description'],
+                                 unit=self._get_field_info('net_cash_outflow_30d')['unit'],
+                                 regulatory_requirement=self._get_field_info('net_cash_outflow_30d')['regulatory_requirement'])
                     ]
                 ),
                 ReportSection(
@@ -223,7 +315,10 @@ class ReportTemplateManager:
                     section_type='summary',
                     fields=[
                         ReportField('lcr', '流动性覆盖率', 'number', 'formula',
-                                 formula='(high_quality_liquid_assets / net_cash_outflow_30d) * 100', required=True)
+                                 formula='(high_quality_liquid_assets / net_cash_outflow_30d) * 100', required=True,
+                                 description=self._get_field_info('lcr')['description'],
+                                 unit=self._get_field_info('lcr')['unit'],
+                                 regulatory_requirement=self._get_field_info('lcr')['regulatory_requirement'])
                     ]
                 )
             ]
@@ -282,7 +377,10 @@ class ReportTemplateManager:
                             'data_source': f.data_source,
                             'formula': f.formula,
                             'required': f.required,
-                            'default_value': f.default_value
+                            'default_value': f.default_value,
+                            'description': f.description,
+                            'unit': f.unit,
+                            'regulatory_requirement': f.regulatory_requirement
                         }
                         for f in s.fields
                     ]

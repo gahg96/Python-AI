@@ -607,6 +607,23 @@
             loadTemplatesForSelect();
         }
         
+        // 字段说明缓存
+        let fieldDescriptionsCache = {};
+        
+        // 获取字段说明
+        function getFieldDescription(fieldId) {
+            if (fieldDescriptionsCache[fieldId]) {
+                return fieldDescriptionsCache[fieldId];
+            }
+            // 默认返回
+            return {
+                name: fieldId,
+                description: '',
+                unit: '',
+                regulatory_requirement: ''
+            };
+        }
+        
         // 查看模板详情
         async function viewTemplateDetail(templateId) {
             try {
@@ -615,7 +632,65 @@
                 
                 if (data.success) {
                     const template = data.template;
-                    alert(`模板详情:\n\n名称: ${template.template_name}\n编号: ${template.template_code}\n类型: ${getTemplateTypeName(template.template_type)}\n频率: ${getFrequencyName(template.frequency)}\n描述: ${template.description}\n\n字段数: ${template.sections.reduce((sum, s) => sum + s.fields.length, 0)}`);
+                    // 缓存字段说明
+                    template.sections.forEach(section => {
+                        section.fields.forEach(field => {
+                            fieldDescriptionsCache[field.field_id] = {
+                                name: field.field_name,
+                                description: field.description || '',
+                                unit: field.unit || '',
+                                regulatory_requirement: field.regulatory_requirement || ''
+                            };
+                        });
+                    });
+                    
+                    // 显示模板详情模态框
+                    const modal = document.getElementById('instance-modal');
+                    const modalBody = document.getElementById('modal-body');
+                    
+                    modalBody.innerHTML = `
+                        <div class="modal-header">
+                            <h3 class="modal-title">${template.template_name} - 字段说明</h3>
+                            <button class="close-btn" onclick="closeModal()">&times;</button>
+                        </div>
+                        <div style="margin-top: 20px;">
+                            <p><strong>报表编号：</strong>${template.template_code}</p>
+                            <p><strong>报表类型：</strong>${getTemplateTypeName(template.template_type)}</p>
+                            <p><strong>报送频率：</strong>${getFrequencyName(template.frequency)}</p>
+                            <p><strong>报送截止：</strong>报表期间结束后${template.due_days}个工作日内</p>
+                            <p><strong>描述：</strong>${template.description}</p>
+                        </div>
+                        <h4 style="margin-top: 30px; margin-bottom: 15px;">字段列表</h4>
+                        ${template.sections.map(section => `
+                            <div style="margin-bottom: 30px;">
+                                <h5 style="color: #667eea; margin-bottom: 10px;">${section.section_name}</h5>
+                                <table class="report-data-table">
+                                    <thead>
+                                        <tr>
+                                            <th>字段名</th>
+                                            <th>类型</th>
+                                            <th>单位</th>
+                                            <th>说明</th>
+                                            <th>监管要求</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${section.fields.map(field => `
+                                            <tr>
+                                                <td><strong>${field.field_name}</strong></td>
+                                                <td>${field.field_type === 'formula' ? '公式' : field.field_type === 'number' ? '数值' : field.field_type}</td>
+                                                <td>${field.unit || ''}</td>
+                                                <td style="max-width: 250px; font-size: 12px;">${field.description || ''}</td>
+                                                <td style="max-width: 200px; font-size: 12px; color: #dc3545;">${field.regulatory_requirement || ''}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        `).join('')}
+                    `;
+                    
+                    modal.classList.add('active');
                 } else {
                     alert('加载失败: ' + data.error);
                 }
@@ -786,15 +861,26 @@
                                 <tr>
                                     <th>字段名</th>
                                     <th>值</th>
+                                    <th>单位</th>
+                                    <th>说明</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                ${Object.entries(instance.report_data || {}).map(([key, value]) => `
+                                ${Object.entries(instance.report_data || {}).map(([key, value]) => {
+                                    // 尝试从模板中获取字段说明
+                                    const fieldInfo = getFieldDescription(key);
+                                    return `
                                     <tr>
-                                        <td>${key}</td>
+                                        <td><strong>${fieldInfo.name || key}</strong></td>
                                         <td>${typeof value === 'number' ? value.toLocaleString('zh-CN') : value}</td>
+                                        <td>${fieldInfo.unit || ''}</td>
+                                        <td style="max-width: 300px; font-size: 12px; color: #666;">
+                                            ${fieldInfo.description ? fieldInfo.description.substring(0, 100) + (fieldInfo.description.length > 100 ? '...' : '') : ''}
+                                            ${fieldInfo.regulatory_requirement ? '<br><span style="color: #dc3545;">监管要求：' + fieldInfo.regulatory_requirement.substring(0, 80) + '...</span>' : ''}
+                                        </td>
                                     </tr>
-                                `).join('')}
+                                `;
+                                }).join('')}
                             </tbody>
                         </table>
                     `;
