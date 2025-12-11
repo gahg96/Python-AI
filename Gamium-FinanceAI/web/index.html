@@ -10793,11 +10793,72 @@
             const container = document.getElementById('arena-participants');
             if (!container) return;
             container.innerHTML = '';
-            (defaults || [
-                { name: '稳健策略', approval_threshold: 0.12, rate_spread: 0.01 },
-                { name: '平衡策略', approval_threshold: 0.18, rate_spread: 0.015 },
-                { name: '激进策略', approval_threshold: 0.25, rate_spread: 0.02 },
-            ]).forEach(addArenaParticipantCard);
+            
+            // 如果没有提供默认值，创建默认参赛者配置
+            if (!defaults) {
+                // 等待模型列表加载完成后再创建默认配置
+                if (arenaModelList.length > 0) {
+                    createDefaultParticipants();
+                } else {
+                    loadArenaModels().then(() => {
+                        createDefaultParticipants();
+                    });
+                }
+            } else {
+                // 使用提供的默认值
+                defaults.forEach(addArenaParticipantCard);
+            }
+        }
+        
+        function createDefaultParticipants() {
+            // 获取可用的模型列表（优先选择不同类型的模型）
+            const availableModels = arenaModelList.filter(m => m.id);
+            
+            // 智能选择模型：优先选择不同提供商的模型
+            const selectedModels = [];
+            const usedProviders = new Set();
+            
+            // 第一轮：优先选择不同提供商的模型
+            for (const model of availableModels) {
+                if (selectedModels.length >= 3) break;
+                if (!usedProviders.has(model.provider)) {
+                    selectedModels.push(model.id);
+                    usedProviders.add(model.provider);
+                }
+            }
+            
+            // 第二轮：如果还不够3个，继续添加
+            for (const model of availableModels) {
+                if (selectedModels.length >= 3) break;
+                if (!selectedModels.includes(model.id)) {
+                    selectedModels.push(model.id);
+                }
+            }
+            
+            // 默认参赛者配置（每个策略选择不同的模型）
+            const defaultParticipants = [
+                { 
+                    name: '策略1', 
+                    approval_threshold: 0.12, 
+                    rate_spread: 0.01, 
+                    model_id: selectedModels[0] || '' 
+                },
+                { 
+                    name: '策略2', 
+                    approval_threshold: 0.18, 
+                    rate_spread: 0.015, 
+                    model_id: selectedModels[1] || '' 
+                },
+                { 
+                    name: '策略3', 
+                    approval_threshold: 0.25, 
+                    rate_spread: 0.02, 
+                    model_id: selectedModels[2] || '' 
+                },
+            ];
+            
+            defaultParticipants.forEach(addArenaParticipantCard);
+            console.log('✅ 已创建默认参赛者，每个策略选择了不同的模型');
         }
 
         function addArenaParticipantCard(p) {
@@ -10808,6 +10869,7 @@
             card.style.padding = '10px';
             card.style.display = 'grid';
             card.style.gap = '6px';
+            // 确保模型列表已加载
             const modelSelectOptions = generateModelSelectOptions(p.model_id || '');
             card.innerHTML = `
                 <div style="display:flex; justify-content: space-between; align-items:center;">
@@ -10818,32 +10880,85 @@
                     <input type="number" class="form-input" value="${p.approval_threshold || 0.18}" step="0.01" placeholder="审批阈值">
                     <input type="number" class="form-input" value="${p.rate_spread || 0.01}" step="0.001" placeholder="利差">
                 </div>
-                <select class="form-input" style="width: 100%;">
+                <select class="form-input arena-model-select" style="width: 100%;">
                     ${modelSelectOptions}
                 </select>
             `;
             container.appendChild(card);
+            console.log(`已添加参赛者卡片: ${p.name || '新策略'}, 当前总数: ${container.children.length}`);
         }
 
         function addArenaParticipant() {
-            addArenaParticipantCard({name: '新策略', approval_threshold: 0.18, rate_spread: 0.01});
+            // 获取当前已有的策略数量，自动命名
+            const container = document.getElementById('arena-participants');
+            const currentCount = container ? container.children.length : 0;
+            const newName = `策略${currentCount + 1}`;
+            
+            // 选择一个未使用的模型（如果有）
+            const usedModelIds = new Set();
+            if (container) {
+                Array.from(container.children).forEach(card => {
+                    const select = card.querySelector('select');
+                    if (select && select.value) {
+                        usedModelIds.add(select.value);
+                    }
+                });
+            }
+            
+            // 选择一个未使用的模型
+            let selectedModelId = '';
+            for (const model of arenaModelList) {
+                if (model.id && !usedModelIds.has(model.id)) {
+                    selectedModelId = model.id;
+                    break;
+                }
+            }
+            
+            addArenaParticipantCard({
+                name: newName, 
+                approval_threshold: 0.18, 
+                rate_spread: 0.01,
+                model_id: selectedModelId
+            });
         }
 
         function collectArenaParticipants() {
             const container = document.getElementById('arena-participants');
-            if (!container) return [];
-            const cards = Array.from(container.children);
-            return cards.map(c => {
-                const inputs = c.querySelectorAll('input');
-                const select = c.querySelector('select');
-                const modelId = select?.value || null;
-                return {
-                    name: inputs[0]?.value || '未命名',
-                    approval_threshold: parseFloat(inputs[1]?.value || 0.18),
-                    rate_spread: parseFloat(inputs[2]?.value || 0.01),
+            if (!container) {
+                console.warn('未找到参赛者容器');
+                return [];
+            }
+            // 获取所有卡片（包括.card类的div元素）
+            const cards = Array.from(container.children).filter(c => c.classList.contains('card'));
+            console.log(`收集参赛者：找到 ${cards.length} 个卡片（容器总子元素: ${container.children.length}）`);
+            
+            if (cards.length === 0) {
+                console.warn('未找到任何参赛者卡片');
+                return [];
+            }
+            
+            const participants = cards.map((c, idx) => {
+                // 获取所有输入框（文本和数字）
+                const textInputs = c.querySelectorAll('input[type="text"]');
+                const numberInputs = c.querySelectorAll('input[type="number"]');
+                const select = c.querySelector('select.arena-model-select') || c.querySelector('select');
+                
+                const name = textInputs[0]?.value?.trim() || `未命名策略${idx + 1}`;
+                const approval_threshold = parseFloat(numberInputs[0]?.value || 0.18);
+                const rate_spread = parseFloat(numberInputs[1]?.value || 0.01);
+                const modelId = select?.value?.trim() || null;
+                
+                const participant = {
+                    name: name,
+                    approval_threshold: approval_threshold,
+                    rate_spread: rate_spread,
                     model_id: modelId || null
                 };
+                console.log(`参赛者 ${idx + 1}:`, participant);
+                return participant;
             });
+            console.log(`✅ 总共收集到 ${participants.length} 个参赛者:`, participants);
+            return participants;
         }
 
         // 规则配置相关函数
@@ -11080,8 +11195,17 @@
             if (!box) return;
             box.innerHTML = `<div class="loading"><div class="spinner"></div><p>计算中...</p></div>`;
             try {
+                // 重新收集所有参赛者和规则（确保获取最新数据）
                 const participants = collectArenaParticipants();
                 const rules = collectArenaRules();
+                
+                // 验证参赛者数量
+                if (participants.length === 0) {
+                    throw new Error('请至少添加一个参赛者');
+                }
+                
+                console.log('运行PK，参赛者数量:', participants.length, '规则数量:', rules.length);
+                
                 const payload = {
                     participants,
                     rules,
@@ -11092,11 +11216,27 @@
                     scenario: document.getElementById('arena-scenario')?.value || 'normal',
                     black_swan: !!document.getElementById('arena-black-swan')?.checked
                 };
+                
+                console.log('发送请求，payload:', JSON.stringify(payload, null, 2));
                 const res = await fetch(`${API_BASE}/api/arena/run`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                
+                // 检查响应状态
+                if (!res.ok) {
+                    const errorText = await res.text();
+                    throw new Error(`HTTP ${res.status}: ${errorText.substring(0, 200)}`);
+                }
+                
+                // 检查Content-Type
+                const contentType = res.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await res.text();
+                    throw new Error(`服务器返回了非JSON响应: ${text.substring(0, 200)}`);
+                }
+                
                 const data = await res.json();
                 if (!data.success) throw new Error(data.error || '请求失败');
                 window.lastArenaResult = data;

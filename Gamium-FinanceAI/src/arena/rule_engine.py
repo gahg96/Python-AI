@@ -124,7 +124,8 @@ class RuleEngine:
             if rule:
                 self.rules.append(rule)
         # 按优先级排序
-        self.rules.sort(key=lambda r: r.priority, reverse=True)
+        # 排序规则（处理None值）
+        self.rules.sort(key=lambda r: r.priority if r.priority is not None else 0, reverse=True)
     
     def _parse_rule(self, rule_dict: Dict[str, Any]) -> Optional[Rule]:
         """解析单个规则字典"""

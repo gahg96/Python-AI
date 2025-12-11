@@ -153,6 +153,16 @@ def dashboard():
     """大屏展示页面（别名）"""
     return send_from_directory('web', 'dashboard.html')
 
+@app.route('/api/health', methods=['GET'])
+def health_check():
+    """健康检查端点"""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'Gamium Finance AI',
+        'version': '1.0.0',
+        'timestamp': time.time()
+    })
+
 # ============================================================
 # 客户生成 API
 # ============================================================
@@ -2463,253 +2473,267 @@ def run_ai_arena():
     输出：各参赛者审批率、违约概率、预估利润、风险指标、评分分解、触发规则列表
     """
     from datetime import datetime
+    import traceback
     
-    data = request.json or {}
-    participants = data.get('participants') or [
-        {"name": "稳健策略", "approval_threshold": 0.12, "rate_spread": 0.01},
-        {"name": "平衡策略", "approval_threshold": 0.18, "rate_spread": 0.015},
-        {"name": "激进策略", "approval_threshold": 0.25, "rate_spread": 0.02},
-    ]
-    customer_count = int(data.get('customer_count', 300))
-    loan_amount = float(data.get('loan_amount', 100000))
-    base_rate = float(data.get('base_rate', 0.08))
-    seed = int(data.get('seed', 42))
-    scenario = data.get('scenario', 'normal')
-    black_swan = bool(data.get('black_swan', False))
-    rules_config = data.get('rules', [])
-    scoring_weights = data.get('scoring_weights', {})
+    try:
+        data = request.json or {}
+        participants = data.get('participants') or [
+            {"name": "稳健策略", "approval_threshold": 0.12, "rate_spread": 0.01},
+            {"name": "平衡策略", "approval_threshold": 0.18, "rate_spread": 0.015},
+            {"name": "激进策略", "approval_threshold": 0.25, "rate_spread": 0.02},
+        ]
+        customer_count = int(data.get('customer_count', 300))
+        loan_amount = float(data.get('loan_amount', 100000))
+        base_rate = float(data.get('base_rate', 0.08))
+        seed = int(data.get('seed', 42))
+        scenario = data.get('scenario', 'normal')
+        black_swan = bool(data.get('black_swan', False))
+        rules_config = data.get('rules', [])
+        scoring_weights = data.get('scoring_weights', {})
 
-    # 初始化规则引擎和评分系统
-    rule_engine = RuleEngine(rules_config)
-    scoring_system = ScoringSystem(scoring_weights)
+        # 初始化规则引擎和评分系统
+        rule_engine = RuleEngine(rules_config)
+        scoring_system = ScoringSystem(scoring_weights)
 
-    rng = np.random.default_rng(seed)
-    local_world_model = WorldModel(seed=seed)
-    results = []
+        rng = np.random.default_rng(seed)
+        local_world_model = WorldModel(seed=seed)
+        results = []
 
-    # 根据情景调整宏观参数
-    gdp = 0.03
-    unemp = 0.05
-    base_ir = base_rate
-    infl = 0.02
-    credit_spread = 0.02
-    if scenario == 'stress':
-        gdp = -0.02
-        unemp = 0.09
-        base_ir = base_rate + 0.01
-        credit_spread = 0.05
-    if black_swan:
-        gdp -= 0.02
-        unemp += 0.02
-        credit_spread += 0.03
+        # 根据情景调整宏观参数
+        gdp = 0.03
+        unemp = 0.05
+        base_ir = base_rate
+        infl = 0.02
+        credit_spread = 0.02
+        if scenario == 'stress':
+            gdp = -0.02
+            unemp = 0.09
+            base_ir = base_rate + 0.01
+            credit_spread = 0.05
+        if black_swan:
+            gdp -= 0.02
+            unemp += 0.02
+            credit_spread += 0.03
 
-    market = MarketConditions(
-        gdp_growth=gdp,
-        base_interest_rate=base_ir,
-        unemployment_rate=unemp,
-        inflation_rate=infl,
-        credit_spread=credit_spread,
-    )
+        market = MarketConditions(
+            gdp_growth=gdp,
+            base_interest_rate=base_ir,
+            unemployment_rate=unemp,
+            inflation_rate=infl,
+            credit_spread=credit_spread,
+        )
 
-    # 准备统一客户集
-    customers = [generator.generate_one() for _ in range(customer_count)]
+        # 准备统一客户集
+        customers = [generator.generate_one() for _ in range(customer_count)]
 
-    for p in participants:
-        threshold = float(p.get('approval_threshold', 0.18))
-        spread = float(p.get('rate_spread', 0.01))
-        name = p.get('name', '未命名')
-        model_id = p.get('model_id')  # 预留：后续接入LLM
+        for p in participants:
+            threshold = float(p.get('approval_threshold', 0.18))
+            spread = float(p.get('rate_spread', 0.01))
+            name = p.get('name', '未命名')
+            model_id = p.get('model_id')  # 预留：后续接入LLM
 
-        approved = 0
-        rejected = 0
-        profit = 0.0
-        default_probs = []
-        factors_sum = 0.0
-        factors_cnt = 0
-        factor_bucket = {}
-        dp_list = []
-        interest_income_sum = 0.0
-        expected_loss_sum = 0.0
-        triggered_rules_list = []  # 所有触发的规则名称列表
-        triggered_rules_count = {}  # 规则触发次数统计
-        all_customer_details = []  # 存储所有客户详情用于回放
-        profit_history = []  # 利润历史用于计算波动率
+            approved = 0
+            rejected = 0
+            profit = 0.0
+            default_probs = []
+            factors_sum = 0.0
+            factors_cnt = 0
+            factor_bucket = {}
+            dp_list = []
+            interest_income_sum = 0.0
+            expected_loss_sum = 0.0
+            triggered_rules_list = []  # 所有触发的规则名称列表
+            triggered_rules_count = {}  # 规则触发次数统计
+            all_customer_details = []  # 存储所有客户详情用于回放
+            profit_history = []  # 利润历史用于计算波动率
 
-        for cust in customers:
-            # 使用规则引擎处理客户
-            adjustments, triggered, score_adjustments = rule_engine.process_customer(
-                cust, threshold, spread, loan_amount, 24
-            )
-            
-            # 记录触发的规则
-            triggered_rules_list.extend(triggered)
-            for rule_name in triggered:
-                triggered_rules_count[rule_name] = triggered_rules_count.get(rule_name, 0) + 1
-            
-            # 使用调整后的参数
-            final_threshold = adjustments['approval_threshold']
-            final_spread = adjustments['rate_spread']
-            final_loan_amount = adjustments['loan_amount']
-            final_term = adjustments['term_months']
-            
-            # 强制通过/拒绝
-            if adjustments['force_reject']:
-                rejected += 1
-                all_customer_details.append({
-                    'customer_id': cust.customer_id,
-                    'decision': 'rejected',
-                    'reason': '规则强制拒绝',
-                    'triggered_rules': triggered,
-                    'default_prob': None
-                })
-                continue
-            if adjustments['force_approve']:
-                # 强制通过，但仍需计算违约概率
-                approved += 1
+            for cust in customers:
+                # 使用规则引擎处理客户
+                adjustments, triggered, score_adjustments = rule_engine.process_customer(
+                    cust, threshold, spread, loan_amount, 24
+                )
+                
+                # 记录触发的规则
+                triggered_rules_list.extend(triggered)
+                for rule_name in triggered:
+                    triggered_rules_count[rule_name] = triggered_rules_count.get(rule_name, 0) + 1
+                
+                # 使用调整后的参数
+                final_threshold = adjustments['approval_threshold']
+                final_spread = adjustments['rate_spread']
+                final_loan_amount = adjustments['loan_amount']
+                final_term = adjustments['term_months']
+                
+                # 强制通过/拒绝
+                if adjustments['force_reject']:
+                    rejected += 1
+                    all_customer_details.append({
+                        'customer_id': cust.customer_id,
+                        'decision': 'rejected',
+                        'reason': '规则强制拒绝',
+                        'triggered_rules': triggered,
+                        'default_prob': None
+                    })
+                    continue
+                if adjustments['force_approve']:
+                    # 强制通过，但仍需计算违约概率
+                    approved += 1
+                    rate = base_rate + final_spread
+                    loan = LoanOffer(amount=final_loan_amount, interest_rate=rate, term_months=final_term)
+                    future = local_world_model.predict_customer_future(cust, loan, market, add_noise=False)
+                    dp = float(future.default_probability)
+                    interest_income = final_loan_amount * rate
+                    expected_loss = final_loan_amount * dp
+                    net_profit = interest_income * (1 - dp) - expected_loss
+                    profit += net_profit * score_adjustments['profit_discount']
+                    interest_income_sum += interest_income
+                    expected_loss_sum += expected_loss
+                    default_probs.append(dp)
+                    dp_list.append(dp)
+                    profit_history.append(net_profit)
+                    all_customer_details.append({
+                        'customer_id': cust.customer_id,
+                        'decision': 'approved',
+                        'reason': '规则强制通过',
+                        'triggered_rules': triggered,
+                        'default_prob': dp,
+                        'profit': net_profit
+                    })
+                    continue
+
+                # 正常审批流程
                 rate = base_rate + final_spread
                 loan = LoanOffer(amount=final_loan_amount, interest_rate=rate, term_months=final_term)
                 future = local_world_model.predict_customer_future(cust, loan, market, add_noise=False)
                 dp = float(future.default_probability)
-                interest_income = final_loan_amount * rate
-                expected_loss = final_loan_amount * dp
-                net_profit = interest_income * (1 - dp) - expected_loss
-                profit += net_profit * score_adjustments['profit_discount']
-                interest_income_sum += interest_income
-                expected_loss_sum += expected_loss
-                default_probs.append(dp)
-                dp_list.append(dp)
-                profit_history.append(net_profit)
-                all_customer_details.append({
-                    'customer_id': cust.customer_id,
-                    'decision': 'approved',
-                    'reason': '规则强制通过',
-                    'triggered_rules': triggered,
-                    'default_prob': dp,
-                    'profit': net_profit
-                })
-                continue
+                
+                if dp <= final_threshold:
+                    approved += 1
+                    interest_income = final_loan_amount * rate
+                    expected_loss = final_loan_amount * dp
+                    net_profit = interest_income * (1 - dp) - expected_loss
+                    # 应用利润折扣
+                    net_profit *= score_adjustments['profit_discount']
+                    profit += net_profit
+                    interest_income_sum += interest_income
+                    expected_loss_sum += expected_loss
+                    default_probs.append(dp)
+                    dp_list.append(dp)
+                    profit_history.append(net_profit)
+                    
+                    if future.risk_factors:
+                        for k, v in future.risk_factors.items():
+                            if isinstance(v, (int, float)):
+                                factors_sum += v * score_adjustments['risk_multiplier']
+                                factors_cnt += 1
+                                factor_bucket.setdefault(k, []).append(v)
+                    
+                    all_customer_details.append({
+                        'customer_id': cust.customer_id,
+                        'decision': 'approved',
+                        'reason': f'违约概率{dp:.4f} <= 阈值{final_threshold:.4f}',
+                        'triggered_rules': triggered,
+                        'default_prob': dp,
+                        'profit': net_profit,
+                        'adjustments': adjustments
+                    })
+                else:
+                    rejected += 1
+                    all_customer_details.append({
+                        'customer_id': cust.customer_id,
+                        'decision': 'rejected',
+                        'reason': f'违约概率{dp:.4f} > 阈值{final_threshold:.4f}',
+                        'triggered_rules': triggered,
+                        'default_prob': dp
+                    })
 
-            # 正常审批流程
-            rate = base_rate + final_spread
-            loan = LoanOffer(amount=final_loan_amount, interest_rate=rate, term_months=final_term)
-            future = local_world_model.predict_customer_future(cust, loan, market, add_noise=False)
-            dp = float(future.default_probability)
+            total = approved + rejected
+            avg_dp = np.mean(default_probs) if default_probs else 0.0
+            est_npl = avg_dp
+            avg_factor = factors_sum / factors_cnt if factors_cnt > 0 else 0.0
+            approval_rate = approved / total if total > 0 else 0
+            dp_p95 = float(np.percentile(dp_list, 95)) if dp_list else 0.0
+
+            factor_means = {k: float(np.mean(vs)) for k, vs in factor_bucket.items() if vs}
+            top_factors = sorted(factor_means.items(), key=lambda x: abs(x[1] - 1.0), reverse=True)[:5]
+
+            # 计算RAROC
+            raroc = profit / max(1.0, (est_npl * loan_amount * approved) + 1e3) if approved > 0 else 0.0
             
-            if dp <= final_threshold:
-                approved += 1
-                interest_income = final_loan_amount * rate
-                expected_loss = final_loan_amount * dp
-                net_profit = interest_income * (1 - dp) - expected_loss
-                # 应用利润折扣
-                net_profit *= score_adjustments['profit_discount']
-                profit += net_profit
-                interest_income_sum += interest_income
-                expected_loss_sum += expected_loss
-                default_probs.append(dp)
-                dp_list.append(dp)
-                profit_history.append(net_profit)
-                
-                if future.risk_factors:
-                    for k, v in future.risk_factors.items():
-                        if isinstance(v, (int, float)):
-                            factors_sum += v * score_adjustments['risk_multiplier']
-                            factors_cnt += 1
-                            factor_bucket.setdefault(k, []).append(v)
-                
-                all_customer_details.append({
-                    'customer_id': cust.customer_id,
-                    'decision': 'approved',
-                    'reason': f'违约概率{dp:.4f} <= 阈值{final_threshold:.4f}',
-                    'triggered_rules': triggered,
-                    'default_prob': dp,
-                    'profit': net_profit,
-                    'adjustments': adjustments
-                })
+            # 计算利润波动率
+            profit_volatility = float(np.std(profit_history)) if profit_history else 0.0
+            
+            # 计算最大回撤（简化版：基于利润历史）
+            max_drawdown = 0.0
+            if profit_history:
+                cumulative = np.cumsum(profit_history)
+                running_max = np.maximum.accumulate(cumulative)
+                drawdowns = (cumulative - running_max) / (running_max + 1e-6)
+                max_drawdown = float(np.min(drawdowns)) if len(drawdowns) > 0 else 0.0
+
+            # 构建结果字典
+            result_dict = {
+                "name": name,
+                "approval_rate": approval_rate,
+                "avg_default_prob": avg_dp,
+                "est_npl": est_npl,
+                "est_profit": profit,
+                "risk_factor_mean": avg_factor,
+                "sample_size": total,
+                "raroc": raroc,
+                "dp_p95": dp_p95,
+                "profit_breakdown": {
+                    "interest_income": interest_income_sum,
+                    "expected_loss": expected_loss_sum,
+                    "net_profit": profit
+                },
+                "factor_top5": top_factors,
+                "triggered_rules": triggered_rules_count,
+                "triggered_rules_list": list(set(triggered_rules_list)),  # 去重
+                "profit_volatility": profit_volatility,
+                "max_drawdown": abs(max_drawdown),
+                "recovery_time": 0.0,  # 多轮场景中计算
+                "compliance_violations": 0,  # 预留：合规检查
+                "avg_latency": 0.0,  # 预留：LLM延迟
+                "total_rules_count": len(rules_config),
+                "customer_details": all_customer_details[:50]  # 只返回前50个客户详情
+            }
+
+            results.append(result_dict)
+
+        # 计算评分分解（需要所有结果用于归一化）
+        for result in results:
+            breakdown = scoring_system.create_score_breakdown(
+                result,
+                triggered_rules=result.get('triggered_rules_list', []),
+                all_results=results
+            )
+            result['score_breakdown'] = {
+                'profit_score': breakdown.profit_score,
+                'risk_score': breakdown.risk_score,
+                'stability_score': breakdown.stability_score,
+                'compliance_score': breakdown.compliance_score,
+                'efficiency_score': breakdown.efficiency_score,
+                'explainability_score': breakdown.explainability_score,
+                'overall_score': breakdown.overall_score
+            }
+
+        # 按综合得分排序（处理None值）
+        def get_sort_key(x):
+            score_breakdown = x.get('score_breakdown', {})
+            overall_score = score_breakdown.get('overall_score') if score_breakdown else None
+            est_profit = x.get('est_profit')
+            # 如果overall_score是None，使用est_profit；如果都是None，使用0
+            if overall_score is not None:
+                return overall_score
+            elif est_profit is not None:
+                return est_profit
             else:
-                rejected += 1
-                all_customer_details.append({
-                    'customer_id': cust.customer_id,
-                    'decision': 'rejected',
-                    'reason': f'违约概率{dp:.4f} > 阈值{final_threshold:.4f}',
-                    'triggered_rules': triggered,
-                    'default_prob': dp
-                })
-
-        total = approved + rejected
-        avg_dp = np.mean(default_probs) if default_probs else 0.0
-        est_npl = avg_dp
-        avg_factor = factors_sum / factors_cnt if factors_cnt > 0 else 0.0
-        approval_rate = approved / total if total > 0 else 0
-        dp_p95 = float(np.percentile(dp_list, 95)) if dp_list else 0.0
-
-        factor_means = {k: float(np.mean(vs)) for k, vs in factor_bucket.items() if vs}
-        top_factors = sorted(factor_means.items(), key=lambda x: abs(x[1] - 1.0), reverse=True)[:5]
-
-        # 计算RAROC
-        raroc = profit / max(1.0, (est_npl * loan_amount * approved) + 1e3) if approved > 0 else 0.0
+                return 0.0
         
-        # 计算利润波动率
-        profit_volatility = float(np.std(profit_history)) if profit_history else 0.0
+        results.sort(key=get_sort_key, reverse=True)
         
-        # 计算最大回撤（简化版：基于利润历史）
-        max_drawdown = 0.0
-        if profit_history:
-            cumulative = np.cumsum(profit_history)
-            running_max = np.maximum.accumulate(cumulative)
-            drawdowns = (cumulative - running_max) / (running_max + 1e-6)
-            max_drawdown = float(np.min(drawdowns)) if len(drawdowns) > 0 else 0.0
-
-        # 构建结果字典
-        result_dict = {
-            "name": name,
-            "approval_rate": approval_rate,
-            "avg_default_prob": avg_dp,
-            "est_npl": est_npl,
-            "est_profit": profit,
-            "risk_factor_mean": avg_factor,
-            "sample_size": total,
-            "raroc": raroc,
-            "dp_p95": dp_p95,
-            "profit_breakdown": {
-                "interest_income": interest_income_sum,
-                "expected_loss": expected_loss_sum,
-                "net_profit": profit
-            },
-            "factor_top5": top_factors,
-            "triggered_rules": triggered_rules_count,
-            "triggered_rules_list": list(set(triggered_rules_list)),  # 去重
-            "profit_volatility": profit_volatility,
-            "max_drawdown": abs(max_drawdown),
-            "recovery_time": 0.0,  # 多轮场景中计算
-            "compliance_violations": 0,  # 预留：合规检查
-            "avg_latency": 0.0,  # 预留：LLM延迟
-            "total_rules_count": len(rules_config),
-            "customer_details": all_customer_details[:50]  # 只返回前50个客户详情
-        }
-
-        results.append(result_dict)
-
-    # 计算评分分解（需要所有结果用于归一化）
-    for result in results:
-        breakdown = scoring_system.create_score_breakdown(
-            result,
-            triggered_rules=result.get('triggered_rules_list', []),
-            all_results=results
-        )
-        result['score_breakdown'] = {
-            'profit_score': breakdown.profit_score,
-            'risk_score': breakdown.risk_score,
-            'stability_score': breakdown.stability_score,
-            'compliance_score': breakdown.compliance_score,
-            'efficiency_score': breakdown.efficiency_score,
-            'explainability_score': breakdown.explainability_score,
-            'overall_score': breakdown.overall_score
-        }
-
-    # 按综合得分排序
-    results.sort(key=lambda x: x.get('score_breakdown', {}).get('overall_score', x.get('est_profit', 0)), reverse=True)
-    
-    summary = {
+        summary = {
         "run_id": datetime.now().strftime('%Y%m%d_%H%M%S'),
         "customer_count": customer_count,
         "loan_amount": loan_amount,
@@ -2730,11 +2754,22 @@ def run_ai_arena():
         ]
     }
 
-    return jsonify({
-        "success": True,
-        "summary": summary,
-        "results": results
-    })
+        return jsonify({
+            "success": True,
+            "summary": summary,
+            "results": results
+        })
+    except Exception as e:
+        import traceback
+        error_msg = str(e)
+        error_trace = traceback.format_exc()
+        print(f"演武场运行错误: {error_msg}")
+        print(error_trace)
+        return jsonify({
+            "success": False,
+            "error": error_msg,
+            "trace": error_trace if app.debug else None
+        }), 500
 
 
 @app.route('/api/arena/ai-explain', methods=['POST'])
