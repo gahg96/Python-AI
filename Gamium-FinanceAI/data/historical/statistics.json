@@ -1,0 +1,15 @@
+{
+  "total_loans": 10000,
+  "personal_loans": 7000,
+  "corporate_loans": 3000,
+  "approved_loans": 9980,
+  "rejected_loans": 20,
+  "defaulted_loans": 682,
+  "approval_rate": 0.998,
+  "default_rate": 0.06833667334669338,
+  "avg_profit": 45959.285972945894,
+  "date_range": {
+    "start": "2020-01-01",
+    "end": "2024-12-30"
+  }
+}
