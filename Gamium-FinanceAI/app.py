@@ -6324,7 +6324,7 @@ def api_generate_historical():
         num_loans = data.get('num_loans', 10000)
         personal_ratio = data.get('personal_ratio', 0.7)
         
-        from demo.historical_data_generator import HistoricalLoanDataGenerator
+        from src.demo.historical_data_generator import HistoricalLoanDataGenerator
         
         generator = HistoricalLoanDataGenerator(seed=42)
         df = generator.generate_historical_loans(
@@ -6350,7 +6350,7 @@ def api_check_quality():
     """数据质量检查"""
     try:
         import pandas as pd
-        from demo.data_quality_checker import DataQualityChecker
+        from src.demo.data_quality_checker import DataQualityChecker
         
         data_path = 'data/historical/historical_loans.csv'
         if not Path(data_path).exists():
@@ -6385,7 +6385,7 @@ def api_engineer_features():
     """特征工程"""
     try:
         import pandas as pd
-        from demo.feature_engineer import FeatureEngineer
+        from src.demo.feature_engineer import FeatureEngineer
         
         data_path = 'data/historical/historical_loans.csv'
         if not Path(data_path).exists():
@@ -6421,8 +6421,8 @@ def api_extract_rules():
     """规则提取和量化"""
     try:
         import pandas as pd
-        from demo.rule_extractor import RuleExtractor
-        from demo.rule_quantifier import RuleQuantifier
+        from src.demo.rule_extractor import RuleExtractor
+        from src.demo.rule_quantifier import RuleQuantifier
         
         data_path = 'data/historical/historical_loans_engineered.csv'
         if not Path(data_path).exists():
@@ -6462,7 +6462,7 @@ def api_train_models():
     """模型训练"""
     try:
         import pandas as pd
-        from demo.world_model_trainer import WorldModelTrainer
+        from src.demo.world_model_trainer import WorldModelTrainer
         
         data_path = 'data/historical/historical_loans_engineered.csv'
         if not Path(data_path).exists():
@@ -6498,13 +6498,13 @@ def api_simulate_approval():
     """模拟审批"""
     try:
         import pandas as pd
-        from demo.enhanced_customer_generator import EnhancedCustomerGenerator
-        from demo.market_simulator import MarketSimulator
-        from demo.model_decision import ModelDecisionMaker
-        from demo.enhanced_rule_engine import EnhancedRuleEngine
-        from demo.decision_fusion import DecisionFusion
-        from demo.repayment_simulator import RepaymentSimulator
-        from demo.recovery_calculator import RecoveryCalculator
+        from src.demo.enhanced_customer_generator import EnhancedCustomerGenerator
+        from src.demo.market_simulator import MarketSimulator
+        from src.demo.model_decision import ModelDecisionMaker
+        from src.demo.enhanced_rule_engine import EnhancedRuleEngine
+        from src.demo.decision_fusion import DecisionFusion
+        from src.demo.repayment_simulator import RepaymentSimulator
+        from src.demo.recovery_calculator import RecoveryCalculator
         from datetime import datetime
         import numpy as np
         
@@ -6635,7 +6635,7 @@ def api_validate_results():
     """结果验证"""
     try:
         import pandas as pd
-        from demo.result_validator import ResultValidator
+        from src.demo.result_validator import ResultValidator
         
         hist_path = 'data/historical/historical_loans_engineered.csv'
         sim_path = 'data/historical/simulated_results.csv'
