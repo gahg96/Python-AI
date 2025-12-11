@@ -1,0 +1,38 @@
+[
+  {
+    "rule_id": "R0000",
+    "rule_name": "age_range_31.00_35.00",
+    "rule_type": "range",
+    "customer_type": "personal",
+    "description": "age 在 31.00-35.00 时违约率 6.13%",
+    "weight": 0.10639837869137234,
+    "priority": 1
+  },
+  {
+    "rule_id": "R0003",
+    "rule_name": "operating_years_range_6.10_8.00",
+    "rule_type": "range",
+    "customer_type": "corporate",
+    "description": "operating_years 在 6.10-8.00 时违约率 5.00%",
+    "weight": 0.10042283298097252,
+    "priority": 1
+  },
+  {
+    "rule_id": "R0002",
+    "rule_name": "registered_capital_range_100000.00_153562.30",
+    "rule_type": "range",
+    "customer_type": "corporate",
+    "description": "registered_capital 在 100000.00-153562.30 时违约率 3.87%",
+    "weight": 0.09619450317124736,
+    "priority": 1
+  },
+  {
+    "rule_id": "R0001",
+    "rule_name": "monthly_income_range_7899.36_9654.03",
+    "rule_type": "range",
+    "customer_type": "personal",
+    "description": "monthly_income 在 7899.36-9654.03 时违约率 5.93%",
+    "weight": 0.09409380428488709,
+    "priority": 1
+  }
+]
