@@ -6765,11 +6765,13 @@ report_template_manager = None
 data_collector = None
 data_validator = None
 report_generator = None
+approval_workflow_manager = None
 
 def init_regulatory_system():
     """初始化监管系统"""
     global regulatory_monitor, compliance_checker, emergency_plan_manager
     global report_template_manager, data_collector, data_validator, report_generator
+    global approval_workflow_manager
     from regulatory.regulatory_monitor import RegulatoryMonitor, BankMetrics
     from regulatory.compliance_checker import ComplianceChecker
     from regulatory.emergency_plan import EmergencyPlanManager
@@ -6777,6 +6779,7 @@ def init_regulatory_system():
     from reporting.data_collector import DataCollector
     from reporting.data_validator import DataValidator
     from reporting.report_generator import ReportGenerator
+    from reporting.approval_workflow import ApprovalWorkflowManager
     
     regulatory_monitor = RegulatoryMonitor()
     compliance_checker = ComplianceChecker()
@@ -6791,6 +6794,7 @@ def init_regulatory_system():
         data_collector=data_collector,
         data_validator=data_validator
     )
+    approval_workflow_manager = ApprovalWorkflowManager()
     
     # 初始化示例数据（实际应从业务系统获取）
     sample_metrics = BankMetrics(
@@ -7504,6 +7508,217 @@ def api_submit_report_instance(instance_id):
         return jsonify({
             'success': True,
             'instance': instance.to_dict()
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+# ============================================================
+# 审核流程管理 API
+# ============================================================
+
+@app.route('/api/reporting/approval/workflows', methods=['GET'])
+def api_get_approval_workflows():
+    """获取所有审核流程"""
+    try:
+        if not approval_workflow_manager:
+            return jsonify({
+                'success': False,
+                'error': '审核流程管理器未初始化'
+            }), 500
+        
+        workflows = approval_workflow_manager.get_all_workflows()
+        return jsonify({
+            'success': True,
+            'workflows': workflows,
+            'total': len(workflows)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/approval/start', methods=['POST'])
+def api_start_approval():
+    """启动审核流程"""
+    try:
+        if not approval_workflow_manager:
+            return jsonify({
+                'success': False,
+                'error': '审核流程管理器未初始化'
+            }), 500
+        
+        data = request.get_json() or {}
+        workflow_id = data.get('workflow_id')
+        report_instance_id = data.get('report_instance_id')
+        
+        if not workflow_id or not report_instance_id:
+            return jsonify({
+                'success': False,
+                'error': '缺少参数: workflow_id 或 report_instance_id'
+            }), 400
+        
+        instance = approval_workflow_manager.start_approval(workflow_id, report_instance_id)
+        if not instance:
+            return jsonify({
+                'success': False,
+                'error': '启动审核流程失败，流程不存在或已存在审核实例'
+            }), 400
+        
+        detail = approval_workflow_manager.get_instance_detail(instance.instance_id)
+        return jsonify({
+            'success': True,
+            'instance': detail
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/approval/instances', methods=['GET'])
+def api_get_approval_instances():
+    """获取所有审核实例"""
+    try:
+        if not approval_workflow_manager:
+            return jsonify({
+                'success': False,
+                'error': '审核流程管理器未初始化'
+            }), 500
+        
+        instances = approval_workflow_manager.get_all_instances()
+        return jsonify({
+            'success': True,
+            'instances': instances,
+            'total': len(instances)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/approval/instances/<instance_id>', methods=['GET'])
+def api_get_approval_instance(instance_id):
+    """获取审核实例详情"""
+    try:
+        if not approval_workflow_manager:
+            return jsonify({
+                'success': False,
+                'error': '审核流程管理器未初始化'
+            }), 500
+        
+        detail = approval_workflow_manager.get_instance_detail(instance_id)
+        if not detail:
+            return jsonify({
+                'success': False,
+                'error': f'审核实例 {instance_id} 不存在'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'instance': detail
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/approval/instances/<instance_id>/approve', methods=['POST'])
+def api_approve_instance(instance_id):
+    """执行审核"""
+    try:
+        if not approval_workflow_manager:
+            return jsonify({
+                'success': False,
+                'error': '审核流程管理器未初始化'
+            }), 500
+        
+        data = request.get_json() or {}
+        node_id = data.get('node_id')
+        approver = data.get('approver')
+        result = data.get('result')  # pass, reject, conditional
+        opinion = data.get('opinion', '')
+        
+        if not node_id or not approver or not result:
+            return jsonify({
+                'success': False,
+                'error': '缺少参数: node_id, approver, result'
+            }), 400
+        
+        from reporting.approval_workflow import ApprovalResult
+        result_enum = None
+        if result == 'pass':
+            result_enum = ApprovalResult.PASS
+        elif result == 'reject':
+            result_enum = ApprovalResult.REJECT
+        elif result == 'conditional':
+            result_enum = ApprovalResult.CONDITIONAL
+        else:
+            return jsonify({
+                'success': False,
+                'error': '无效的审核结果，应为: pass, reject, conditional'
+            }), 400
+        
+        success = approval_workflow_manager.approve(instance_id, node_id, approver, result_enum, opinion)
+        if not success:
+            return jsonify({
+                'success': False,
+                'error': '审核失败，请检查审核实例状态、节点ID和审核人'
+            }), 400
+        
+        detail = approval_workflow_manager.get_instance_detail(instance_id)
+        return jsonify({
+            'success': True,
+            'instance': detail
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/reporting/approval/instances/<instance_id>/cancel', methods=['POST'])
+def api_cancel_approval(instance_id):
+    """取消审核"""
+    try:
+        if not approval_workflow_manager:
+            return jsonify({
+                'success': False,
+                'error': '审核流程管理器未初始化'
+            }), 500
+        
+        data = request.get_json() or {}
+        cancelled_by = data.get('cancelled_by', '系统')
+        reason = data.get('reason', '')
+        
+        success = approval_workflow_manager.cancel_approval(instance_id, cancelled_by, reason)
+        if not success:
+            return jsonify({
+                'success': False,
+                'error': '取消审核失败，审核实例不存在或状态不允许取消'
+            }), 400
+        
+        detail = approval_workflow_manager.get_instance_detail(instance_id)
+        return jsonify({
+            'success': True,
+            'instance': detail
         })
     except Exception as e:
         import traceback
