@@ -108,6 +108,11 @@ def serve_docs(filename):
     docs_dir = os.path.join(os.path.dirname(__file__), 'docs')
     return send_from_directory(docs_dir, filename)
 
+@app.route('/demo')
+def demo_page():
+    """端到端Demo交互界面"""
+    return send_from_directory('web', 'demo.html')
+
 @app.route('/')
 def index():
     """大屏展示页面 - 首页"""
@@ -6307,6 +6312,435 @@ def stress_test():
             'traceback': traceback.format_exc()
         }), 500
 
+# ============================================================
+# 端到端Demo API
+# ============================================================
+
+@app.route('/api/demo/generate-historical', methods=['POST'])
+def api_generate_historical():
+    """生成历史数据"""
+    try:
+        data = request.get_json() or {}
+        num_loans = data.get('num_loans', 10000)
+        personal_ratio = data.get('personal_ratio', 0.7)
+        
+        from src.demo.historical_data_generator import HistoricalLoanDataGenerator
+        
+        generator = HistoricalLoanDataGenerator(seed=42)
+        df = generator.generate_historical_loans(
+            num_loans=num_loans,
+            personal_ratio=personal_ratio
+        )
+        stats = generator.save_to_files(df, output_dir='data/historical')
+        
+        return jsonify({
+            'success': True,
+            'stats': stats
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/demo/check-quality', methods=['POST'])
+def api_check_quality():
+    """数据质量检查"""
+    try:
+        import pandas as pd
+        from demo.data_quality_checker import DataQualityChecker
+        
+        data_path = 'data/historical/historical_loans.csv'
+        if not Path(data_path).exists():
+            return jsonify({
+                'success': False,
+                'error': '历史数据文件不存在，请先生成历史数据'
+            }), 400
+        
+        data = pd.read_csv(data_path)
+        checker = DataQualityChecker(data)
+        result = checker.comprehensive_check()
+        checker.save_report('data/historical/quality_report.json')
+        
+        return jsonify({
+            'success': True,
+            'overall_score': result.get('overall_score', 0),
+            'completeness_score': result.get('completeness', {}).get('completeness_score', 0),
+            'consistency_score': result.get('consistency', {}).get('consistency_score', 0),
+            'temporal_score': result.get('temporal_consistency', {}).get('temporal_consistency_score', 0),
+            'rule_score': result.get('business_rules', {}).get('rule_score', 0)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/demo/engineer-features', methods=['POST'])
+def api_engineer_features():
+    """特征工程"""
+    try:
+        import pandas as pd
+        from demo.feature_engineer import FeatureEngineer
+        
+        data_path = 'data/historical/historical_loans.csv'
+        if not Path(data_path).exists():
+            return jsonify({
+                'success': False,
+                'error': '历史数据文件不存在'
+            }), 400
+        
+        data = pd.read_csv(data_path)
+        original_cols = len(data.columns)
+        
+        engineer = FeatureEngineer(data)
+        engineered_data = engineer.engineer_all_features()
+        
+        engineer.save_engineered_data(engineered_data, 'data/historical/historical_loans_engineered.csv')
+        
+        # 获取原始特征和新特征列表
+        original_features = list(data.columns)
+        new_features = [col for col in engineered_data.columns if col not in original_features]
+        
+        # 获取特征说明
+        from demo.feature_descriptions import get_all_feature_descriptions
+        feature_descriptions = get_all_feature_descriptions(new_features)
+        
+        # 格式化特征信息
+        new_features_with_desc = []
+        for feat in new_features:
+            desc = feature_descriptions.get(feat, {})
+            new_features_with_desc.append({
+                'name': feat,
+                'display_name': desc.get('name', feat),
+                'description': desc.get('description', '特征工程生成的特征'),
+                'category': desc.get('category', '其他'),
+                'calculation': desc.get('calculation', 'N/A')
+            })
+        
+        return jsonify({
+            'success': True,
+            'original_features': original_cols,
+            'new_features': len(engineered_data.columns) - original_cols,
+            'total_features': len(engineered_data.columns),
+            'original_feature_list': original_features[:20],  # 前20个原始特征
+            'new_feature_list': new_features,  # 所有新特征（仅名称，用于兼容）
+            'new_features_detail': new_features_with_desc,  # 带详细说明的新特征
+            'all_features': list(engineered_data.columns)  # 所有特征
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/demo/extract-rules', methods=['POST'])
+def api_extract_rules():
+    """规则提取和量化"""
+    try:
+        import pandas as pd
+        from demo.rule_extractor import RuleExtractor
+        from demo.rule_quantifier import RuleQuantifier
+        
+        data_path = 'data/historical/historical_loans_engineered.csv'
+        if not Path(data_path).exists():
+            return jsonify({
+                'success': False,
+                'error': '特征工程数据不存在，请先执行特征工程'
+            }), 400
+        
+        data = pd.read_csv(data_path)
+        
+        # 提取规则
+        extractor = RuleExtractor(data)
+        rules = extractor.extract_all_rules('both')
+        extractor.save_rules('data/historical/extracted_rules.json')
+        
+        # 量化规则
+        rules_dict = [r.to_dict() if hasattr(r, 'to_dict') else r for r in rules]
+        quantifier = RuleQuantifier(rules_dict)
+        quantified = quantifier.quantify_all_rules()
+        quantifier.save_quantified_rules('data/historical/quantified_rules.json')
+        
+        # 格式化规则详情
+        rules_detail = []
+        for i, rule in enumerate(rules, 1):
+            rule_dict = rule.to_dict() if hasattr(rule, 'to_dict') else rule
+            rules_detail.append({
+                'id': i,
+                'name': rule_dict.get('rule_name', f'规则{i}'),
+                'type': rule_dict.get('rule_type', 'unknown'),
+                'customer_type': rule_dict.get('customer_type', 'both'),
+                'description': rule_dict.get('description', ''),
+                'confidence': rule_dict.get('confidence', 0),
+                'support': rule_dict.get('support', 0),
+                'conditions': rule_dict.get('conditions', [])
+            })
+        
+        return jsonify({
+            'success': True,
+            'num_rules': len(rules),
+            'num_quantified': len(quantified),
+            'rules_detail': rules_detail
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/demo/train-models', methods=['POST'])
+def api_train_models():
+    """模型训练"""
+    try:
+        import pandas as pd
+        from demo.world_model_trainer import WorldModelTrainer
+        
+        data_path = 'data/historical/historical_loans_engineered.csv'
+        if not Path(data_path).exists():
+            return jsonify({
+                'success': False,
+                'error': '特征工程数据不存在'
+            }), 400
+        
+        data = pd.read_csv(data_path)
+        trainer = WorldModelTrainer(data, seed=42)
+        results = trainer.train_all_models()
+        trainer.save_models('data/historical/models')
+        
+        default_accuracy = results.get('default_prediction', {}).get('metrics', {}).get('accuracy', 0)
+        profit_r2 = results.get('profit_prediction', {}).get('metrics', {}).get('r2_score', 0)
+        
+        return jsonify({
+            'success': True,
+            'default_accuracy': default_accuracy,
+            'profit_r2': profit_r2,
+            'num_models': len(results)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/demo/simulate-approval', methods=['POST'])
+def api_simulate_approval():
+    """模拟审批"""
+    try:
+        import pandas as pd
+        from demo.enhanced_customer_generator import EnhancedCustomerGenerator
+        from demo.market_simulator import MarketSimulator
+        from demo.model_decision import ModelDecisionMaker
+        from demo.enhanced_rule_engine import EnhancedRuleEngine
+        from demo.decision_fusion import DecisionFusion
+        from demo.repayment_simulator import RepaymentSimulator
+        from demo.recovery_calculator import RecoveryCalculator
+        from datetime import datetime
+        import numpy as np
+        
+        data = request.get_json() or {}
+        num_customers = data.get('num_customers', 100)
+        
+        # 加载特征工程后的数据
+        data_path = 'data/historical/historical_loans_engineered.csv'
+        if not Path(data_path).exists():
+            return jsonify({
+                'success': False,
+                'error': '特征工程数据不存在'
+            }), 400
+        
+        engineered_data = pd.read_csv(data_path)
+        
+        # 生成客户
+        customer_gen = EnhancedCustomerGenerator(engineered_data, seed=42)
+        customers = customer_gen.generate_customers(
+            num_personal=int(num_customers * 0.7),
+            num_corporate=int(num_customers * 0.3)
+        )
+        
+        # 生成市场环境
+        market_sim = MarketSimulator(seed=42, start_date='2024-01-01')
+        current_market = market_sim.generate_market_condition(datetime(2024, 6, 15))
+        market_dict = {
+            'gdp_growth': current_market.gdp_growth,
+            'base_interest_rate': current_market.base_interest_rate,
+            'unemployment_rate': current_market.unemployment_rate,
+            'inflation_rate': current_market.inflation_rate,
+            'credit_spread': current_market.credit_spread,
+            'market_sentiment': current_market.market_sentiment
+        }
+        
+        # 加载决策组件
+        model_decision_maker = ModelDecisionMaker(models_dir='data/historical/models')
+        rule_engine = EnhancedRuleEngine()
+        rule_engine.load_rules_from_file(
+            'data/historical/extracted_rules.json',
+            'data/historical/quantified_rules.json'
+        )
+        fusion = DecisionFusion(model_decision_maker, rule_engine)
+        
+        # 模拟还款和回收
+        repayment_sim = RepaymentSimulator(seed=42)
+        recovery_calc = RecoveryCalculator(seed=42)
+        
+        # 处理每个客户
+        results = []
+        for customer in customers:
+            # 生成贷款申请
+            if customer['customer_type'] == 'personal':
+                loan_amount = np.random.uniform(10000, customer['monthly_income'] * 12 * 0.5)
+            else:
+                loan_amount = np.random.uniform(100000, customer['annual_revenue'] * 0.3)
+            
+            loan = {
+                'loan_amount': loan_amount,
+                'approved_rate': 0.08,
+                'approved_term_months': 24
+            }
+            
+            # 融合决策
+            fused_decision = fusion.fuse_decisions(customer, loan, market_dict)
+            
+            # 如果批准，模拟还款
+            if fused_decision.final_decision == 'approve':
+                repayment_result = repayment_sim.simulate_repayment(
+                    loan_amount=loan_amount,
+                    interest_rate=fused_decision.model_decision.default_probability * 0.1 + 0.08,
+                    term_months=24,
+                    default_probability=fused_decision.default_probability,
+                    customer_data=customer
+                )
+                
+                # 如果违约，计算回收
+                if repayment_result.defaulted:
+                    recovery_result = recovery_calc.calculate_recovery(
+                        repayment_result, loan_amount, customer, market_dict
+                    )
+                else:
+                    recovery_result = None
+            else:
+                repayment_result = None
+                recovery_result = None
+            
+            # 记录结果
+            result = {
+                **customer,
+                **loan,
+                'expert_decision': fused_decision.final_decision,
+                'decision': fused_decision.final_decision,
+                'default_probability': fused_decision.default_probability,
+                'expected_profit': fused_decision.expected_profit,
+                'actual_defaulted': repayment_result.defaulted if repayment_result else False,
+                'actual_profit': repayment_result.total_interest_paid - (
+                    recovery_result.default_amount - recovery_result.recovery_amount
+                ) if recovery_result else repayment_result.total_interest_paid if repayment_result else 0,
+                'recovery_rate': recovery_result.recovery_rate if recovery_result else 0,
+                'recovery_amount': recovery_result.recovery_amount if recovery_result else 0,
+                'default_amount': recovery_result.default_amount if recovery_result else 0
+            }
+            results.append(result)
+        
+        results_df = pd.DataFrame(results)
+        
+        # 保存模拟结果
+        results_df.to_csv('data/historical/simulated_results.csv', index=False, encoding='utf-8-sig')
+        
+        # 准备详细交易数据（只返回关键字段，避免数据过大）
+        transaction_details = []
+        for idx, row in results_df.iterrows():
+            transaction_details.append({
+                'id': idx + 1,
+                'customer_id': str(row.get('customer_id', '')),
+                'customer_type': row.get('customer_type', ''),
+                'loan_amount': float(row.get('loan_amount', 0)),
+                'decision': row.get('expert_decision', ''),
+                'default_probability': float(row.get('default_probability', 0)),
+                'expected_profit': float(row.get('expected_profit', 0)),
+                'actual_defaulted': bool(row.get('actual_defaulted', False)),
+                'actual_profit': float(row.get('actual_profit', 0)),
+                'recovery_rate': float(row.get('recovery_rate', 0))
+            })
+        
+        # 统计信息
+        stats = {
+            'num_customers': len(results_df),
+            'approved_count': int((results_df['expert_decision'] == 'approve').sum()),
+            'rejected_count': int((results_df['expert_decision'] == 'reject').sum()),
+            'defaulted_count': int(results_df['actual_defaulted'].sum()),
+            'avg_profit': float(results_df['actual_profit'].mean()) if len(results_df) > 0 else 0,
+            'total_profit': float(results_df['actual_profit'].sum()) if len(results_df) > 0 else 0,
+            'avg_default_prob': float(results_df['default_probability'].mean()) if len(results_df) > 0 else 0,
+            'default_rate': float(results_df['actual_defaulted'].mean()) if len(results_df) > 0 else 0
+        }
+        
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'transactions': transaction_details[:100],  # 最多返回100条，避免数据过大
+            'total_transactions': len(transaction_details)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/demo/validate-results', methods=['POST'])
+def api_validate_results():
+    """结果验证"""
+    try:
+        import pandas as pd
+        from demo.result_validator import ResultValidator
+        
+        hist_path = 'data/historical/historical_loans_engineered.csv'
+        sim_path = 'data/historical/simulated_results.csv'
+        
+        if not Path(hist_path).exists():
+            return jsonify({
+                'success': False,
+                'error': '历史数据不存在'
+            }), 400
+        
+        if not Path(sim_path).exists():
+            return jsonify({
+                'success': False,
+                'error': '模拟结果不存在，请先执行模拟审批'
+            }), 400
+        
+        historical_data = pd.read_csv(hist_path)
+        simulated_data = pd.read_csv(sim_path)
+        
+        validator = ResultValidator(historical_data, simulated_data)
+        results = validator.comprehensive_validation()
+        validator.save_validation_report(results, 'data/historical/validation_report.json')
+        
+        return jsonify({
+            'success': True,
+            'default_rate_valid': results.get('default_rate', {}).get('is_acceptable', False),
+            'profit_valid': results.get('profit_distribution', {}).get('is_acceptable', False),
+            'recovery_valid': results.get('recovery_rate', {}).get('is_acceptable', False),
+            'overall_acceptable': results.get('overall_acceptable', False)
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5000))
@@ -6326,6 +6760,7 @@ if __name__ == '__main__':
     print("🚀 Gamium Finance AI Web Server")
     print("=" * 60)
     print(f"访问: http://localhost:{port}")
+    print(f"Demo界面: http://localhost:{port}/demo")
     print(f"环境: {'开发' if debug else '生产'}")
     print("=" * 60)
     app.run(host='0.0.0.0', port=port, debug=debug)
