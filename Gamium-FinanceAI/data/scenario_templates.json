@@ -1,0 +1,328 @@
+[
+  {
+    "id": "scenario_001",
+    "name": "新策略验证场景",
+    "description": "用于验证新开发的贷款审批策略在正常市场环境下的表现",
+    "category": "strategy_validation",
+    "customer_count": 500,
+    "loan_amount": 100000,
+    "base_rate": 0.08,
+    "scenario": "normal",
+    "black_swan": false,
+    "rounds": 1,
+    "macro_disturbance": {
+      "enabled": false,
+      "type": "none"
+    },
+    "stress_events": [],
+    "recommended_participants": [
+      {
+        "name": "基准策略",
+        "approval_threshold": 0.15,
+        "rate_spread": 0.01
+      },
+      {
+        "name": "新策略",
+        "approval_threshold": 0.18,
+        "rate_spread": 0.015
+      }
+    ],
+    "recommended_rules": ["高收入客户优惠", "优质信用客户"],
+    "business_value": "快速验证新策略是否优于现有基准策略",
+    "use_cases": [
+      "新模型上线前的A/B测试",
+      "策略参数调优验证",
+      "模型版本对比"
+    ]
+  },
+  {
+    "id": "scenario_002",
+    "name": "小微企业贷款风险优化",
+    "description": "针对小微企业贷款场景，优化风险控制与利润平衡",
+    "category": "risk_optimization",
+    "customer_count": 800,
+    "loan_amount": 200000,
+    "base_rate": 0.10,
+    "scenario": "normal",
+    "black_swan": false,
+    "rounds": 3,
+    "macro_disturbance": {
+      "enabled": true,
+      "type": "economic_cycle",
+      "params": {
+        "cycle_length": 12,
+        "volatility": 0.15
+      }
+    },
+    "stress_events": [
+      {
+        "round": 2,
+        "type": "recession",
+        "severity": "moderate"
+      }
+    ],
+    "recommended_participants": [
+      {
+        "name": "保守策略",
+        "approval_threshold": 0.10,
+        "rate_spread": 0.02
+      },
+      {
+        "name": "平衡策略",
+        "approval_threshold": 0.15,
+        "rate_spread": 0.015
+      },
+      {
+        "name": "激进策略",
+        "approval_threshold": 0.20,
+        "rate_spread": 0.01
+      }
+    ],
+    "recommended_rules": [
+      "企业客户优惠",
+      "高风险客户拒绝",
+      "大额贷款审核"
+    ],
+    "business_value": "找到小微企业贷款的最佳风险-收益平衡点",
+    "use_cases": [
+      "小微企业贷款产品设计",
+      "风险定价策略优化",
+      "客群细分策略验证"
+    ]
+  },
+  {
+    "id": "scenario_003",
+    "name": "模型选择对比场景",
+    "description": "对比多个AI模型在同一业务场景下的表现，选择最优模型",
+    "category": "model_selection",
+    "customer_count": 1000,
+    "loan_amount": 150000,
+    "base_rate": 0.08,
+    "scenario": "normal",
+    "black_swan": false,
+    "rounds": 1,
+    "macro_disturbance": {
+      "enabled": false,
+      "type": "none"
+    },
+    "stress_events": [],
+    "recommended_participants": [
+      {
+        "name": "模型A",
+        "approval_threshold": 0.15,
+        "rate_spread": 0.01,
+        "model_id": "model_a"
+      },
+      {
+        "name": "模型B",
+        "approval_threshold": 0.15,
+        "rate_spread": 0.01,
+        "model_id": "model_b"
+      },
+      {
+        "name": "模型C",
+        "approval_threshold": 0.15,
+        "rate_spread": 0.01,
+        "model_id": "model_c"
+      }
+    ],
+    "recommended_rules": ["高收入客户优惠", "优质信用客户", "高风险客户拒绝"],
+    "business_value": "科学选择最适合业务场景的AI模型",
+    "use_cases": [
+      "多模型对比评测",
+      "模型采购决策",
+      "模型性能基准测试"
+    ]
+  },
+  {
+    "id": "scenario_004",
+    "name": "压力测试场景",
+    "description": "模拟经济衰退和黑天鹅事件，测试策略的稳健性",
+    "category": "stress_testing",
+    "customer_count": 600,
+    "loan_amount": 100000,
+    "base_rate": 0.08,
+    "scenario": "stress",
+    "black_swan": true,
+    "rounds": 5,
+    "macro_disturbance": {
+      "enabled": true,
+      "type": "recession",
+      "params": {
+        "gdp_growth_delta": -0.03,
+        "unemployment_delta": 0.05,
+        "inflation_delta": 0.02
+      }
+    },
+    "stress_events": [
+      {
+        "round": 2,
+        "type": "financial_crisis",
+        "severity": "high"
+      },
+      {
+        "round": 4,
+        "type": "market_crash",
+        "severity": "moderate"
+      }
+    ],
+    "recommended_participants": [
+      {
+        "name": "稳健策略",
+        "approval_threshold": 0.12,
+        "rate_spread": 0.02
+      },
+      {
+        "name": "标准策略",
+        "approval_threshold": 0.18,
+        "rate_spread": 0.015
+      }
+    ],
+    "recommended_rules": [
+      "高风险客户拒绝",
+      "黑名单客户拒绝",
+      "大额贷款审核"
+    ],
+    "business_value": "验证策略在极端情况下的抗风险能力",
+    "use_cases": [
+      "监管压力测试",
+      "风险应急预案验证",
+      "资本充足率评估"
+    ]
+  },
+  {
+    "id": "scenario_005",
+    "name": "多部门竞争场景",
+    "description": "模拟多个业务部门在同一客户池中竞争，测试不同策略的竞争力",
+    "category": "multi_agent",
+    "customer_count": 1000,
+    "loan_amount": 100000,
+    "base_rate": 0.08,
+    "scenario": "normal",
+    "black_swan": false,
+    "rounds": 3,
+    "macro_disturbance": {
+      "enabled": true,
+      "type": "economic_cycle",
+      "params": {
+        "cycle_length": 6,
+        "volatility": 0.10
+      }
+    },
+    "stress_events": [],
+    "recommended_participants": [
+      {
+        "name": "零售部门",
+        "approval_threshold": 0.15,
+        "rate_spread": 0.01
+      },
+      {
+        "name": "企业部门",
+        "approval_threshold": 0.12,
+        "rate_spread": 0.015
+      },
+      {
+        "name": "小微部门",
+        "approval_threshold": 0.18,
+        "rate_spread": 0.02
+      }
+    ],
+    "recommended_rules": [
+      "高收入客户优惠",
+      "企业客户优惠",
+      "优质信用客户"
+    ],
+    "business_value": "优化各部门的竞争策略，提升整体业务表现",
+    "use_cases": [
+      "部门绩效考核",
+      "资源分配优化",
+      "内部竞争机制设计"
+    ]
+  },
+  {
+    "id": "scenario_006",
+    "name": "个人消费贷款场景",
+    "description": "针对个人消费贷款场景，优化审批策略和风险控制",
+    "category": "consumer_lending",
+    "customer_count": 1200,
+    "loan_amount": 50000,
+    "base_rate": 0.12,
+    "scenario": "normal",
+    "black_swan": false,
+    "rounds": 2,
+    "macro_disturbance": {
+      "enabled": false,
+      "type": "none"
+    },
+    "stress_events": [],
+    "recommended_participants": [
+      {
+        "name": "保守策略",
+        "approval_threshold": 0.10,
+        "rate_spread": 0.02
+      },
+      {
+        "name": "标准策略",
+        "approval_threshold": 0.15,
+        "rate_spread": 0.015
+      }
+    ],
+    "recommended_rules": [
+      "优质信用客户",
+      "低龄客户限制",
+      "高风险客户拒绝"
+    ],
+    "business_value": "优化个人消费贷款的审批效率和风险控制",
+    "use_cases": [
+      "消费贷款产品设计",
+      "自动化审批优化",
+      "风险定价策略"
+    ]
+  },
+  {
+    "id": "scenario_007",
+    "name": "房地产市场波动场景",
+    "description": "模拟房地产市场波动对贷款业务的影响",
+    "category": "market_volatility",
+    "customer_count": 800,
+    "loan_amount": 500000,
+    "base_rate": 0.08,
+    "scenario": "stress",
+    "black_swan": false,
+    "rounds": 4,
+    "macro_disturbance": {
+      "enabled": true,
+      "type": "housing_market",
+      "params": {
+        "price_volatility": 0.20,
+        "transaction_volume_delta": -0.30
+      }
+    },
+    "stress_events": [
+      {
+        "round": 2,
+        "type": "housing_bubble",
+        "severity": "moderate"
+      }
+    ],
+    "recommended_participants": [
+      {
+        "name": "稳健策略",
+        "approval_threshold": 0.12,
+        "rate_spread": 0.02
+      }
+    ],
+    "recommended_rules": [
+      "大额贷款审核",
+      "高风险客户拒绝",
+      "企业客户优惠"
+    ],
+    "business_value": "评估房地产市场波动对贷款业务的风险影响",
+    "use_cases": [
+      "房地产贷款风险评估",
+      "市场波动应对策略",
+      "抵押物价值评估"
+    ]
+  }
+]
+

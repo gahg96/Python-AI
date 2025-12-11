@@ -10542,6 +10542,16 @@
                         <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">
                             对比多模型/策略在同一批客户、同一宏观情景下的审批率、违约概率(NPL估)、预估利润、RAROC。
                         </p>
+                        <div style="margin-bottom: 12px; padding: 10px; background: var(--bg-secondary); border-radius: 6px; border: 1px solid var(--border-color);">
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <label style="font-size: 12px; color: var(--text-muted);">业务场景模板：</label>
+                                <select id="arena-scenario-template" style="flex: 1; padding: 8px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-primary); font-size: 12px;" onchange="loadScenarioTemplate(this.value)">
+                                    <option value="">-- 选择场景模板（可选）--</option>
+                                </select>
+                                <button class="btn-secondary" style="font-size: 12px; padding: 6px 10px;" onclick="showScenarioTemplates()">查看所有模板</button>
+                            </div>
+                            <div id="scenario-template-info" style="font-size: 11px; color: var(--text-muted); display: none; margin-top: 6px; padding: 6px; background: var(--bg-primary); border-radius: 4px;"></div>
+                        </div>
                         <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
                             <label style="font-size: 12px; color: var(--text-muted);">客户数</label>
                             <input id="arena-customer-count" type="number" value="300" min="50" max="2000" step="50"
@@ -10633,10 +10643,144 @@
             return options;
         }
 
+        // 全局变量：存储场景模板列表
+        let arenaScenarioTemplates = [];
+
+        // 加载场景模板列表
+        async function loadScenarioTemplates() {
+            try {
+                const res = await fetch(`${API_BASE}/api/arena/scenario-templates`);
+                const data = await res.json();
+                if (data.success && data.templates) {
+                    arenaScenarioTemplates = data.full_templates || [];
+                    const select = document.getElementById('arena-scenario-template');
+                    if (select) {
+                        select.innerHTML = '<option value="">-- 选择场景模板（可选）--</option>' +
+                            data.templates.map(t => 
+                                `<option value="${t.id}">${t.name} - ${t.description}</option>`
+                            ).join('');
+                    }
+                }
+            } catch (e) {
+                console.error('加载场景模板失败:', e);
+            }
+        }
+
+        // 加载场景模板详情并应用到界面
+        async function loadScenarioTemplate(templateId) {
+            if (!templateId) {
+                document.getElementById('scenario-template-info').style.display = 'none';
+                return;
+            }
+            
+            try {
+                const res = await fetch(`${API_BASE}/api/arena/scenario-templates/${templateId}`);
+                const data = await res.json();
+                if (data.success && data.template) {
+                    const template = data.template;
+                    
+                    // 应用模板参数到界面
+                    document.getElementById('arena-customer-count').value = template.customer_count || 300;
+                    document.getElementById('arena-loan-amount').value = template.loan_amount || 100000;
+                    document.getElementById('arena-base-rate').value = template.base_rate || 0.08;
+                    document.getElementById('arena-scenario').value = template.scenario || 'normal';
+                    document.getElementById('arena-black-swan').checked = template.black_swan || false;
+                    
+                    // 应用推荐的参赛者
+                    if (template.recommended_participants && template.recommended_participants.length > 0) {
+                        initArenaParticipants(template.recommended_participants);
+                    }
+                    
+                    // 应用推荐的规则
+                    if (template.recommended_rules && template.recommended_rules.length > 0) {
+                        // 加载默认规则，然后筛选出推荐的规则
+                        loadDefaultRules().then(() => {
+                            setTimeout(() => {
+                                const container = document.getElementById('arena-rules');
+                                if (container) {
+                                    const cards = Array.from(container.children);
+                                    cards.forEach(card => {
+                                        const nameInput = card.querySelector('input[type="text"]');
+                                        if (nameInput && !template.recommended_rules.includes(nameInput.value)) {
+                                            card.remove();
+                                        }
+                                    });
+                                }
+                            }, 500);
+                        });
+                    }
+                    
+                    // 显示模板信息
+                    const infoDiv = document.getElementById('scenario-template-info');
+                    if (infoDiv) {
+                        infoDiv.innerHTML = `
+                            <strong>${template.name}</strong><br>
+                            <span style="color: var(--accent-primary);">业务价值：</span>${template.business_value || ''}<br>
+                            <span style="color: var(--accent-primary);">适用场景：</span>${(template.use_cases || []).join('、')}
+                        `;
+                        infoDiv.style.display = 'block';
+                    }
+                }
+            } catch (e) {
+                console.error('加载场景模板详情失败:', e);
+            }
+        }
+
+        // 显示所有场景模板
+        function showScenarioTemplates() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 800px; max-height: 80vh;">
+                    <div class="modal-header">
+                        <h3>📋 业务场景模板库</h3>
+                        <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+                    </div>
+                    <div class="modal-body" style="max-height: calc(80vh - 100px); overflow-y: auto;">
+                        <div id="scenario-templates-list" style="display: grid; gap: 12px;">
+                            <div style="padding: 12px; text-align: center; color: var(--text-muted);">加载中...</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
+            document.body.appendChild(modal);
+            
+            // 加载模板列表
+            fetch(`${API_BASE}/api/arena/scenario-templates`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.templates) {
+                        const listDiv = document.getElementById('scenario-templates-list');
+                        listDiv.innerHTML = data.templates.map(t => `
+                            <div class="card" style="padding: 16px; cursor: pointer;" onclick="loadScenarioTemplate('${t.id}'); this.closest('.modal').remove();">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                    <h4 style="margin: 0; color: var(--accent-primary);">${t.name}</h4>
+                                    <span style="font-size: 11px; padding: 2px 8px; background: var(--bg-secondary); border-radius: 4px; color: var(--text-muted);">${t.category || '通用'}</span>
+                                </div>
+                                <p style="font-size: 12px; color: var(--text-secondary); margin: 8px 0;">${t.description || ''}</p>
+                                <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">
+                                    <strong>业务价值：</strong>${t.business_value || ''}<br>
+                                    <strong>适用场景：</strong>${(t.use_cases || []).join('、')}
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                })
+                .catch(e => {
+                    console.error('加载场景模板失败:', e);
+                    document.getElementById('scenario-templates-list').innerHTML = 
+                        '<div style="padding: 12px; color: var(--accent-danger);">加载失败</div>';
+                });
+        }
+
         function openArenaModal() {
             ensureArenaModal().style.display = 'flex';
             loadArenaModels().then(() => {
-                initArenaParticipants();
+                loadScenarioTemplates().then(() => {
+                    initArenaParticipants();
+                });
             });
         }
 
@@ -10762,9 +10906,9 @@
                     </div>
                     <button class="btn-secondary" style="font-size:11px; padding:4px 8px; margin-top:4px;" onclick="addRuleCondition(this)">+ 添加条件</button>
                 </div>
-                <details style="margin-bottom:8px;">
-                    <summary style="font-size:12px; color:var(--text-muted); cursor:pointer; padding:4px;">动作参数（点击展开）</summary>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:8px; padding:8px; background:var(--bg-secondary); border-radius:4px;">
+                <div style="margin-bottom:8px; border-top: 1px solid var(--border-color); padding-top: 8px;">
+                    <div style="font-size:11px; color:var(--accent-primary); margin-bottom:6px; font-weight:500;">📋 动作参数</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; padding:8px; background:var(--bg-secondary); border-radius:4px;">
                         <input type="number" class="form-input" value="${rule.action?.approval_threshold_delta || 0}" step="0.01" placeholder="审批阈值调整" style="font-size:11px;" data-action="approval_threshold_delta">
                         <input type="number" class="form-input" value="${rule.action?.rate_spread_delta || 0}" step="0.001" placeholder="利差调整" style="font-size:11px;" data-action="rate_spread_delta">
                         <input type="number" class="form-input" value="${rule.action?.loan_amount_multiplier || 1.0}" step="0.1" placeholder="贷款金额倍数" style="font-size:11px;" data-action="loan_amount_multiplier">
@@ -10786,10 +10930,10 @@
                         <input type="number" class="form-input" value="${rule.action?.collateral_ratio || 0}" step="0.1" placeholder="抵押物比例" style="font-size:11px;" data-action="collateral_ratio">
                         <input type="number" class="form-input" value="${rule.action?.guarantor_credit_min || 0}" step="10" placeholder="担保人最低信用分" style="font-size:11px;" data-action="guarantor_credit_min">
                     </div>
-                </details>
-                <details style="margin-bottom:8px;">
-                    <summary style="font-size:12px; color:var(--text-muted); cursor:pointer; padding:4px;">惩罚参数（点击展开）</summary>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-top:8px; padding:8px; background:var(--bg-secondary); border-radius:4px;">
+                </div>
+                <div style="margin-bottom:8px; border-top: 1px solid var(--border-color); padding-top: 8px;">
+                    <div style="font-size:11px; color:var(--accent-warning); margin-bottom:6px; font-weight:500;">⚖️ 惩罚参数</div>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; padding:8px; background:var(--bg-secondary); border-radius:4px;">
                         <input type="number" class="form-input" value="${rule.penalty?.score_delta || 0}" step="0.01" placeholder="综合评分调整" style="font-size:11px;" data-penalty="score_delta">
                         <input type="number" class="form-input" value="${rule.penalty?.profit_score_delta || 0}" step="0.01" placeholder="利润得分调整" style="font-size:11px;" data-penalty="profit_score_delta">
                         <input type="number" class="form-input" value="${rule.penalty?.risk_score_delta || 0}" step="0.01" placeholder="风险得分调整" style="font-size:11px;" data-penalty="risk_score_delta">
@@ -11076,18 +11220,89 @@
                             </div>
                         </div>
                         ${result.factor_top5 && result.factor_top5.length > 0 ? `
-                        <div class="card" style="padding: 12px;">
+                        <div class="card" style="padding: 12px; margin-bottom: 16px;">
                             <h4 style="font-size: 14px; margin-bottom: 8px;">Top 5 风险因子</h4>
                             <div style="font-size: 12px;">
                                 ${result.factor_top5.map(f => `<div style="margin-bottom: 4px;">${f[0]}: ${f[1].toFixed(3)}</div>`).join('')}
                             </div>
                         </div>
                         ` : ''}
+                        ${result.customer_details && result.customer_details.length > 0 ? `
+                        <div class="card" style="padding: 12px; margin-bottom: 16px;">
+                            <h4 style="font-size: 14px; margin-bottom: 8px;">客户决策详情</h4>
+                            <div style="max-height: 300px; overflow-y: auto;">
+                                <table class="data-table" style="width: 100%; font-size: 11px;">
+                                    <thead>
+                                        <tr>
+                                            <th>客户ID</th>
+                                            <th>决策</th>
+                                            <th>违约概率</th>
+                                            <th>利润</th>
+                                            <th>触发规则</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${result.customer_details.slice(0, 50).map(c => `
+                                            <tr>
+                                                <td>${c.customer_id || '—'}</td>
+                                                <td><span style="color: ${c.decision === 'approved' ? 'var(--accent-primary)' : 'var(--accent-danger)'};">${c.decision === 'approved' ? '通过' : '拒绝'}</span></td>
+                                                <td>${(c.default_prob * 100).toFixed(2)}%</td>
+                                                <td>¥${c.profit ? c.profit.toLocaleString() : '0'}</td>
+                                                <td style="font-size: 10px;">${(c.triggered_rules || []).join(', ') || '—'}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                                ${result.customer_details.length > 50 ? `<div style="padding: 8px; text-align: center; color: var(--text-muted); font-size: 11px;">仅显示前50条，共${result.customer_details.length}条</div>` : ''}
+                            </div>
+                        </div>
+                        ` : ''}
+                        <div class="card" style="padding: 12px;">
+                            <h4 style="font-size: 14px; margin-bottom: 8px;">策略建议</h4>
+                            <div style="font-size: 12px; line-height: 1.8; color: var(--text-secondary);">
+                                ${generateStrategyRecommendations(result, scoreBreakdown)}
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
             modal.addEventListener('click', function(e) { if (e.target === modal) modal.remove(); });
             document.body.appendChild(modal);
+        }
+
+        function generateStrategyRecommendations(result, scoreBreakdown) {
+            const recommendations = [];
+            
+            // 基于审批率
+            if (result.approval_rate < 0.3) {
+                recommendations.push('⚠️ 审批率较低，可能错失优质客户，建议适当降低审批阈值');
+            } else if (result.approval_rate > 0.7) {
+                recommendations.push('⚠️ 审批率较高，可能存在风险敞口过大，建议提高审批标准');
+            }
+            
+            // 基于违约概率
+            if (result.avg_default_prob > 0.15) {
+                recommendations.push('🔴 违约概率偏高，建议加强风险控制措施，提高审批标准');
+            } else if (result.avg_default_prob < 0.05) {
+                recommendations.push('✅ 违约概率较低，可以考虑适当放宽审批条件以提升利润');
+            }
+            
+            // 基于利润得分
+            if (scoreBreakdown.profit_score < 0.5) {
+                recommendations.push('💰 利润得分偏低，建议优化利率定价策略或提高审批效率');
+            }
+            
+            // 基于风险得分
+            if (scoreBreakdown.risk_score < 0.5) {
+                recommendations.push('🛡️ 风险得分偏低，建议加强风险识别和防控措施');
+            }
+            
+            // 基于RAROC
+            if (result.raroc && result.raroc < 0.1) {
+                recommendations.push('📊 RAROC偏低，建议优化风险调整后的收益表现');
+            }
+            
+            return recommendations.length > 0 ? recommendations.join('<br>') : '✅ 策略表现良好，建议继续保持';
         }
 
         function showArenaCalc() {

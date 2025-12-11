@@ -3201,6 +3201,86 @@ def get_default_rules():
         }), 500
 
 
+@app.route('/api/arena/scenario-templates', methods=['GET'])
+def get_scenario_templates():
+    """获取业务场景模板列表"""
+    import json
+    from pathlib import Path
+    
+    try:
+        templates_file = Path(__file__).parent / 'data' / 'scenario_templates.json'
+        if templates_file.exists():
+            with open(templates_file, 'r', encoding='utf-8') as f:
+                templates = json.load(f)
+            
+            # 返回简化的模板列表（用于选择）
+            simplified = [
+                {
+                    'id': t.get('id'),
+                    'name': t.get('name'),
+                    'description': t.get('description'),
+                    'category': t.get('category'),
+                    'business_value': t.get('business_value'),
+                    'use_cases': t.get('use_cases', [])
+                }
+                for t in templates
+            ]
+            
+            return jsonify({
+                'success': True,
+                'templates': simplified,
+                'full_templates': templates,
+                'count': len(templates)
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'templates': [],
+                'full_templates': [],
+                'count': 0
+            })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/arena/scenario-templates/<template_id>', methods=['GET'])
+def get_scenario_template(template_id):
+    """获取指定的业务场景模板详情"""
+    import json
+    from pathlib import Path
+    
+    try:
+        templates_file = Path(__file__).parent / 'data' / 'scenario_templates.json'
+        if templates_file.exists():
+            with open(templates_file, 'r', encoding='utf-8') as f:
+                templates = json.load(f)
+            
+            template = next((t for t in templates if t.get('id') == template_id), None)
+            if not template:
+                return jsonify({
+                    'success': False,
+                    'error': f'场景模板 {template_id} 不存在'
+                }), 404
+            
+            return jsonify({
+                'success': True,
+                'template': template
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': '场景模板文件不存在'
+            }), 404
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
 @app.route('/api/arena/multi-round', methods=['POST'])
 def run_multi_round_arena():
     """
