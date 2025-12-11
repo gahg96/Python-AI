@@ -6500,13 +6500,34 @@ def api_simulate_approval():
         import pandas as pd
         from demo.enhanced_customer_generator import EnhancedCustomerGenerator
         from demo.market_simulator import MarketSimulator
-        from demo.model_decision import ModelDecisionMaker
         from demo.enhanced_rule_engine import EnhancedRuleEngine
-        from demo.decision_fusion import DecisionFusion
         from demo.repayment_simulator import RepaymentSimulator
         from demo.recovery_calculator import RecoveryCalculator
         from datetime import datetime
         import numpy as np
+        
+        # 延迟导入，避免循环依赖
+        try:
+            from demo.model_decision import ModelDecisionMaker
+            from demo.decision_fusion import DecisionFusion
+        except ImportError as e:
+            # 如果直接导入失败，尝试相对导入
+            import importlib.util
+            import os
+            model_decision_path = os.path.join(os.path.dirname(__file__), 'src', 'demo', 'model_decision.py')
+            decision_fusion_path = os.path.join(os.path.dirname(__file__), 'src', 'demo', 'decision_fusion.py')
+            
+            if os.path.exists(model_decision_path):
+                spec = importlib.util.spec_from_file_location("model_decision", model_decision_path)
+                model_decision_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(model_decision_module)
+                ModelDecisionMaker = model_decision_module.ModelDecisionMaker
+            
+            if os.path.exists(decision_fusion_path):
+                spec = importlib.util.spec_from_file_location("decision_fusion", decision_fusion_path)
+                decision_fusion_module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(decision_fusion_module)
+                DecisionFusion = decision_fusion_module.DecisionFusion
         
         data = request.get_json() or {}
         num_customers = data.get('num_customers', 100)

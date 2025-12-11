@@ -5,7 +5,10 @@
 import numpy as np
 from typing import Dict, Optional
 from dataclasses import dataclass
-from repayment_simulator import RepaymentResult
+try:
+    from .repayment_simulator import RepaymentResult
+except ImportError:
+    from repayment_simulator import RepaymentResult
 
 
 @dataclass

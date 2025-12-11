@@ -4,8 +4,12 @@
 """
 from typing import Dict, Optional
 from dataclasses import dataclass
-from model_decision import ModelDecisionMaker, DecisionResult
-from enhanced_rule_engine import EnhancedRuleEngine
+try:
+    from .model_decision import ModelDecisionMaker, DecisionResult
+    from .enhanced_rule_engine import EnhancedRuleEngine
+except ImportError:
+    from model_decision import ModelDecisionMaker, DecisionResult
+    from enhanced_rule_engine import EnhancedRuleEngine
 
 
 @dataclass

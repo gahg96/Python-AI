@@ -9,20 +9,36 @@ import os
 from datetime import datetime
 
 # 导入所有模块
-from historical_data_generator import HistoricalLoanDataGenerator
-from data_quality_checker import DataQualityChecker
-from feature_engineer import FeatureEngineer
-from rule_extractor import RuleExtractor
-from rule_quantifier import RuleQuantifier
-from enhanced_customer_generator import EnhancedCustomerGenerator
-from market_simulator import MarketSimulator
-from world_model_trainer import WorldModelTrainer
-from enhanced_rule_engine import EnhancedRuleEngine
-from model_decision import ModelDecisionMaker
-from decision_fusion import DecisionFusion
-from repayment_simulator import RepaymentSimulator
-from recovery_calculator import RecoveryCalculator
-from result_validator import ResultValidator
+try:
+    from .historical_data_generator import HistoricalLoanDataGenerator
+    from .data_quality_checker import DataQualityChecker
+    from .feature_engineer import FeatureEngineer
+    from .rule_extractor import RuleExtractor
+    from .rule_quantifier import RuleQuantifier
+    from .enhanced_customer_generator import EnhancedCustomerGenerator
+    from .market_simulator import MarketSimulator
+    from .world_model_trainer import WorldModelTrainer
+    from .enhanced_rule_engine import EnhancedRuleEngine
+    from .model_decision import ModelDecisionMaker
+    from .decision_fusion import DecisionFusion
+    from .repayment_simulator import RepaymentSimulator
+    from .recovery_calculator import RecoveryCalculator
+    from .result_validator import ResultValidator
+except ImportError:
+    from historical_data_generator import HistoricalLoanDataGenerator
+    from data_quality_checker import DataQualityChecker
+    from feature_engineer import FeatureEngineer
+    from rule_extractor import RuleExtractor
+    from rule_quantifier import RuleQuantifier
+    from enhanced_customer_generator import EnhancedCustomerGenerator
+    from market_simulator import MarketSimulator
+    from world_model_trainer import WorldModelTrainer
+    from enhanced_rule_engine import EnhancedRuleEngine
+    from model_decision import ModelDecisionMaker
+    from decision_fusion import DecisionFusion
+    from repayment_simulator import RepaymentSimulator
+    from recovery_calculator import RecoveryCalculator
+    from result_validator import ResultValidator
 
 
 class EndToEndDemo:
