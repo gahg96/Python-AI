@@ -237,6 +237,134 @@
             border-radius: 6px;
             margin-bottom: 20px;
         }
+
+        .card {
+            cursor: pointer;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: #1a2332;
+            border: 1px solid #2d3a4f;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #2d3a4f;
+            padding-bottom: 15px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #f1f5f9;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 32px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            line-height: 32px;
+        }
+
+        .modal-close:hover {
+            color: #f1f5f9;
+        }
+
+        .detail-section {
+            margin-bottom: 24px;
+        }
+
+        .detail-section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #00d4aa;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #00d4aa;
+        }
+
+        .formula-box {
+            background: #131a2b;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #00d4aa;
+            font-family: monospace;
+            color: #f1f5f9;
+            margin-bottom: 16px;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #2d3a4f;
+        }
+
+        .data-table th {
+            background: #131a2b;
+            color: #00d4aa;
+            font-weight: 600;
+        }
+
+        .data-table td {
+            color: #f1f5f9;
+        }
+
+        .calculation-step {
+            background: #131a2b;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .calculation-step-label {
+            color: #94a3b8;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .calculation-step-value {
+            color: #f1f5f9;
+            font-size: 16px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -250,6 +378,7 @@
             <button class="tab active" onclick="switchTab('indicators')">监管指标</button>
             <button class="tab" onclick="switchTab('alerts')">告警中心</button>
             <button class="tab" onclick="switchTab('compliance')">合规检查</button>
+            <button class="tab" onclick="switchTab('emergency')">应急预案</button>
             <button class="tab" onclick="switchTab('reports')">监管报告</button>
         </div>
 
@@ -277,6 +406,16 @@
                 <button class="btn btn-secondary" onclick="loadComplianceSummary()" style="margin-left: 10px;">查看汇总</button>
             </div>
             <div id="compliance-container"></div>
+        </div>
+
+        <!-- 应急预案 -->
+        <div id="tab-emergency" class="tab-content">
+            <div style="margin-bottom: 20px;">
+                <button class="btn" onclick="loadEmergencyPlans()">刷新预案</button>
+                <button class="btn btn-secondary" onclick="triggerCheck()" style="margin-left: 10px;">触发检查</button>
+                <button class="btn btn-secondary" onclick="loadExecutionHistory()" style="margin-left: 10px;">执行历史</button>
+            </div>
+            <div id="emergency-container"></div>
         </div>
 
         <!-- 监管报告 -->
@@ -332,7 +471,7 @@
                     }[indicator.status] || indicator.status;
 
                     html += `
-                        <div class="card">
+                        <div class="card" onclick="showIndicatorDetail('${key}')">
                             <div class="card-header">
                                 <div class="card-title">${indicator.name}</div>
                                 <span class="status-badge ${statusClass}">${statusText}</span>
@@ -346,6 +485,9 @@
                             </div>
                             <div style="font-size: 12px; color: #94a3b8; margin-top: 5px;">
                                 目标范围: ${indicator.threshold_target_min}${indicator.unit} - ${indicator.threshold_target_max}${indicator.unit}
+                            </div>
+                            <div style="font-size: 12px; color: #00d4aa; margin-top: 10px; text-align: center; padding-top: 8px; border-top: 1px solid #2d3a4f;">
+                                🔍 点击查看详情
                             </div>
                         </div>
                     `;
@@ -583,6 +725,675 @@
         window.onload = function() {
             loadIndicators();
         };
+
+        // 显示指标详情（下钻功能）
+        async function showIndicatorDetail(indicatorKey) {
+            try {
+                const response = await fetch(`/api/regulatory/indicators/${indicatorKey}/detail`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert('加载指标详情失败: ' + (data.error || '未知错误'));
+                    return;
+                }
+
+                const detail = data.detail;
+                const indicator = detail.indicator;
+
+                // 创建或显示模态框
+                let modal = document.getElementById('indicator-detail-modal');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'indicator-detail-modal';
+                    modal.className = 'modal';
+                    document.body.appendChild(modal);
+                    
+                    // 点击背景关闭
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            closeIndicatorDetail();
+                        }
+                    });
+                }
+
+                let html = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="modal-title">${indicator.name} - 详细数据支撑</div>
+                            <button class="modal-close" onclick="closeIndicatorDetail()">×</button>
+                        </div>
+                        <div class="modal-body">
+                `;
+
+                // 指标概览
+                html += `
+                    <div class="detail-section">
+                        <div class="detail-section-title">📊 指标概览</div>
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+                            <div class="card" style="padding: 12px;">
+                                <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">当前值</div>
+                                <div style="font-size: 24px; font-weight: 700; color: #f1f5f9;">
+                                    ${indicator.value}${indicator.unit}
+                                </div>
+                            </div>
+                            <div class="card" style="padding: 12px;">
+                                <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">状态</div>
+                                <div>
+                                    <span class="status-badge status-${indicator.status}">
+                                        ${indicator.status === 'normal' ? '正常' : 
+                                          indicator.status === 'warning' ? '预警' :
+                                          indicator.status === 'critical' ? '严重' : '紧急'}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="card" style="padding: 12px;">
+                                <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">最后更新</div>
+                                <div style="font-size: 14px; color: #f1f5f9;">
+                                    ${new Date(indicator.last_update).toLocaleString()}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // 计算公式
+                if (detail.formula) {
+                    html += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">📐 计算公式</div>
+                            <div class="formula-box">${detail.formula}</div>
+                        </div>
+                    `;
+                }
+
+                // 计算过程
+                if (detail.calculation) {
+                    html += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">🔢 计算过程</div>
+                    `;
+                    
+                    const calc = detail.calculation;
+                    if (calc.numerator) {
+                        html += '<div style="margin-bottom: 12px;"><div class="calculation-step-label">分子：</div>';
+                        for (const [key, value] of Object.entries(calc.numerator)) {
+                            if (key !== 'total') {
+                                html += `
+                                    <div class="calculation-step">
+                                        <div class="calculation-step-label">${key.replace(/_/g, ' ')}</div>
+                                        <div class="calculation-step-value">${typeof value === 'string' ? value : value.toLocaleString()} 元</div>
+                                    </div>
+                                `;
+                            }
+                        }
+                        if (calc.numerator.total !== undefined) {
+                            html += `
+                                <div class="calculation-step" style="background: rgba(0, 212, 170, 0.1); border-left: 4px solid #00d4aa;">
+                                    <div class="calculation-step-label">合计</div>
+                                    <div class="calculation-step-value">${typeof calc.numerator.total === 'string' ? calc.numerator.total : calc.numerator.total.toLocaleString()} 元</div>
+                                </div>
+                            `;
+                        }
+                        html += '</div>';
+                    }
+                    
+                    if (calc.denominator) {
+                        html += '<div style="margin-bottom: 12px;"><div class="calculation-step-label">分母：</div>';
+                        for (const [key, value] of Object.entries(calc.denominator)) {
+                            html += `
+                                <div class="calculation-step">
+                                    <div class="calculation-step-label">${key.replace(/_/g, ' ')}</div>
+                                    <div class="calculation-step-value">${typeof value === 'string' ? value : value.toLocaleString()} 元</div>
+                                </div>
+                            `;
+                        }
+                        html += '</div>';
+                    }
+                    
+                    if (calc.result !== undefined) {
+                        html += `
+                            <div class="calculation-step" style="background: rgba(124, 58, 237, 0.1); border-left: 4px solid #7c3aed; margin-top: 12px;">
+                                <div class="calculation-step-label">计算结果</div>
+                                <div class="calculation-step-value">${calc.result.toFixed(2)}${indicator.unit}</div>
+                            </div>
+                        `;
+                    }
+                    
+                    html += '</div>';
+                }
+
+                // 数据来源
+                if (detail.data_sources && detail.data_sources.length > 0) {
+                    html += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">📋 数据来源</div>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>数据项</th>
+                                        <th>数值</th>
+                                        <th>单位</th>
+                                        <th>数据来源</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+                    detail.data_sources.forEach(ds => {
+                        html += `
+                            <tr>
+                                <td>${ds.name}</td>
+                                <td>${typeof ds.value === 'string' ? ds.value : ds.value.toLocaleString()}</td>
+                                <td>${ds.unit}</td>
+                                <td>${ds.source}</td>
+                            </tr>
+                        `;
+                    });
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                }
+
+                // 监管要求
+                if (detail.regulatory_requirement) {
+                    html += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">⚖️ 监管要求</div>
+                            <div style="background: rgba(251, 191, 36, 0.1); padding: 12px; border-radius: 6px; border-left: 4px solid #fbbf24;">
+                                ${detail.regulatory_requirement}
+                            </div>
+                            <div style="margin-top: 12px; padding: 12px; background: #131a2b; border-radius: 6px;">
+                                <div style="font-size: 14px; color: #94a3b8; margin-bottom: 8px;">阈值设置：</div>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+                                    <div>
+                                        <div style="font-size: 12px; color: #ef4444;">监管红线</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: #ef4444;">${indicator.threshold_red}${indicator.unit}</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 12px; color: #f97316;">预警线</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: #f97316;">${indicator.threshold_warning}${indicator.unit}</div>
+                                    </div>
+                                    <div>
+                                        <div style="font-size: 12px; color: #22c55e;">目标范围</div>
+                                        <div style="font-size: 16px; font-weight: 600; color: #22c55e;">${indicator.threshold_target_min}${indicator.unit} - ${indicator.threshold_target_max}${indicator.unit}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 相关指标
+                if (detail.related_indicators && detail.related_indicators.length > 0) {
+                    html += `
+                        <div class="detail-section">
+                            <div class="detail-section-title">🔗 相关指标</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    `;
+                    detail.related_indicators.forEach(relatedKey => {
+                        html += `
+                            <span style="padding: 6px 12px; background: #131a2b; border: 1px solid #2d3a4f; border-radius: 6px; cursor: pointer; font-size: 14px;"
+                                  onclick="showIndicatorDetail('${relatedKey}'); closeIndicatorDetail(); setTimeout(() => showIndicatorDetail('${relatedKey}'), 100);">
+                                ${relatedKey.replace(/_/g, ' ')}
+                            </span>
+                        `;
+                    });
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                }
+
+                html += `
+                        </div>
+                    </div>
+                `;
+
+                modal.innerHTML = html;
+                modal.style.display = 'flex';
+            } catch (error) {
+                console.error('加载指标详情失败:', error);
+                alert('加载指标详情失败: ' + error.message);
+            }
+        }
+
+        // 关闭指标详情
+        function closeIndicatorDetail() {
+            const modal = document.getElementById('indicator-detail-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // 加载应急预案
+        async function loadEmergencyPlans() {
+            const container = document.getElementById('emergency-container');
+            container.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                const response = await fetch('/api/regulatory/emergency-plans');
+                const data = await response.json();
+
+                if (!data.success) {
+                    container.innerHTML = `<div class="error">错误: ${data.error}</div>`;
+                    return;
+                }
+
+                const plans = data.plans || [];
+
+                if (plans.length === 0) {
+                    container.innerHTML = '<div class="card"><div style="text-align: center; padding: 40px; color: #94a3b8;">暂无应急预案</div></div>';
+                    return;
+                }
+
+                let html = '';
+                plans.forEach(plan => {
+                    const statusClass = {
+                        'pending': 'status-warning',
+                        'executing': 'status-critical',
+                        'completed': 'status-normal',
+                        'cancelled': 'status-warning'
+                    }[plan.status] || 'status-warning';
+                    
+                    const statusText = {
+                        'pending': '待执行',
+                        'executing': '执行中',
+                        'completed': '已完成',
+                        'cancelled': '已取消'
+                    }[plan.status] || plan.status;
+                    
+                    const priorityClass = {
+                        'low': 'status-normal',
+                        'medium': 'status-warning',
+                        'high': 'status-critical',
+                        'urgent': 'status-emergency'
+                    }[plan.priority] || 'status-warning';
+                    
+                    const priorityText = {
+                        'low': '低',
+                        'medium': '中',
+                        'high': '高',
+                        'urgent': '紧急'
+                    }[plan.priority] || plan.priority;
+
+                    html += `
+                        <div class="card" onclick="showPlanDetail('${plan.plan_id}')">
+                            <div class="card-header">
+                                <div class="card-title">${plan.name}</div>
+                                <div style="display: flex; gap: 8px;">
+                                    <span class="status-badge ${priorityClass}">${priorityText}</span>
+                                    <span class="status-badge ${statusClass}">${statusText}</span>
+                                </div>
+                            </div>
+                            <div style="color: #94a3b8; margin-top: 10px; margin-bottom: 10px;">
+                                ${plan.description}
+                            </div>
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 10px;">
+                                触发条件: ${plan.trigger_condition.indicator} ${plan.trigger_condition.operator} ${plan.trigger_condition.threshold}
+                            </div>
+                            <div style="font-size: 12px; color: #94a3b8; margin-top: 5px;">
+                                措施数量: ${plan.actions.length} 项
+                            </div>
+                            ${plan.triggered_at ? `
+                                <div style="font-size: 12px; color: #94a3b8; margin-top: 5px;">
+                                    触发时间: ${new Date(plan.triggered_at).toLocaleString()}
+                                </div>
+                            ` : ''}
+                            ${plan.effectiveness_score !== null ? `
+                                <div style="font-size: 12px; color: #00d4aa; margin-top: 5px;">
+                                    效果评分: ${plan.effectiveness_score.toFixed(1)} 分
+                                </div>
+                            ` : ''}
+                            <div style="font-size: 12px; color: #00d4aa; margin-top: 10px; text-align: center; padding-top: 8px; border-top: 1px solid #2d3a4f;">
+                                🔍 点击查看详情
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="error">请求失败: ${error.message}</div>`;
+            }
+        }
+
+        // 显示预案详情
+        async function showPlanDetail(planId) {
+            try {
+                const response = await fetch(`/api/regulatory/emergency-plans/${planId}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert('加载预案详情失败: ' + (data.error || '未知错误'));
+                    return;
+                }
+
+                const plan = data.plan;
+
+                // 创建或显示模态框
+                let modal = document.getElementById('plan-detail-modal');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'plan-detail-modal';
+                    modal.className = 'modal';
+                    document.body.appendChild(modal);
+                    
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            closePlanDetail();
+                        }
+                    });
+                }
+
+                const statusClass = {
+                    'pending': 'status-warning',
+                    'executing': 'status-critical',
+                    'completed': 'status-normal',
+                    'cancelled': 'status-warning'
+                }[plan.status] || 'status-warning';
+                
+                const statusText = {
+                    'pending': '待执行',
+                    'executing': '执行中',
+                    'completed': '已完成',
+                    'cancelled': '已取消'
+                }[plan.status] || plan.status;
+
+                let html = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="modal-title">${plan.name}</div>
+                            <button class="modal-close" onclick="closePlanDetail()">×</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="detail-section">
+                                <div class="detail-section-title">📋 预案信息</div>
+                                <div style="margin-bottom: 12px;">
+                                    <div style="color: #94a3b8; margin-bottom: 4px;">描述</div>
+                                    <div style="color: #f1f5f9;">${plan.description}</div>
+                                </div>
+                                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 12px;">
+                                    <div class="card" style="padding: 12px;">
+                                        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">优先级</div>
+                                        <div>
+                                            <span class="status-badge ${plan.priority === 'urgent' ? 'status-emergency' : plan.priority === 'high' ? 'status-critical' : 'status-warning'}">
+                                                ${plan.priority === 'urgent' ? '紧急' : plan.priority === 'high' ? '高' : plan.priority === 'medium' ? '中' : '低'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="card" style="padding: 12px;">
+                                        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">状态</div>
+                                        <div>
+                                            <span class="status-badge ${statusClass}">${statusText}</span>
+                                        </div>
+                                    </div>
+                                    <div class="card" style="padding: 12px;">
+                                        <div style="font-size: 12px; color: #94a3b8; margin-bottom: 4px;">效果评分</div>
+                                        <div style="font-size: 18px; font-weight: 600; color: #f1f5f9;">
+                                            ${plan.effectiveness_score !== null ? plan.effectiveness_score.toFixed(1) + ' 分' : '未评估'}
+                                        </div>
+                                    </div>
+                                </div>
+                                ${plan.triggered_at ? `
+                                    <div style="margin-top: 12px; color: #94a3b8;">
+                                        触发时间: ${new Date(plan.triggered_at).toLocaleString()}
+                                    </div>
+                                ` : ''}
+                                ${plan.completed_at ? `
+                                    <div style="margin-top: 8px; color: #94a3b8;">
+                                        完成时间: ${new Date(plan.completed_at).toLocaleString()}
+                                    </div>
+                                ` : ''}
+                            </div>
+
+                            <div class="detail-section">
+                                <div class="detail-section-title">⚡ 触发条件</div>
+                                <div style="background: #131a2b; padding: 12px; border-radius: 6px;">
+                                    <div style="font-family: monospace; color: #f1f5f9;">
+                                        ${plan.trigger_condition.indicator} ${plan.trigger_condition.operator} ${plan.trigger_condition.threshold}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="detail-section">
+                                <div class="detail-section-title">📝 应急措施</div>
+                `;
+
+                plan.actions.forEach((action, index) => {
+                    const actionStatusClass = {
+                        'pending': 'status-warning',
+                        'executing': 'status-critical',
+                        'completed': 'status-normal',
+                        'failed': 'status-emergency'
+                    }[action.status] || 'status-warning';
+                    
+                    const actionStatusText = {
+                        'pending': '待执行',
+                        'executing': '执行中',
+                        'completed': '已完成',
+                        'failed': '失败'
+                    }[action.status] || action.status;
+
+                    html += `
+                        <div class="card" style="margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                <div>
+                                    <div style="font-weight: 600; color: #f1f5f9; margin-bottom: 4px;">
+                                        ${index + 1}. ${action.name}
+                                    </div>
+                                    <div style="font-size: 14px; color: #94a3b8;">
+                                        ${action.description}
+                                    </div>
+                                </div>
+                                <span class="status-badge ${actionStatusClass}">${actionStatusText}</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; font-size: 12px; color: #94a3b8;">
+                                <div>目标指标: ${action.target_indicator}</div>
+                                <div>目标值: ${action.target_value}</div>
+                                <div>责任部门: ${action.responsible_dept}</div>
+                                <div>预计时间: ${action.estimated_time} 小时</div>
+                            </div>
+                            ${action.start_time ? `
+                                <div style="font-size: 12px; color: #94a3b8; margin-top: 8px;">
+                                    开始时间: ${new Date(action.start_time).toLocaleString()}
+                                </div>
+                            ` : ''}
+                            ${action.complete_time ? `
+                                <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">
+                                    完成时间: ${new Date(action.complete_time).toLocaleString()}
+                                </div>
+                            ` : ''}
+                            ${action.actual_result !== null ? `
+                                <div style="font-size: 12px; color: #00d4aa; margin-top: 4px;">
+                                    实际结果: ${action.actual_result}
+                                </div>
+                            ` : ''}
+                            ${action.notes ? `
+                                <div style="font-size: 12px; color: #94a3b8; margin-top: 8px; padding: 8px; background: #131a2b; border-radius: 4px;">
+                                    备注: ${action.notes}
+                                </div>
+                            ` : ''}
+                            ${action.status !== 'completed' ? `
+                                <div style="margin-top: 12px;">
+                                    <button class="btn" style="padding: 6px 12px; font-size: 12px;" 
+                                            onclick="updateActionStatus('${plan.plan_id}', '${action.action_id}', 'executing')">
+                                        开始执行
+                                    </button>
+                                    <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px; margin-left: 8px;" 
+                                            onclick="completeAction('${plan.plan_id}', '${action.action_id}')">
+                                        标记完成
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+
+                html += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                modal.innerHTML = html;
+                modal.style.display = 'flex';
+            } catch (error) {
+                console.error('加载预案详情失败:', error);
+                alert('加载预案详情失败: ' + error.message);
+            }
+        }
+
+        // 关闭预案详情
+        function closePlanDetail() {
+            const modal = document.getElementById('plan-detail-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // 更新措施状态
+        async function updateActionStatus(planId, actionId, status) {
+            try {
+                const response = await fetch(`/api/regulatory/emergency-plans/${planId}/actions/${actionId}/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: status
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert('更新失败: ' + (data.error || '未知错误'));
+                    return;
+                }
+
+                // 重新加载预案详情
+                closePlanDetail();
+                setTimeout(() => showPlanDetail(planId), 100);
+            } catch (error) {
+                console.error('更新措施状态失败:', error);
+                alert('更新失败: ' + error.message);
+            }
+        }
+
+        // 完成措施
+        async function completeAction(planId, actionId) {
+            const actualResult = prompt('请输入实际结果值（可选）:');
+            const notes = prompt('请输入备注（可选）:');
+            
+            try {
+                const response = await fetch(`/api/regulatory/emergency-plans/${planId}/actions/${actionId}/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        status: 'completed',
+                        actual_result: actualResult ? parseFloat(actualResult) : null,
+                        notes: notes || ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert('更新失败: ' + (data.error || '未知错误'));
+                    return;
+                }
+
+                // 重新加载预案详情
+                closePlanDetail();
+                setTimeout(() => showPlanDetail(planId), 100);
+                
+                // 如果预案完成，显示效果评分
+                if (data.effectiveness_score !== null) {
+                    alert(`预案执行完成！效果评分: ${data.effectiveness_score.toFixed(1)} 分`);
+                }
+            } catch (error) {
+                console.error('完成措施失败:', error);
+                alert('更新失败: ' + error.message);
+            }
+        }
+
+        // 触发检查
+        async function triggerCheck() {
+            try {
+                const response = await fetch('/api/regulatory/emergency-plans/trigger-check', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    alert('触发检查失败: ' + (data.error || '未知错误'));
+                    return;
+                }
+
+                if (data.triggered_count > 0) {
+                    alert(`已触发 ${data.triggered_count} 个应急预案！`);
+                    loadEmergencyPlans();
+                } else {
+                    alert('当前无需要触发的应急预案');
+                }
+            } catch (error) {
+                console.error('触发检查失败:', error);
+                alert('触发检查失败: ' + error.message);
+            }
+        }
+
+        // 加载执行历史
+        async function loadExecutionHistory() {
+            const container = document.getElementById('emergency-container');
+            container.innerHTML = '<div class="loading">加载中...</div>';
+
+            try {
+                const response = await fetch('/api/regulatory/emergency-plans/execution-history?limit=50');
+                const data = await response.json();
+
+                if (!data.success) {
+                    container.innerHTML = `<div class="error">错误: ${data.error}</div>`;
+                    return;
+                }
+
+                const history = data.history || [];
+
+                if (history.length === 0) {
+                    container.innerHTML = '<div class="card"><div style="text-align: center; padding: 40px; color: #94a3b8;">暂无执行历史</div></div>';
+                    return;
+                }
+
+                let html = '<div class="alert-list">';
+                history.forEach(record => {
+                    html += `
+                        <div class="alert-item ${record.status === 'executing' ? 'critical' : 'normal'}">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong>${record.plan_name}</strong>
+                                <span class="status-badge ${record.status === 'executing' ? 'status-critical' : 'status-normal'}">
+                                    ${record.status === 'executing' ? '执行中' : '已完成'}
+                                </span>
+                            </div>
+                            <div class="alert-message">
+                                触发条件: ${record.trigger_condition.indicator} ${record.trigger_condition.operator} ${record.trigger_condition.threshold}<br>
+                                触发时指标值: ${record.indicator_value}
+                            </div>
+                            <div style="font-size: 12px; color: #64748b; margin-top: 5px;">
+                                触发时间: ${new Date(record.triggered_at).toLocaleString()}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+
+                container.innerHTML = html;
+            } catch (error) {
+                container.innerHTML = `<div class="error">请求失败: ${error.message}</div>`;
+            }
+        }
 
         // 定时刷新指标（每30秒）
         setInterval(loadIndicators, 30000);

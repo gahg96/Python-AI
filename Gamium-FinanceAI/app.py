@@ -6753,15 +6753,18 @@ def api_validate_results():
 # 全局监管监控器实例
 regulatory_monitor = None
 compliance_checker = None
+emergency_plan_manager = None
 
 def init_regulatory_system():
     """初始化监管系统"""
-    global regulatory_monitor, compliance_checker
+    global regulatory_monitor, compliance_checker, emergency_plan_manager
     from regulatory.regulatory_monitor import RegulatoryMonitor, BankMetrics
     from regulatory.compliance_checker import ComplianceChecker
+    from regulatory.emergency_plan import EmergencyPlanManager
     
     regulatory_monitor = RegulatoryMonitor()
     compliance_checker = ComplianceChecker()
+    emergency_plan_manager = EmergencyPlanManager()
     
     # 初始化示例数据（实际应从业务系统获取）
     sample_metrics = BankMetrics(
@@ -7001,6 +7004,36 @@ def api_compliance_summary():
             'traceback': traceback.format_exc()
         }), 500
 
+@app.route('/api/regulatory/indicators/<indicator_key>/detail', methods=['GET'])
+def api_get_indicator_detail(indicator_key):
+    """获取指标详细信息（用于下钻）"""
+    try:
+        if not regulatory_monitor:
+            return jsonify({
+                'success': False,
+                'error': '监管监控器未初始化'
+            }), 500
+        
+        detail = regulatory_monitor.get_indicator_detail(indicator_key)
+        
+        if not detail:
+            return jsonify({
+                'success': False,
+                'error': f'指标 {indicator_key} 不存在'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'detail': detail
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
 @app.route('/api/regulatory/reports/generate', methods=['POST'])
 def api_generate_report():
     """生成监管报表"""
@@ -7059,6 +7092,166 @@ def api_generate_report():
         return jsonify({
             'success': True,
             'report': report
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/regulatory/emergency-plans', methods=['GET'])
+def api_get_emergency_plans():
+    """获取所有应急预案"""
+    try:
+        if not emergency_plan_manager:
+            return jsonify({
+                'success': False,
+                'error': '应急预案管理器未初始化'
+            }), 500
+        
+        plans = emergency_plan_manager.get_all_plans()
+        
+        return jsonify({
+            'success': True,
+            'plans': plans
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/regulatory/emergency-plans/<plan_id>', methods=['GET'])
+def api_get_emergency_plan_detail(plan_id):
+    """获取应急预案详情"""
+    try:
+        if not emergency_plan_manager:
+            return jsonify({
+                'success': False,
+                'error': '应急预案管理器未初始化'
+            }), 500
+        
+        plan_detail = emergency_plan_manager.get_plan_detail(plan_id)
+        
+        if not plan_detail:
+            return jsonify({
+                'success': False,
+                'error': f'预案 {plan_id} 不存在'
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'plan': plan_detail
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/regulatory/emergency-plans/<plan_id>/actions/<action_id>/update', methods=['POST'])
+def api_update_action_status(plan_id, action_id):
+    """更新措施状态"""
+    try:
+        if not emergency_plan_manager:
+            return jsonify({
+                'success': False,
+                'error': '应急预案管理器未初始化'
+            }), 500
+        
+        data = request.get_json() or {}
+        status = data.get('status', 'pending')
+        actual_result = data.get('actual_result')
+        notes = data.get('notes', '')
+        
+        success = emergency_plan_manager.update_action_status(
+            plan_id, action_id, status, actual_result, notes
+        )
+        
+        if not success:
+            return jsonify({
+                'success': False,
+                'error': '更新失败，请检查预案ID和措施ID'
+            }), 400
+        
+        # 如果措施完成，评估预案效果
+        if status == 'completed' and regulatory_monitor:
+            indicators = regulatory_monitor.get_all_indicators()
+            effectiveness = emergency_plan_manager.evaluate_effectiveness(plan_id, indicators)
+        else:
+            effectiveness = None
+        
+        plan_detail = emergency_plan_manager.get_plan_detail(plan_id)
+        
+        return jsonify({
+            'success': True,
+            'plan': plan_detail,
+            'effectiveness_score': effectiveness
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/regulatory/emergency-plans/execution-history', methods=['GET'])
+def api_get_execution_history():
+    """获取执行历史"""
+    try:
+        if not emergency_plan_manager:
+            return jsonify({
+                'success': False,
+                'error': '应急预案管理器未初始化'
+            }), 500
+        
+        limit = request.args.get('limit', 50, type=int)
+        history = emergency_plan_manager.get_execution_history(limit)
+        
+        return jsonify({
+            'success': True,
+            'history': history
+        })
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+@app.route('/api/regulatory/emergency-plans/trigger-check', methods=['POST'])
+def api_trigger_check():
+    """手动触发检查（用于测试）"""
+    try:
+        if not emergency_plan_manager or not regulatory_monitor:
+            return jsonify({
+                'success': False,
+                'error': '系统未初始化'
+            }), 500
+        
+        indicators = regulatory_monitor.get_all_indicators()
+        triggered_plans = emergency_plan_manager.check_and_trigger_plans(indicators)
+        
+        return jsonify({
+            'success': True,
+            'triggered_count': len(triggered_plans),
+            'triggered_plans': [
+                {
+                    'plan_id': plan.plan_id,
+                    'name': plan.name,
+                    'priority': plan.priority.value,
+                    'triggered_at': plan.triggered_at.isoformat() if plan.triggered_at else None
+                }
+                for plan in triggered_plans
+            ]
         })
     except Exception as e:
         import traceback
