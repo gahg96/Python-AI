@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>端到端贷款审批Demo - 交互界面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .step-container {
+            margin-bottom: 30px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .step-header {
+            background: #f5f5f5;
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+
+        .step-header:hover {
+            background: #eeeeee;
+        }
+
+        .step-header.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .step-title {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .step-status {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .status-running {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .status-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-error {
+            background: #dc3545;
+            color: white;
+        }
+
+        .step-content {
+            padding: 20px;
+            display: none;
+        }
+
+        .step-content.active {
+            display: block;
+        }
+
+        .step-actions {
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e0e0e0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            width: 0%;
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .log-container {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        .log-line {
+            margin-bottom: 5px;
+            white-space: pre-wrap;
+        }
+
+        .log-success {
+            color: #4ec9b0;
+        }
+
+        .log-error {
+            color: #f48771;
+        }
+
+        .log-warning {
+            color: #dcdcaa;
+        }
+
+        .result-display {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        
+        .result-display table {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .result-display th {
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .result-display td {
+            font-size: 0.85em;
+        }
+        
+        .result-display tbody tr:hover {
+            background: #e3f2fd !important;
+            cursor: pointer;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-weight: bold;
+            color: #666;
+        }
+
+        .result-value {
+            color: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 端到端贷款审批Demo</h1>
+            <p>基于历史数据的完整贷款审批流程模拟系统</p>
+        </div>
+
+        <div class="content">
+            <!-- 总体进度 -->
+            <div class="progress-bar">
+                <div class="progress-fill" id="overall-progress">0%</div>
+            </div>
+
+            <!-- 步骤1：历史数据准备 -->
+            <div class="step-container">
+                <div class="step-header" onclick="toggleStep(1)">
+                    <div>
+                        <span class="step-title">步骤1：历史数据准备</span>
+                        <span class="step-status status-pending" id="step1-status">待执行</span>
+                    </div>
+                    <span>▼</span>
+                </div>
+                <div class="step-content" id="step1-content">
+                    <div class="form-group">
+                        <label>历史贷款数量：</label>
+                        <input type="number" id="num-historical-loans" value="10000" min="1000" max="100000">
+                    </div>
+                    <div class="form-group">
+                        <label>对私贷款比例：</label>
+                        <input type="number" id="personal-ratio" value="0.7" min="0" max="1" step="0.1">
+                    </div>
+                    <div class="step-actions">
+                        <button class="btn btn-primary" onclick="runStep1()">生成历史数据</button>
+                    </div>
+                    <div class="log-container" id="step1-log"></div>
+                    <div class="result-display" id="step1-results" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- 步骤2：数据质量检查 -->
+            <div class="step-container">
+                <div class="step-header" onclick="toggleStep(2)">
+                    <div>
+                        <span class="step-title">步骤2：数据质量检查</span>
+                        <span class="step-status status-pending" id="step2-status">待执行</span>
+                    </div>
+                    <span>▼</span>
+                </div>
+                <div class="step-content" id="step2-content">
+                    <div class="step-actions">
+                        <button class="btn btn-primary" onclick="runStep2()">执行质量检查</button>
+                    </div>
+                    <div class="log-container" id="step2-log"></div>
+                    <div class="result-display" id="step2-results" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- 步骤3：特征工程 -->
+            <div class="step-container">
+                <div class="step-header" onclick="toggleStep(3)">
+                    <div>
+                        <span class="step-title">步骤3：特征工程</span>
+                        <span class="step-status status-pending" id="step3-status">待执行</span>
+                    </div>
+                    <span>▼</span>
+                </div>
+                <div class="step-content" id="step3-content">
+                    <div class="step-actions">
+                        <button class="btn btn-primary" onclick="runStep3()">执行特征工程</button>
+                    </div>
+                    <div class="log-container" id="step3-log"></div>
+                    <div class="result-display" id="step3-results" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- 步骤4：规则提取 -->
+            <div class="step-container">
+                <div class="step-header" onclick="toggleStep(4)">
+                    <div>
+                        <span class="step-title">步骤4：规则提取和量化</span>
+                        <span class="step-status status-pending" id="step4-status">待执行</span>
+                    </div>
+                    <span>▼</span>
+                </div>
+                <div class="step-content" id="step4-content">
+                    <div class="step-actions">
+                        <button class="btn btn-primary" onclick="runStep4()">提取规则</button>
+                    </div>
+                    <div class="log-container" id="step4-log"></div>
+                    <div class="result-display" id="step4-results" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- 步骤5：模型训练 -->
+            <div class="step-container">
+                <div class="step-header" onclick="toggleStep(5)">
+                    <div>
+                        <span class="step-title">步骤5：模型训练</span>
+                        <span class="step-status status-pending" id="step5-status">待执行</span>
+                    </div>
+                    <span>▼</span>
+                </div>
+                <div class="step-content" id="step5-content">
+                    <div class="step-actions">
+                        <button class="btn btn-primary" onclick="runStep5()">训练模型</button>
+                    </div>
+                    <div class="log-container" id="step5-log"></div>
+                    <div class="result-display" id="step5-results" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- 步骤6：模拟审批 -->
+            <div class="step-container">
+                <div class="step-header" onclick="toggleStep(6)">
+                    <div>
+                        <span class="step-title">步骤6：模拟审批</span>
+                        <span class="step-status status-pending" id="step6-status">待执行</span>
+                    </div>
+                    <span>▼</span>
+                </div>
+                <div class="step-content" id="step6-content">
+                    <div class="form-group">
+                        <label>模拟客户数量：</label>
+                        <input type="number" id="num-simulated-customers" value="100" min="10" max="1000">
+                    </div>
+                    <div class="step-actions">
+                        <button class="btn btn-primary" onclick="runStep6()">开始模拟</button>
+                    </div>
+                    <div class="log-container" id="step6-log"></div>
+                    <div class="result-display" id="step6-results" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- 步骤7：结果验证 -->
+            <div class="step-container">
+                <div class="step-header" onclick="toggleStep(7)">
+                    <div>
+                        <span class="step-title">步骤7：结果验证</span>
+                        <span class="step-status status-pending" id="step7-status">待执行</span>
+                    </div>
+                    <span>▼</span>
+                </div>
+                <div class="step-content" id="step7-content">
+                    <div class="step-actions">
+                        <button class="btn btn-primary" onclick="runStep7()">执行验证</button>
+                    </div>
+                    <div class="log-container" id="step7-log"></div>
+                    <div class="result-display" id="step7-results" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- 一键运行所有步骤 -->
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn btn-success" style="font-size: 1.2em; padding: 15px 40px;" onclick="runAllSteps()">
+                    🚀 一键运行完整流程
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentStep = 0;
+        const totalSteps = 7;
+
+        function toggleStep(stepNum) {
+            const content = document.getElementById(`step${stepNum}-content`);
+            const header = content.previousElementSibling;
+            
+            if (content.classList.contains('active')) {
+                content.classList.remove('active');
+                header.querySelector('span:last-child').textContent = '▼';
+            } else {
+                // 关闭其他步骤
+                document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.step-header span:last-child').forEach(el => el.textContent = '▼');
+                
+                content.classList.add('active');
+                header.querySelector('span:last-child').textContent = '▲';
+            }
+        }
+
+        function updateProgress(step, status) {
+            const statusEl = document.getElementById(`step${step}-status`);
+            if (!statusEl) {
+                console.warn(`Status element for step ${step} not found`);
+                return;
+            }
+            statusEl.className = `step-status status-${status}`;
+            
+            const statusText = {
+                'pending': '待执行',
+                'running': '执行中...',
+                'success': '✅ 完成',
+                'error': '❌ 失败'
+            };
+            statusEl.textContent = statusText[status];
+            
+            // 更新总体进度
+            let completed = 0;
+            for (let i = 1; i <= totalSteps; i++) {
+                const el = document.getElementById(`step${i}-status`);
+                if (el && el.classList.contains('status-success')) completed++;
+            }
+            const progress = (completed / totalSteps) * 100;
+            const progressEl = document.getElementById('overall-progress');
+            if (progressEl) {
+                progressEl.style.width = progress + '%';
+                progressEl.textContent = Math.round(progress) + '%';
+            }
+        }
+
+        function addLog(step, message, type = 'info') {
+            const logEl = document.getElementById(`step${step}-log`);
+            const logLine = document.createElement('div');
+            logLine.className = `log-line log-${type}`;
+            logLine.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(logLine);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function showResults(step, data) {
+            const resultsEl = document.getElementById(`step${step}-results`);
+            if (!resultsEl) {
+                console.warn(`Results element for step ${step} not found`);
+                return;
+            }
+            resultsEl.style.display = 'block';
+            
+            let html = '<h3>执行结果：</h3>';
+            if (typeof data === 'object' && data !== null) {
+                for (const [key, value] of Object.entries(data)) {
+                    html += `<div class="result-item">
+                        <span class="result-label">${key}:</span>
+                        <span class="result-value">${value}</span>
+                    </div>`;
+                }
+            } else {
+                html += `<div class="result-item">${data || '无数据'}</div>`;
+            }
+            resultsEl.innerHTML = html;
+        }
+
+        async function runStep1() {
+            updateProgress(1, 'running');
+            addLog(1, '开始生成历史数据...', 'info');
+            
+            const numLoans = document.getElementById('num-historical-loans').value;
+            const personalRatio = document.getElementById('personal-ratio').value;
+            
+            try {
+                const response = await fetch('/api/demo/generate-historical', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        num_loans: parseInt(numLoans),
+                        personal_ratio: parseFloat(personalRatio)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(1, '✅ 历史数据生成成功！', 'success');
+                    if (data.stats) {
+                        showResults(1, data.stats);
+                    }
+                    updateProgress(1, 'success');
+                } else {
+                    addLog(1, `❌ 错误: ${data.error || '未知错误'}`, 'error');
+                    updateProgress(1, 'error');
+                }
+            } catch (error) {
+                addLog(1, `❌ 请求失败: ${error.message}`, 'error');
+                updateProgress(1, 'error');
+            }
+        }
+
+        async function runStep2() {
+            updateProgress(2, 'running');
+            addLog(2, '开始数据质量检查...', 'info');
+            
+            try {
+                const response = await fetch('/api/demo/check-quality', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(2, '✅ 质量检查完成！', 'success');
+                    showResults(2, {
+                        '综合得分': data.overall_score?.toFixed(4) || 'N/A',
+                        '完整性': data.completeness_score?.toFixed(4) || 'N/A',
+                        '一致性': data.consistency_score?.toFixed(4) || 'N/A',
+                        '时间一致性': data.temporal_score?.toFixed(4) || 'N/A',
+                        '业务规则': data.rule_score?.toFixed(4) || 'N/A'
+                    });
+                    updateProgress(2, 'success');
+                } else {
+                    addLog(2, `❌ 错误: ${data.error}`, 'error');
+                    updateProgress(2, 'error');
+                }
+            } catch (error) {
+                addLog(2, `❌ 请求失败: ${error.message}`, 'error');
+                updateProgress(2, 'error');
+            }
+        }
+
+        async function runStep3() {
+            updateProgress(3, 'running');
+            addLog(3, '开始特征工程...', 'info');
+            
+            try {
+                const response = await fetch('/api/demo/engineer-features', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(3, '✅ 特征工程完成！', 'success');
+                    
+                    // 显示统计信息
+                    const stats = {
+                        '原始特征数': data.original_features || 'N/A',
+                        '新增特征数': data.new_features || 'N/A',
+                        '总特征数': data.total_features || 'N/A'
+                    };
+                    
+                    // 显示详细特征列表
+                    if (data.new_feature_list && data.new_feature_list.length > 0) {
+                        stats['新增特征列表'] = data.new_feature_list.length + ' 个特征';
+                    }
+                    
+                    showResults(3, stats);
+                    
+                    // 显示详细特征信息
+                    if (data.new_features_detail) {
+                        showFeatureDetails(3, data.new_features_detail, data.original_feature_list);
+                    } else if (data.new_feature_list) {
+                        // 兼容旧版本
+                        showFeatureDetails(3, data.new_feature_list, data.original_feature_list);
+                    }
+                    
+                    updateProgress(3, 'success');
+                } else {
+                    addLog(3, `❌ 错误: ${data.error}`, 'error');
+                    updateProgress(3, 'error');
+                }
+            } catch (error) {
+                addLog(3, `❌ 请求失败: ${error.message}`, 'error');
+                updateProgress(3, 'error');
+            }
+        }
+
+        async function runStep4() {
+            updateProgress(4, 'running');
+            addLog(4, '开始规则提取...', 'info');
+            
+            try {
+                const response = await fetch('/api/demo/extract-rules', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(4, '✅ 规则提取完成！', 'success');
+                    showResults(4, {
+                        '提取规则数': data.num_rules || 'N/A',
+                        '量化规则数': data.num_quantified || 'N/A'
+                    });
+                    
+                    // 显示详细规则信息
+                    if (data.rules_detail && data.rules_detail.length > 0) {
+                        showRulesDetails(4, data.rules_detail);
+                    }
+                    
+                    updateProgress(4, 'success');
+                } else {
+                    addLog(4, `❌ 错误: ${data.error}`, 'error');
+                    updateProgress(4, 'error');
+                }
+            } catch (error) {
+                addLog(4, `❌ 请求失败: ${error.message}`, 'error');
+                updateProgress(4, 'error');
+            }
+        }
+
+        async function runStep5() {
+            updateProgress(5, 'running');
+            addLog(5, '开始模型训练...', 'info');
+            
+            try {
+                const response = await fetch('/api/demo/train-models', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(5, '✅ 模型训练完成！', 'success');
+                    showResults(5, {
+                        '违约预测准确率': data.default_accuracy?.toFixed(4) || 'N/A',
+                        '利润预测R²': data.profit_r2?.toFixed(4) || 'N/A',
+                        '训练模型数': data.num_models || 'N/A'
+                    });
+                    updateProgress(5, 'success');
+                } else {
+                    addLog(5, `❌ 错误: ${data.error}`, 'error');
+                    updateProgress(5, 'error');
+                }
+            } catch (error) {
+                addLog(5, `❌ 请求失败: ${error.message}`, 'error');
+                updateProgress(5, 'error');
+            }
+        }
+
+        async function runStep6() {
+            updateProgress(6, 'running');
+            addLog(6, '开始模拟审批...', 'info');
+            
+            const numCustomers = document.getElementById('num-simulated-customers').value;
+            
+            try {
+                const response = await fetch('/api/demo/simulate-approval', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        num_customers: parseInt(numCustomers)
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(6, '✅ 模拟审批完成！', 'success');
+                    
+                    // 显示统计信息
+                    const stats = data.stats || {};
+                    showResults(6, {
+                        '模拟客户数': stats.num_customers || 'N/A',
+                        '审批通过': stats.approved_count || 'N/A',
+                        '审批拒绝': stats.rejected_count || 'N/A',
+                        '实际违约': stats.defaulted_count || 'N/A',
+                        '违约率': stats.default_rate ? (stats.default_rate * 100).toFixed(2) + '%' : 'N/A',
+                        '平均利润': '¥' + (stats.avg_profit?.toFixed(2) || '0'),
+                        '总利润': '¥' + (stats.total_profit?.toFixed(2) || '0'),
+                        '平均违约概率': stats.avg_default_prob ? (stats.avg_default_prob * 100).toFixed(2) + '%' : 'N/A'
+                    });
+                    
+                    // 显示详细交易数据
+                    if (data.transactions && data.transactions.length > 0) {
+                        showTransactionDetails(6, data.transactions, data.total_transactions);
+                    }
+                    
+                    updateProgress(6, 'success');
+                } else {
+                    addLog(6, `❌ 错误: ${data.error}`, 'error');
+                    updateProgress(6, 'error');
+                }
+            } catch (error) {
+                addLog(6, `❌ 请求失败: ${error.message}`, 'error');
+                updateProgress(6, 'error');
+            }
+        }
+
+        async function runStep7() {
+            updateProgress(7, 'running');
+            addLog(7, '开始结果验证...', 'info');
+            
+            try {
+                const response = await fetch('/api/demo/validate-results', { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    addLog(7, '✅ 结果验证完成！', 'success');
+                    showResults(7, {
+                        '违约率验证': data.default_rate_valid ? '✅ 通过' : '❌ 未通过',
+                        '利润分布验证': data.profit_valid ? '✅ 通过' : '❌ 未通过',
+                        '回收率验证': data.recovery_valid ? '✅ 通过' : '❌ 未通过'
+                    });
+                    updateProgress(7, 'success');
+                } else {
+                    addLog(7, `❌ 错误: ${data.error}`, 'error');
+                    updateProgress(7, 'error');
+                }
+            } catch (error) {
+                addLog(7, `❌ 请求失败: ${error.message}`, 'error');
+                updateProgress(7, 'error');
+            }
+        }
+
+        async function runAllSteps() {
+            if (!confirm('确定要运行完整流程吗？这可能需要几分钟时间。')) {
+                return;
+            }
+            
+            // 重置所有步骤
+            for (let i = 1; i <= totalSteps; i++) {
+                updateProgress(i, 'pending');
+                document.getElementById(`step${i}-log`).innerHTML = '';
+                document.getElementById(`step${i}-results`).style.display = 'none';
+            }
+            
+            // 依次执行
+            await runStep1();
+            await new Promise(r => setTimeout(r, 500));
+            await runStep2();
+            await new Promise(r => setTimeout(r, 500));
+            await runStep3();
+            await new Promise(r => setTimeout(r, 500));
+            await runStep4();
+            await new Promise(r => setTimeout(r, 500));
+            await runStep5();
+            await new Promise(r => setTimeout(r, 500));
+            await runStep6();
+            await new Promise(r => setTimeout(r, 500));
+            await runStep7();
+            
+            alert('✅ 完整流程执行完成！');
+        }
+        
+        function showFeatureDetails(step, newFeatures, originalFeatures) {
+            const resultsEl = document.getElementById(`step${step}-results`);
+            if (!resultsEl) return;
+            
+            let html = resultsEl.innerHTML;
+            html += '<h3 style="margin-top: 20px;">新增特征详情：</h3>';
+            html += '<div style="max-height: 500px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">';
+            
+            // 检查是否是带详细说明的格式
+            const hasDetails = Array.isArray(newFeatures) && newFeatures.length > 0 && typeof newFeatures[0] === 'object' && 'description' in newFeatures[0];
+            
+            if (hasDetails) {
+                // 按类别分组显示（带详细说明）
+                const categories = {};
+                
+                newFeatures.forEach(feat => {
+                    const category = feat.category || '其他';
+                    if (!categories[category]) {
+                        categories[category] = [];
+                    }
+                    categories[category].push(feat);
+                });
+                
+                for (const [category, features] of Object.entries(categories)) {
+                    if (features.length > 0) {
+                        html += `<div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #667eea;">`;
+                        html += `<h4 style="color: #667eea; margin-bottom: 10px;">${category} (${features.length}个)</h4>`;
+                        
+                        features.forEach(feat => {
+                            html += `<div style="margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e0e0e0;">`;
+                            html += `<div style="font-weight: bold; color: #333; margin-bottom: 5px;">`;
+                            html += `<span style="font-family: monospace; color: #667eea;">${feat.name}</span>`;
+                            if (feat.display_name && feat.display_name !== feat.name) {
+                                html += ` <span style="color: #666;">(${feat.display_name})</span>`;
+                            }
+                            html += `</div>`;
+                            html += `<div style="color: #555; font-size: 0.9em; margin-bottom: 5px;">${feat.description || '无描述'}</div>`;
+                            if (feat.calculation && feat.calculation !== 'N/A') {
+                                html += `<div style="color: #888; font-size: 0.85em; font-family: monospace; background: white; padding: 4px 8px; border-radius: 3px; display: inline-block;">计算公式: ${feat.calculation}</div>`;
+                            }
+                            html += `</div>`;
+                        });
+                        
+                        html += `</div>`;
+                    }
+                }
+            } else {
+                // 旧格式：仅特征名称列表
+                const categories = {
+                    '衍生特征': [],
+                    '时间特征': [],
+                    '交互特征': [],
+                    '其他': []
+                };
+                
+                newFeatures.forEach(feat => {
+                    const featName = typeof feat === 'string' ? feat : feat.name || feat;
+                    if (featName.includes('ratio') || featName.includes('score') || featName.includes('category')) {
+                        categories['衍生特征'].push(featName);
+                    } else if (featName.includes('year') || featName.includes('month') || featName.includes('quarter') || featName.includes('day')) {
+                        categories['时间特征'].push(featName);
+                    } else if (featName.includes('interaction') || featName.includes('_x_')) {
+                        categories['交互特征'].push(featName);
+                    } else {
+                        categories['其他'].push(featName);
+                    }
+                });
+                
+                for (const [category, features] of Object.entries(categories)) {
+                    if (features.length > 0) {
+                        html += `<div style="margin-bottom: 15px;"><strong>${category} (${features.length}个):</strong>`;
+                        html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 5px; margin-top: 5px;">';
+                        features.forEach(feat => {
+                            html += `<span style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; border: 1px solid #ddd;">${feat}</span>`;
+                        });
+                        html += '</div></div>';
+                    }
+                }
+            }
+            
+            html += '</div>';
+            resultsEl.innerHTML = html;
+        }
+        
+        function showRulesDetails(step, rulesDetail) {
+            const resultsEl = document.getElementById(`step${step}-results`);
+            if (!resultsEl) return;
+            
+            let html = resultsEl.innerHTML;
+            html += '<h3 style="margin-top: 20px;">提取的规则详情：</h3>';
+            html += '<div style="max-height: 400px; overflow-y: auto; margin-top: 10px;">';
+            
+            rulesDetail.forEach((rule, index) => {
+                html += `<div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #667eea;">`;
+                html += `<div style="font-weight: bold; color: #667eea; margin-bottom: 8px;">规则 ${rule.id}: ${rule.name || '未命名规则'}</div>`;
+                html += `<div style="margin-bottom: 5px;"><strong>类型:</strong> ${rule.type || 'N/A'}</div>`;
+                html += `<div style="margin-bottom: 5px;"><strong>客户类型:</strong> ${rule.customer_type || 'both'}</div>`;
+                html += `<div style="margin-bottom: 5px;"><strong>描述:</strong> ${rule.description || '无描述'}</div>`;
+                html += `<div style="margin-bottom: 5px;"><strong>置信度:</strong> ${(rule.confidence * 100).toFixed(2)}% | <strong>支持度:</strong> ${(rule.support * 100).toFixed(2)}%</div>`;
+                
+                if (rule.conditions && rule.conditions.length > 0) {
+                    html += `<div style="margin-top: 8px;"><strong>条件:</strong>`;
+                    html += '<ul style="margin: 5px 0; padding-left: 20px;">';
+                    rule.conditions.forEach(cond => {
+                        html += `<li>${cond.field || 'N/A'} ${cond.operator || 'N/A'} ${cond.value || 'N/A'}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                html += `</div>`;
+            });
+            
+            html += '</div>';
+            resultsEl.innerHTML = html;
+        }
+        
+        function showTransactionDetails(step, transactions, totalCount) {
+            const resultsEl = document.getElementById(`step${step}-results`);
+            if (!resultsEl) return;
+            
+            let html = resultsEl.innerHTML;
+            html += `<h3 style="margin-top: 20px;">详细交易数据 (显示 ${transactions.length} / ${totalCount} 条):</h3>`;
+            html += '<div style="max-height: 500px; overflow-y: auto; margin-top: 10px;">';
+            html += '<table style="width: 100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
+            
+            // 表头
+            html += '<thead style="background: #667eea; color: white; position: sticky; top: 0; z-index: 10;">';
+            html += '<tr>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd; font-size: 0.9em;">ID</th>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd; font-size: 0.9em;">客户ID</th>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd; font-size: 0.9em;">客户类型</th>';
+            html += '<th style="padding: 10px; text-align: right; border: 1px solid #ddd; font-size: 0.9em;">贷款金额</th>';
+            html += '<th style="padding: 10px; text-align: center; border: 1px solid #ddd; font-size: 0.9em;">决策</th>';
+            html += '<th style="padding: 10px; text-align: right; border: 1px solid #ddd; font-size: 0.9em;">违约概率</th>';
+            html += '<th style="padding: 10px; text-align: right; border: 1px solid #ddd; font-size: 0.9em;">预期利润</th>';
+            html += '<th style="padding: 10px; text-align: center; border: 1px solid #ddd; font-size: 0.9em;">是否违约</th>';
+            html += '<th style="padding: 10px; text-align: right; border: 1px solid #ddd; font-size: 0.9em;">实际利润</th>';
+            html += '<th style="padding: 10px; text-align: right; border: 1px solid #ddd; font-size: 0.9em;">回收率</th>';
+            html += '</tr>';
+            html += '</thead>';
+            
+            // 表体
+            html += '<tbody>';
+            transactions.forEach((tx, index) => {
+                const rowClass = index % 2 === 0 ? 'background: #f8f9fa;' : 'background: white;';
+                const decisionColor = tx.decision === 'approve' ? '#28a745' : tx.decision === 'reject' ? '#dc3545' : '#ffc107';
+                const defaultColor = tx.actual_defaulted ? '#dc3545' : '#28a745';
+                const profitColor = tx.actual_profit >= 0 ? '#28a745' : '#dc3545';
+                
+                html += `<tr style="${rowClass}">`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; font-size: 0.85em;">${tx.id}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; font-size: 0.85em;">${tx.customer_id || 'N/A'}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; font-size: 0.85em;">${tx.customer_type === 'personal' ? '对私' : tx.customer_type === 'corporate' ? '对公' : tx.customer_type || 'N/A'}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-size: 0.85em;">¥${tx.loan_amount.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 0.85em;"><span style="color: ${decisionColor}; font-weight: bold;">${tx.decision === 'approve' ? '通过' : tx.decision === 'reject' ? '拒绝' : '审核'}</span></td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-size: 0.85em;">${(tx.default_probability * 100).toFixed(2)}%</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-size: 0.85em;">¥${tx.expected_profit.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 0.85em;"><span style="color: ${defaultColor}; font-weight: bold;">${tx.actual_defaulted ? '是' : '否'}</span></td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right; color: ${profitColor}; font-weight: bold; font-size: 0.85em;">¥${tx.actual_profit.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-size: 0.85em;">${(tx.recovery_rate * 100).toFixed(2)}%</td>`;
+                html += '</tr>';
+            });
+            html += '</tbody>';
+            html += '</table>';
+            html += '</div>';
+            
+            // 添加提示
+            html += '<div style="margin-top: 10px; padding: 10px; background: #e7f3ff; border-radius: 6px; font-size: 0.9em; color: #0066cc;">';
+            html += '💡 提示：表格支持滚动查看，可以查看每条交易的详细信息';
+            html += '</div>';
+            
+            resultsEl.innerHTML = html;
+        }
+    </script>
+</body>
+</html>
+
