@@ -682,7 +682,10 @@
                     showResults(3, stats);
                     
                     // 显示详细特征信息
-                    if (data.new_feature_list) {
+                    if (data.new_features_detail) {
+                        showFeatureDetails(3, data.new_features_detail, data.original_feature_list);
+                    } else if (data.new_feature_list) {
+                        // 兼容旧版本
                         showFeatureDetails(3, data.new_feature_list, data.original_feature_list);
                     }
                     
@@ -865,36 +868,77 @@
             
             let html = resultsEl.innerHTML;
             html += '<h3 style="margin-top: 20px;">新增特征详情：</h3>';
-            html += '<div style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">';
+            html += '<div style="max-height: 500px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">';
             
-            // 按类别分组显示
-            const categories = {
-                '衍生特征': [],
-                '时间特征': [],
-                '交互特征': [],
-                '其他': []
-            };
+            // 检查是否是带详细说明的格式
+            const hasDetails = Array.isArray(newFeatures) && newFeatures.length > 0 && typeof newFeatures[0] === 'object' && 'description' in newFeatures[0];
             
-            newFeatures.forEach(feat => {
-                if (feat.includes('ratio') || feat.includes('score') || feat.includes('category')) {
-                    categories['衍生特征'].push(feat);
-                } else if (feat.includes('year') || feat.includes('month') || feat.includes('quarter') || feat.includes('day')) {
-                    categories['时间特征'].push(feat);
-                } else if (feat.includes('interaction') || feat.includes('_x_')) {
-                    categories['交互特征'].push(feat);
-                } else {
-                    categories['其他'].push(feat);
+            if (hasDetails) {
+                // 按类别分组显示（带详细说明）
+                const categories = {};
+                
+                newFeatures.forEach(feat => {
+                    const category = feat.category || '其他';
+                    if (!categories[category]) {
+                        categories[category] = [];
+                    }
+                    categories[category].push(feat);
+                });
+                
+                for (const [category, features] of Object.entries(categories)) {
+                    if (features.length > 0) {
+                        html += `<div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 6px; border-left: 4px solid #667eea;">`;
+                        html += `<h4 style="color: #667eea; margin-bottom: 10px;">${category} (${features.length}个)</h4>`;
+                        
+                        features.forEach(feat => {
+                            html += `<div style="margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 4px; border: 1px solid #e0e0e0;">`;
+                            html += `<div style="font-weight: bold; color: #333; margin-bottom: 5px;">`;
+                            html += `<span style="font-family: monospace; color: #667eea;">${feat.name}</span>`;
+                            if (feat.display_name && feat.display_name !== feat.name) {
+                                html += ` <span style="color: #666;">(${feat.display_name})</span>`;
+                            }
+                            html += `</div>`;
+                            html += `<div style="color: #555; font-size: 0.9em; margin-bottom: 5px;">${feat.description || '无描述'}</div>`;
+                            if (feat.calculation && feat.calculation !== 'N/A') {
+                                html += `<div style="color: #888; font-size: 0.85em; font-family: monospace; background: white; padding: 4px 8px; border-radius: 3px; display: inline-block;">计算公式: ${feat.calculation}</div>`;
+                            }
+                            html += `</div>`;
+                        });
+                        
+                        html += `</div>`;
+                    }
                 }
-            });
-            
-            for (const [category, features] of Object.entries(categories)) {
-                if (features.length > 0) {
-                    html += `<div style="margin-bottom: 15px;"><strong>${category} (${features.length}个):</strong>`;
-                    html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 5px; margin-top: 5px;">';
-                    features.forEach(feat => {
-                        html += `<span style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; border: 1px solid #ddd;">${feat}</span>`;
-                    });
-                    html += '</div></div>';
+            } else {
+                // 旧格式：仅特征名称列表
+                const categories = {
+                    '衍生特征': [],
+                    '时间特征': [],
+                    '交互特征': [],
+                    '其他': []
+                };
+                
+                newFeatures.forEach(feat => {
+                    const featName = typeof feat === 'string' ? feat : feat.name || feat;
+                    if (featName.includes('ratio') || featName.includes('score') || featName.includes('category')) {
+                        categories['衍生特征'].push(featName);
+                    } else if (featName.includes('year') || featName.includes('month') || featName.includes('quarter') || featName.includes('day')) {
+                        categories['时间特征'].push(featName);
+                    } else if (featName.includes('interaction') || featName.includes('_x_')) {
+                        categories['交互特征'].push(featName);
+                    } else {
+                        categories['其他'].push(featName);
+                    }
+                });
+                
+                for (const [category, features] of Object.entries(categories)) {
+                    if (features.length > 0) {
+                        html += `<div style="margin-bottom: 15px;"><strong>${category} (${features.length}个):</strong>`;
+                        html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 5px; margin-top: 5px;">';
+                        features.forEach(feat => {
+                            html += `<span style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; border: 1px solid #ddd;">${feat}</span>`;
+                        });
+                        html += '</div></div>';
+                    }
                 }
             }
             

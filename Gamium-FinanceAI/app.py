@@ -6406,13 +6406,30 @@ def api_engineer_features():
         original_features = list(data.columns)
         new_features = [col for col in engineered_data.columns if col not in original_features]
         
+        # 获取特征说明
+        from demo.feature_descriptions import get_all_feature_descriptions
+        feature_descriptions = get_all_feature_descriptions(new_features)
+        
+        # 格式化特征信息
+        new_features_with_desc = []
+        for feat in new_features:
+            desc = feature_descriptions.get(feat, {})
+            new_features_with_desc.append({
+                'name': feat,
+                'display_name': desc.get('name', feat),
+                'description': desc.get('description', '特征工程生成的特征'),
+                'category': desc.get('category', '其他'),
+                'calculation': desc.get('calculation', 'N/A')
+            })
+        
         return jsonify({
             'success': True,
             'original_features': original_cols,
             'new_features': len(engineered_data.columns) - original_cols,
             'total_features': len(engineered_data.columns),
             'original_feature_list': original_features[:20],  # 前20个原始特征
-            'new_feature_list': new_features,  # 所有新特征
+            'new_feature_list': new_features,  # 所有新特征（仅名称，用于兼容）
+            'new_features_detail': new_features_with_desc,  # 带详细说明的新特征
             'all_features': list(engineered_data.columns)  # 所有特征
         })
     except Exception as e:
