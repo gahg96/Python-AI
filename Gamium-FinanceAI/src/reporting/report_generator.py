@@ -151,7 +151,7 @@ class ReportGenerator:
         """获取所有报表实例"""
         return [inst.to_dict() for inst in self.instances.values()]
         
-    def update_instance_data(self, instance_id: str, field_id: str, value: Any) -> bool:
+    def update_instance_data(self, instance_id: str, field_id: str, value: Any) -> Tuple[bool, Optional[str]]:
         """
         更新报表实例数据
         
@@ -161,17 +161,35 @@ class ReportGenerator:
             value: 字段值
         
         Returns:
-            是否成功
+            (是否成功, 错误信息)
         """
         instance = self.instances.get(instance_id)
         if not instance:
-            return False
+            return False, '报表实例不存在'
             
         if instance.status != ReportStatus.DRAFT:
-            return False  # 只能修改草稿状态的报表
+            return False, f'报表状态为{instance.status.value}，只能修改草稿状态的报表'
+        
+        # 类型转换
+        try:
+            # 获取模板以确定字段类型
+            template = self.template_manager.get_template(instance.template_id)
+            if template:
+                # 查找字段定义
+                for section in template.sections:
+                    for field in section.fields:
+                        if field.field_id == field_id:
+                            if field.field_type == 'number':
+                                value = float(value) if value else 0
+                            elif field.field_type == 'date':
+                                # 日期类型保持字符串
+                                pass
+                            break
+        except Exception as e:
+            return False, f'类型转换失败: {str(e)}'
             
         instance.report_data[field_id] = value
-        return True
+        return True, None
         
     def submit_instance(self, instance_id: str) -> Tuple[bool, Optional[str]]:
         """

@@ -855,34 +855,69 @@
                             ` : ''}
                         </div>
                         
-                        <h4 style="margin-top: 30px; margin-bottom: 15px;">报表数据</h4>
-                        <table class="report-data-table">
-                            <thead>
-                                <tr>
-                                    <th>字段名</th>
-                                    <th>值</th>
-                                    <th>单位</th>
-                                    <th>说明</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${Object.entries(instance.report_data || {}).map(([key, value]) => {
-                                    // 尝试从模板中获取字段说明
-                                    const fieldInfo = getFieldDescription(key);
-                                    return `
+                        <h4 style="margin-top: 30px; margin-bottom: 15px;">
+                            报表数据
+                            ${instance.status === 'draft' ? `
+                                <button class="btn btn-secondary" onclick="enableEditMode('${instance.instance_id}')" style="margin-left: 10px; padding: 6px 12px; font-size: 14px;">编辑数据</button>
+                            ` : ''}
+                        </h4>
+                        <div id="report-data-container">
+                            <table class="report-data-table" id="report-data-table">
+                                <thead>
                                     <tr>
-                                        <td><strong>${fieldInfo.name || key}</strong></td>
-                                        <td>${typeof value === 'number' ? value.toLocaleString('zh-CN') : value}</td>
-                                        <td>${fieldInfo.unit || ''}</td>
-                                        <td style="max-width: 300px; font-size: 12px; color: #666;">
-                                            ${fieldInfo.description ? fieldInfo.description.substring(0, 100) + (fieldInfo.description.length > 100 ? '...' : '') : ''}
-                                            ${fieldInfo.regulatory_requirement ? '<br><span style="color: #dc3545;">监管要求：' + fieldInfo.regulatory_requirement.substring(0, 80) + '...</span>' : ''}
-                                        </td>
+                                        <th>字段名</th>
+                                        <th>值</th>
+                                        <th>单位</th>
+                                        <th>说明</th>
+                                        ${instance.status === 'draft' ? '<th>操作</th>' : ''}
                                     </tr>
-                                `;
-                                }).join('')}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    ${Object.entries(instance.report_data || {}).map(([key, value]) => {
+                                        // 尝试从模板中获取字段说明
+                                        const fieldInfo = getFieldDescription(key);
+                                        const isEditable = instance.status === 'draft' && (key === 'report_period' || key === 'report_date' || fieldInfo.name);
+                                        return `
+                                        <tr data-field-id="${key}">
+                                            <td><strong>${fieldInfo.name || key}</strong></td>
+                                            <td>
+                                                ${isEditable ? `
+                                                    <input type="${key === 'report_date' ? 'date' : 'text'}" 
+                                                           class="form-input" 
+                                                           value="${value}" 
+                                                           id="field-${key}"
+                                                           style="width: 100%; padding: 6px; font-size: 14px;"
+                                                           onchange="updateFieldValue('${instance.instance_id}', '${key}', this.value)">
+                                                ` : `
+                                                    <span>${typeof value === 'number' ? value.toLocaleString('zh-CN') : value}</span>
+                                                `}
+                                            </td>
+                                            <td>${fieldInfo.unit || ''}</td>
+                                            <td style="max-width: 300px; font-size: 12px; color: #666;">
+                                                ${fieldInfo.description ? fieldInfo.description.substring(0, 100) + (fieldInfo.description.length > 100 ? '...' : '') : ''}
+                                                ${fieldInfo.regulatory_requirement ? '<br><span style="color: #dc3545;">监管要求：' + fieldInfo.regulatory_requirement.substring(0, 80) + '...</span>' : ''}
+                                            </td>
+                                            ${instance.status === 'draft' ? `
+                                                <td>
+                                                    ${isEditable ? `
+                                                        <button class="btn btn-secondary" 
+                                                                onclick="saveFieldValue('${instance.instance_id}', '${key}')"
+                                                                style="padding: 4px 8px; font-size: 12px;">保存</button>
+                                                    ` : '<span style="color: #999; font-size: 12px;">公式字段</span>'}
+                                                </td>
+                                            ` : ''}
+                                        </tr>
+                                    `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        ${instance.status === 'draft' ? `
+                            <div style="margin-top: 20px; text-align: right;">
+                                <button class="btn btn-primary" onclick="saveAllFields('${instance.instance_id}')">保存所有修改</button>
+                                <button class="btn btn-secondary" onclick="reloadInstanceDetail('${instance.instance_id}')" style="margin-left: 10px;">取消</button>
+                            </div>
+                        ` : ''}
                     `;
                     
                     modal.classList.add('active');
@@ -930,6 +965,127 @@
         // 关闭模态框
         function closeModal() {
             document.getElementById('instance-modal').classList.remove('active');
+        }
+        
+        // 更新字段值
+        async function updateFieldValue(instanceId, fieldId, value) {
+            // 实时更新，但不立即保存
+            console.log(`Field ${fieldId} changed to: ${value}`);
+        }
+        
+        // 保存单个字段值
+        async function saveFieldValue(instanceId, fieldId) {
+            const input = document.getElementById(`field-${fieldId}`);
+            if (!input) {
+                alert('找不到输入框');
+                return;
+            }
+            
+            const value = input.value;
+            if (!value) {
+                alert('请输入值');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/reporting/instances/${instanceId}/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        field_id: fieldId,
+                        value: value
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('字段更新成功！');
+                    // 重新加载详情
+                    viewInstanceDetail(instanceId);
+                } else {
+                    alert('更新失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('更新字段失败:', error);
+                alert('更新失败: ' + error.message);
+            }
+        }
+        
+        // 保存所有字段
+        async function saveAllFields(instanceId) {
+            const inputs = document.querySelectorAll(`#report-data-table input[type="text"], #report-data-table input[type="date"]`);
+            const updates = [];
+            
+            for (const input of inputs) {
+                const fieldId = input.id.replace('field-', '');
+                const value = input.value;
+                if (value) {
+                    updates.push({ fieldId, value });
+                }
+            }
+            
+            if (updates.length === 0) {
+                alert('没有需要保存的修改');
+                return;
+            }
+            
+            if (!confirm(`确定要保存 ${updates.length} 个字段的修改吗？`)) {
+                return;
+            }
+            
+            // 逐个保存
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (const update of updates) {
+                try {
+                    const response = await fetch(`/api/reporting/instances/${instanceId}/update`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            field_id: update.fieldId,
+                            value: update.value
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        successCount++;
+                    } else {
+                        failCount++;
+                        console.error(`字段 ${update.fieldId} 更新失败:`, data.error);
+                    }
+                } catch (error) {
+                    failCount++;
+                    console.error(`字段 ${update.fieldId} 更新失败:`, error);
+                }
+            }
+            
+            if (failCount === 0) {
+                alert(`成功保存 ${successCount} 个字段！`);
+                // 重新加载详情
+                viewInstanceDetail(instanceId);
+            } else {
+                alert(`保存完成：成功 ${successCount} 个，失败 ${failCount} 个`);
+                // 重新加载详情
+                viewInstanceDetail(instanceId);
+            }
+        }
+        
+        // 启用编辑模式
+        function enableEditMode(instanceId) {
+            // 重新加载详情，显示编辑界面
+            viewInstanceDetail(instanceId);
+        }
+        
+        // 重新加载实例详情
+        function reloadInstanceDetail(instanceId) {
+            viewInstanceDetail(instanceId);
         }
         
         // 工具函数

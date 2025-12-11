@@ -7467,11 +7467,11 @@ def api_update_report_instance(instance_id):
                 'error': '缺少参数: field_id'
             }), 400
         
-        success = report_generator.update_instance_data(instance_id, field_id, value)
+        success, error_msg = report_generator.update_instance_data(instance_id, field_id, value)
         if not success:
             return jsonify({
                 'success': False,
-                'error': '更新失败，报表实例不存在或状态不允许修改'
+                'error': error_msg or '更新失败，报表实例不存在或状态不允许修改'
             }), 400
         
         instance = report_generator.get_instance(instance_id)
