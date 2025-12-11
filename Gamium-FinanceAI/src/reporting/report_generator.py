@@ -2,7 +2,7 @@
 报表生成引擎
 根据模板自动生成监管报表
 """
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 from reporting.report_template import ReportTemplate, ReportTemplateManager, ReportStatus
 from reporting.data_collector import DataCollector
@@ -151,7 +151,7 @@ class ReportGenerator:
         """获取所有报表实例"""
         return [inst.to_dict() for inst in self.instances.values()]
         
-    def update_instance_data(self, instance_id: str, field_id: str, value: Any) -> TupleType[bool, Optional[str]]:
+    def update_instance_data(self, instance_id: str, field_id: str, value: Any) -> Tuple[bool, Optional[str]]:
         """
         更新报表实例数据
         
@@ -191,7 +191,7 @@ class ReportGenerator:
         instance.report_data[field_id] = value
         return True, None
         
-    def submit_instance(self, instance_id: str) -> TupleType[bool, Optional[str]]:
+    def submit_instance(self, instance_id: str) -> Tuple[bool, Optional[str]]:
         """
         提交报表实例
         
