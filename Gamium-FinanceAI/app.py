@@ -6638,12 +6638,39 @@ def api_simulate_approval():
         # 保存模拟结果
         results_df.to_csv('data/historical/simulated_results.csv', index=False, encoding='utf-8-sig')
         
+        # 准备详细交易数据（只返回关键字段，避免数据过大）
+        transaction_details = []
+        for idx, row in results_df.iterrows():
+            transaction_details.append({
+                'id': idx + 1,
+                'customer_id': str(row.get('customer_id', '')),
+                'customer_type': row.get('customer_type', ''),
+                'loan_amount': float(row.get('loan_amount', 0)),
+                'decision': row.get('expert_decision', ''),
+                'default_probability': float(row.get('default_probability', 0)),
+                'expected_profit': float(row.get('expected_profit', 0)),
+                'actual_defaulted': bool(row.get('actual_defaulted', False)),
+                'actual_profit': float(row.get('actual_profit', 0)),
+                'recovery_rate': float(row.get('recovery_rate', 0))
+            })
+        
+        # 统计信息
+        stats = {
+            'num_customers': len(results_df),
+            'approved_count': int((results_df['expert_decision'] == 'approve').sum()),
+            'rejected_count': int((results_df['expert_decision'] == 'reject').sum()),
+            'defaulted_count': int(results_df['actual_defaulted'].sum()),
+            'avg_profit': float(results_df['actual_profit'].mean()) if len(results_df) > 0 else 0,
+            'total_profit': float(results_df['actual_profit'].sum()) if len(results_df) > 0 else 0,
+            'avg_default_prob': float(results_df['default_probability'].mean()) if len(results_df) > 0 else 0,
+            'default_rate': float(results_df['actual_defaulted'].mean()) if len(results_df) > 0 else 0
+        }
+        
         return jsonify({
             'success': True,
-            'num_customers': len(results_df),
-            'approved_count': (results_df['expert_decision'] == 'approve').sum(),
-            'defaulted_count': results_df['actual_defaulted'].sum(),
-            'avg_profit': float(results_df['actual_profit'].mean()) if len(results_df) > 0 else 0
+            'stats': stats,
+            'transactions': transaction_details[:100],  # 最多返回100条，避免数据过大
+            'total_transactions': len(transaction_details)
         })
     except Exception as e:
         import traceback

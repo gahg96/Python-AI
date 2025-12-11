@@ -247,6 +247,24 @@
             border-radius: 6px;
             margin-top: 20px;
         }
+        
+        .result-display table {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .result-display th {
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+        
+        .result-display td {
+            font-size: 0.85em;
+        }
+        
+        .result-display tbody tr:hover {
+            background: #e3f2fd !important;
+            cursor: pointer;
+        }
 
         .result-item {
             display: flex;
@@ -755,12 +773,25 @@
                 
                 if (data.success) {
                     addLog(6, '✅ 模拟审批完成！', 'success');
+                    
+                    // 显示统计信息
+                    const stats = data.stats || {};
                     showResults(6, {
-                        '模拟客户数': data.num_customers || 'N/A',
-                        '审批通过': data.approved_count || 'N/A',
-                        '实际违约': data.defaulted_count || 'N/A',
-                        '平均利润': '¥' + (data.avg_profit?.toFixed(2) || '0')
+                        '模拟客户数': stats.num_customers || 'N/A',
+                        '审批通过': stats.approved_count || 'N/A',
+                        '审批拒绝': stats.rejected_count || 'N/A',
+                        '实际违约': stats.defaulted_count || 'N/A',
+                        '违约率': stats.default_rate ? (stats.default_rate * 100).toFixed(2) + '%' : 'N/A',
+                        '平均利润': '¥' + (stats.avg_profit?.toFixed(2) || '0'),
+                        '总利润': '¥' + (stats.total_profit?.toFixed(2) || '0'),
+                        '平均违约概率': stats.avg_default_prob ? (stats.avg_default_prob * 100).toFixed(2) + '%' : 'N/A'
                     });
+                    
+                    // 显示详细交易数据
+                    if (data.transactions && data.transactions.length > 0) {
+                        showTransactionDetails(6, data.transactions, data.total_transactions);
+                    }
+                    
                     updateProgress(6, 'success');
                 } else {
                     addLog(6, `❌ 错误: ${data.error}`, 'error');
