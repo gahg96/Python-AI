@@ -368,6 +368,7 @@
                         <button class="btn btn-primary" onclick="runStep1()">生成历史数据</button>
                     </div>
                     <div class="log-container" id="step1-log"></div>
+                    <div class="result-display" id="step1-results" style="display:none;"></div>
                 </div>
             </div>
 
@@ -647,11 +648,26 @@
                 
                 if (data.success) {
                     addLog(3, '✅ 特征工程完成！', 'success');
-                    showResults(3, {
+                    
+                    // 显示统计信息
+                    const stats = {
                         '原始特征数': data.original_features || 'N/A',
                         '新增特征数': data.new_features || 'N/A',
                         '总特征数': data.total_features || 'N/A'
-                    });
+                    };
+                    
+                    // 显示详细特征列表
+                    if (data.new_feature_list && data.new_feature_list.length > 0) {
+                        stats['新增特征列表'] = data.new_feature_list.length + ' 个特征';
+                    }
+                    
+                    showResults(3, stats);
+                    
+                    // 显示详细特征信息
+                    if (data.new_feature_list) {
+                        showFeatureDetails(3, data.new_feature_list, data.original_feature_list);
+                    }
+                    
                     updateProgress(3, 'success');
                 } else {
                     addLog(3, `❌ 错误: ${data.error}`, 'error');
@@ -677,6 +693,12 @@
                         '提取规则数': data.num_rules || 'N/A',
                         '量化规则数': data.num_quantified || 'N/A'
                     });
+                    
+                    // 显示详细规则信息
+                    if (data.rules_detail && data.rules_detail.length > 0) {
+                        showRulesDetails(4, data.rules_detail);
+                    }
+                    
                     updateProgress(4, 'success');
                 } else {
                     addLog(4, `❌ 错误: ${data.error}`, 'error');

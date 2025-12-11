@@ -6402,11 +6402,18 @@ def api_engineer_features():
         
         engineer.save_engineered_data(engineered_data, 'data/historical/historical_loans_engineered.csv')
         
+        # 获取原始特征和新特征列表
+        original_features = list(data.columns)
+        new_features = [col for col in engineered_data.columns if col not in original_features]
+        
         return jsonify({
             'success': True,
             'original_features': original_cols,
             'new_features': len(engineered_data.columns) - original_cols,
-            'total_features': len(engineered_data.columns)
+            'total_features': len(engineered_data.columns),
+            'original_feature_list': original_features[:20],  # 前20个原始特征
+            'new_feature_list': new_features,  # 所有新特征
+            'all_features': list(engineered_data.columns)  # 所有特征
         })
     except Exception as e:
         import traceback
@@ -6444,10 +6451,26 @@ def api_extract_rules():
         quantified = quantifier.quantify_all_rules()
         quantifier.save_quantified_rules('data/historical/quantified_rules.json')
         
+        # 格式化规则详情
+        rules_detail = []
+        for i, rule in enumerate(rules, 1):
+            rule_dict = rule.to_dict() if hasattr(rule, 'to_dict') else rule
+            rules_detail.append({
+                'id': i,
+                'name': rule_dict.get('rule_name', f'规则{i}'),
+                'type': rule_dict.get('rule_type', 'unknown'),
+                'customer_type': rule_dict.get('customer_type', 'both'),
+                'description': rule_dict.get('description', ''),
+                'confidence': rule_dict.get('confidence', 0),
+                'support': rule_dict.get('support', 0),
+                'conditions': rule_dict.get('conditions', [])
+            })
+        
         return jsonify({
             'success': True,
             'num_rules': len(rules),
-            'num_quantified': len(quantified)
+            'num_quantified': len(quantified),
+            'rules_detail': rules_detail
         })
     except Exception as e:
         import traceback
