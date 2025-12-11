@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>监管报送系统 - Gamium Finance AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background: #f5f5f5;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .nav-tab {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            background: #f5f5f5;
+            border: none;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+        }
+        
+        .nav-tab:hover {
+            background: #e8e8e8;
+        }
+        
+        .nav-tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .template-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .template-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .template-card.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .template-code {
+            font-size: 18px;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+        
+        .template-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .template-info {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #666;
+        }
+        
+        .btn-secondary:hover {
+            background: #e8e8e8;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .instance-list {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .instance-card {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .instance-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .instance-id {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .status-draft {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-submitted {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .status-approved {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .instance-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .detail-item {
+            font-size: 14px;
+        }
+        
+        .detail-label {
+            color: #666;
+            margin-bottom: 4px;
+        }
+        
+        .detail-value {
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .validation-results {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        
+        .validation-summary {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .validation-stat {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+        }
+        
+        .validation-stat-value {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .validation-stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .validation-passed {
+            color: #28a745;
+        }
+        
+        .validation-failed {
+            color: #dc3545;
+        }
+        
+        .failed-fields {
+            margin-top: 15px;
+        }
+        
+        .failed-field {
+            padding: 10px;
+            background: #fff;
+            border-left: 4px solid #dc3545;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 800px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .report-data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .report-data-table th,
+        .report-data-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .report-data-table th {
+            background: #f5f5f5;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 监管报送系统</h1>
+            <p>及时、准确、完整地向监管部门报送各类报表</p>
+        </div>
+        
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('templates')">报表模板</button>
+            <button class="nav-tab" onclick="switchTab('generate')">生成报表</button>
+            <button class="nav-tab" onclick="switchTab('instances')">报表实例</button>
+        </div>
+        
+        <!-- 报表模板标签页 -->
+        <div id="templates-tab" class="tab-content active">
+            <h2 class="section-title">报表模板列表</h2>
+            <div id="templates-container" class="template-grid">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+        
+        <!-- 生成报表标签页 -->
+        <div id="generate-tab" class="tab-content">
+            <h2 class="section-title">生成报表</h2>
+            <div class="form-group">
+                <label class="form-label">选择报表模板</label>
+                <div id="template-select-container" class="template-grid">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">报表期间</label>
+                <input type="text" id="report-period" class="form-input" placeholder="例如：2024年第1季度">
+            </div>
+            <button class="btn btn-primary" onclick="generateReport()">生成报表</button>
+        </div>
+        
+        <!-- 报表实例标签页 -->
+        <div id="instances-tab" class="tab-content">
+            <h2 class="section-title">报表实例列表</h2>
+            <button class="btn btn-secondary" onclick="loadInstances()" style="margin-bottom: 20px;">刷新列表</button>
+            <div id="instances-container" class="instance-list">
+                <div class="loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 报表详情模态框 -->
+    <div id="instance-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">报表详情</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+    
+    <script>
+        let selectedTemplateId = null;
+        
+        // 切换标签页
+        function switchTab(tabName) {
+            // 隐藏所有标签页
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // 显示选中的标签页
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            event.target.classList.add('active');
+            
+            // 加载对应数据
+            if (tabName === 'templates') {
+                loadTemplates();
+            } else if (tabName === 'generate') {
+                loadTemplatesForSelect();
+            } else if (tabName === 'instances') {
+                loadInstances();
+            }
+        }
+        
+        // 加载报表模板
+        async function loadTemplates() {
+            try {
+                const response = await fetch('/api/reporting/templates');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const container = document.getElementById('templates-container');
+                    if (data.templates.length === 0) {
+                        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>暂无报表模板</p></div>';
+                        return;
+                    }
+                    
+                    container.innerHTML = data.templates.map(template => `
+                        <div class="template-card" onclick="viewTemplateDetail('${template.template_id}')">
+                            <div class="template-code">${template.template_code}</div>
+                            <div class="template-name">${template.template_name}</div>
+                            <div class="template-info">类型: ${getTemplateTypeName(template.template_type)}</div>
+                            <div class="template-info">频率: ${getFrequencyName(template.frequency)}</div>
+                            <div class="template-info">截止天数: ${template.due_days}天</div>
+                            <div class="template-info">字段数: ${template.fields_count}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    alert('加载失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('加载模板失败:', error);
+                alert('加载失败: ' + error.message);
+            }
+        }
+        
+        // 加载报表模板（用于选择）
+        async function loadTemplatesForSelect() {
+            try {
+                const response = await fetch('/api/reporting/templates');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const container = document.getElementById('template-select-container');
+                    if (data.templates.length === 0) {
+                        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>暂无报表模板</p></div>';
+                        return;
+                    }
+                    
+                    container.innerHTML = data.templates.map(template => `
+                        <div class="template-card ${selectedTemplateId === template.template_id ? 'selected' : ''}" 
+                             onclick="selectTemplate('${template.template_id}')">
+                            <div class="template-code">${template.template_code}</div>
+                            <div class="template-name">${template.template_name}</div>
+                            <div class="template-info">类型: ${getTemplateTypeName(template.template_type)}</div>
+                            <div class="template-info">频率: ${getFrequencyName(template.frequency)}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    alert('加载失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('加载模板失败:', error);
+                alert('加载失败: ' + error.message);
+            }
+        }
+        
+        // 选择模板
+        function selectTemplate(templateId) {
+            selectedTemplateId = templateId;
+            loadTemplatesForSelect();
+        }
+        
+        // 查看模板详情
+        async function viewTemplateDetail(templateId) {
+            try {
+                const response = await fetch(`/api/reporting/templates/${templateId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const template = data.template;
+                    alert(`模板详情:\n\n名称: ${template.template_name}\n编号: ${template.template_code}\n类型: ${getTemplateTypeName(template.template_type)}\n频率: ${getFrequencyName(template.frequency)}\n描述: ${template.description}\n\n字段数: ${template.sections.reduce((sum, s) => sum + s.fields.length, 0)}`);
+                } else {
+                    alert('加载失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('加载模板详情失败:', error);
+                alert('加载失败: ' + error.message);
+            }
+        }
+        
+        // 生成报表
+        async function generateReport() {
+            if (!selectedTemplateId) {
+                alert('请先选择报表模板');
+                return;
+            }
+            
+            const reportPeriod = document.getElementById('report-period').value || '';
+            
+            try {
+                const response = await fetch('/api/reporting/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        template_id: selectedTemplateId,
+                        report_period: reportPeriod
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('报表生成成功！');
+                    // 切换到报表实例标签页
+                    document.querySelectorAll('.nav-tab').forEach(tab => {
+                        if (tab.textContent === '报表实例') {
+                            tab.click();
+                        }
+                    });
+                    loadInstances();
+                } else {
+                    alert('生成失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('生成报表失败:', error);
+                alert('生成失败: ' + error.message);
+            }
+        }
+        
+        // 加载报表实例
+        async function loadInstances() {
+            try {
+                const response = await fetch('/api/reporting/instances');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const container = document.getElementById('instances-container');
+                    if (data.instances.length === 0) {
+                        container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📄</div><p>暂无报表实例</p></div>';
+                        return;
+                    }
+                    
+                    container.innerHTML = data.instances.map(instance => `
+                        <div class="instance-card">
+                            <div class="instance-header">
+                                <div class="instance-id">${instance.instance_id}</div>
+                                <span class="status-badge status-${instance.status}">${getStatusName(instance.status)}</span>
+                            </div>
+                            <div class="instance-details">
+                                <div class="detail-item">
+                                    <div class="detail-label">模板ID</div>
+                                    <div class="detail-value">${instance.template_id}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">报表期间</div>
+                                    <div class="detail-value">${instance.report_period}</div>
+                                </div>
+                                <div class="detail-item">
+                                    <div class="detail-label">创建时间</div>
+                                    <div class="detail-value">${new Date(instance.created_at).toLocaleString('zh-CN')}</div>
+                                </div>
+                            </div>
+                            ${instance.status === 'draft' ? `
+                                <button class="btn btn-primary" onclick="submitInstance('${instance.instance_id}')" style="margin-top: 15px;">提交报表</button>
+                            ` : ''}
+                            <button class="btn btn-secondary" onclick="viewInstanceDetail('${instance.instance_id}')" style="margin-top: 10px;">查看详情</button>
+                        </div>
+                    `).join('');
+                } else {
+                    alert('加载失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('加载实例失败:', error);
+                alert('加载失败: ' + error.message);
+            }
+        }
+        
+        // 查看报表实例详情
+        async function viewInstanceDetail(instanceId) {
+            try {
+                const response = await fetch(`/api/reporting/instances/${instanceId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const instance = data.instance;
+                    const modal = document.getElementById('instance-modal');
+                    const modalBody = document.getElementById('modal-body');
+                    
+                    // 计算校验汇总
+                    const validationResults = instance.validation_results || [];
+                    const total = validationResults.length;
+                    const passed = validationResults.filter(r => r.passed).length;
+                    const failed = total - passed;
+                    const failedFields = validationResults.filter(r => !r.passed);
+                    
+                    modalBody.innerHTML = `
+                        <div class="instance-details">
+                            <div class="detail-item">
+                                <div class="detail-label">实例ID</div>
+                                <div class="detail-value">${instance.instance_id}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">模板ID</div>
+                                <div class="detail-value">${instance.template_id}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">报表期间</div>
+                                <div class="detail-value">${instance.report_period}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">状态</div>
+                                <div class="detail-value"><span class="status-badge status-${instance.status}">${getStatusName(instance.status)}</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="validation-results">
+                            <h4 style="margin-bottom: 15px;">数据校验结果</h4>
+                            <div class="validation-summary">
+                                <div class="validation-stat">
+                                    <div class="validation-stat-value">${total}</div>
+                                    <div class="validation-stat-label">总字段数</div>
+                                </div>
+                                <div class="validation-stat">
+                                    <div class="validation-stat-value validation-passed">${passed}</div>
+                                    <div class="validation-stat-label">校验通过</div>
+                                </div>
+                                <div class="validation-stat">
+                                    <div class="validation-stat-value validation-failed">${failed}</div>
+                                    <div class="validation-stat-label">校验失败</div>
+                                </div>
+                            </div>
+                            ${failedFields.length > 0 ? `
+                                <div class="failed-fields">
+                                    <h5 style="margin-bottom: 10px; color: #dc3545;">失败字段：</h5>
+                                    ${failedFields.map(f => `
+                                        <div class="failed-field">
+                                            <strong>${f.field_name}</strong>: ${f.message}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <h4 style="margin-top: 30px; margin-bottom: 15px;">报表数据</h4>
+                        <table class="report-data-table">
+                            <thead>
+                                <tr>
+                                    <th>字段名</th>
+                                    <th>值</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Object.entries(instance.report_data || {}).map(([key, value]) => `
+                                    <tr>
+                                        <td>${key}</td>
+                                        <td>${typeof value === 'number' ? value.toLocaleString('zh-CN') : value}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    modal.classList.add('active');
+                } else {
+                    alert('加载失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('加载实例详情失败:', error);
+                alert('加载失败: ' + error.message);
+            }
+        }
+        
+        // 提交报表实例
+        async function submitInstance(instanceId) {
+            if (!confirm('确定要提交此报表吗？提交后将无法修改。')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/reporting/instances/${instanceId}/submit`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('报表提交成功！');
+                    loadInstances();
+                } else {
+                    alert('提交失败: ' + data.error);
+                }
+            } catch (error) {
+                console.error('提交报表失败:', error);
+                alert('提交失败: ' + error.message);
+            }
+        }
+        
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('instance-modal').classList.remove('active');
+        }
+        
+        // 工具函数
+        function getTemplateTypeName(type) {
+            const names = {
+                'capital_adequacy': '资本充足性',
+                'asset_quality': '资产质量',
+                'liquidity': '流动性',
+                'concentration': '集中度风险',
+                'compliance': '合规性'
+            };
+            return names[type] || type;
+        }
+        
+        function getFrequencyName(frequency) {
+            const names = {
+                'daily': '日报',
+                'weekly': '周报',
+                'monthly': '月报',
+                'quarterly': '季报',
+                'yearly': '年报',
+                'event_triggered': '事件触发'
+            };
+            return names[frequency] || frequency;
+        }
+        
+        function getStatusName(status) {
+            const names = {
+                'draft': '草稿',
+                'submitted': '已提交',
+                'approved': '已审批',
+                'rejected': '已退回',
+                'sent': '已报送',
+                'confirmed': '已确认'
+            };
+            return names[status] || status;
+        }
+        
+        // 点击模态框外部关闭
+        document.getElementById('instance-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+        
+        // 页面加载时初始化
+        window.addEventListener('load', function() {
+            loadTemplates();
+        });
+    </script>
+</body>
+</html>
+
