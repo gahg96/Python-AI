@@ -3,6 +3,7 @@
 """
 from .regulatory_monitor import RegulatoryMonitor, RegulatoryIndicator, BankMetrics
 from .compliance_checker import ComplianceChecker, ComplianceRule, ComplianceCheckResult
+from .emergency_plan import EmergencyPlanManager, EmergencyPlan, EmergencyAction, PlanStatus, PlanPriority
 
 __all__ = [
     'RegulatoryMonitor',
@@ -10,6 +11,11 @@ __all__ = [
     'BankMetrics',
     'ComplianceChecker',
     'ComplianceRule',
-    'ComplianceCheckResult'
+    'ComplianceCheckResult',
+    'EmergencyPlanManager',
+    'EmergencyPlan',
+    'EmergencyAction',
+    'PlanStatus',
+    'PlanPriority'
 ]
 

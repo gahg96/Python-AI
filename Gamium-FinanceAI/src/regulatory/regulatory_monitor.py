@@ -472,4 +472,335 @@ class RegulatoryMonitor:
             return f"{indicator.name}接近监管红线（{indicator.value:.2f}{indicator.unit} > {indicator.threshold_warning}{indicator.unit}），请密切关注！"
         else:
             return f"{indicator.name}异常（{indicator.value:.2f}{indicator.unit}）"
+            
+    def get_indicator_detail(self, indicator_key: str) -> Dict[str, Any]:
+        """获取指标详细信息（用于下钻）"""
+        if indicator_key not in self.indicators:
+            return {}
+            
+        indicator = self.indicators[indicator_key]
+        m = self.metrics
+        
+        # 定义每个指标的详细信息
+        detail_templates = {
+            'capital_adequacy_ratio': {
+                'formula': '资本充足率 = (核心一级资本 + 其他一级资本 + 二级资本) / 风险加权资产 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'core_tier1_capital': m.core_tier1_capital,
+                        'other_tier1_capital': m.other_tier1_capital,
+                        'tier2_capital': m.tier2_capital,
+                        'total': m.core_tier1_capital + m.other_tier1_capital + m.tier2_capital
+                    },
+                    'denominator': {
+                        'risk_weighted_assets': m.risk_weighted_assets
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '核心一级资本', 'value': m.core_tier1_capital, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '其他一级资本', 'value': m.other_tier1_capital, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '二级资本', 'value': m.tier2_capital, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '风险加权资产', 'value': m.risk_weighted_assets, 'unit': '元', 'source': '风险加权资产计算表'}
+                ],
+                'regulatory_requirement': '根据《商业银行资本管理办法》，资本充足率不得低于8%',
+                'related_indicators': ['tier1_capital_ratio', 'core_tier1_ratio', 'leverage_ratio']
+            },
+            'tier1_capital_ratio': {
+                'formula': '一级资本充足率 = (核心一级资本 + 其他一级资本) / 风险加权资产 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'core_tier1_capital': m.core_tier1_capital,
+                        'other_tier1_capital': m.other_tier1_capital,
+                        'total': m.core_tier1_capital + m.other_tier1_capital
+                    },
+                    'denominator': {
+                        'risk_weighted_assets': m.risk_weighted_assets
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '核心一级资本', 'value': m.core_tier1_capital, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '其他一级资本', 'value': m.other_tier1_capital, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '风险加权资产', 'value': m.risk_weighted_assets, 'unit': '元', 'source': '风险加权资产计算表'}
+                ],
+                'regulatory_requirement': '根据《商业银行资本管理办法》，一级资本充足率不得低于6%',
+                'related_indicators': ['capital_adequacy_ratio', 'core_tier1_ratio']
+            },
+            'core_tier1_ratio': {
+                'formula': '核心一级资本充足率 = 核心一级资本 / 风险加权资产 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'core_tier1_capital': m.core_tier1_capital
+                    },
+                    'denominator': {
+                        'risk_weighted_assets': m.risk_weighted_assets
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '核心一级资本', 'value': m.core_tier1_capital, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '风险加权资产', 'value': m.risk_weighted_assets, 'unit': '元', 'source': '风险加权资产计算表'}
+                ],
+                'regulatory_requirement': '根据《商业银行资本管理办法》，核心一级资本充足率不得低于5%',
+                'related_indicators': ['capital_adequacy_ratio', 'tier1_capital_ratio']
+            },
+            'leverage_ratio': {
+                'formula': '杠杆率 = 一级资本 / 调整后表内外资产余额 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'tier1_capital': m.core_tier1_capital + m.other_tier1_capital
+                    },
+                    'denominator': {
+                        'adjusted_assets': m.adjusted_assets
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '一级资本', 'value': m.core_tier1_capital + m.other_tier1_capital, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '调整后表内外资产余额', 'value': m.adjusted_assets, 'unit': '元', 'source': '资产负债表'}
+                ],
+                'regulatory_requirement': '根据《商业银行杠杆率管理办法》，杠杆率不得低于4%',
+                'related_indicators': ['capital_adequacy_ratio', 'tier1_capital_ratio']
+            },
+            'npl_ratio': {
+                'formula': '不良贷款率 = 不良贷款余额 / 贷款总额 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'non_performing_loans': m.non_performing_loans
+                    },
+                    'denominator': {
+                        'total_loans': m.total_loans
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '不良贷款余额', 'value': m.non_performing_loans, 'unit': '元', 'source': '贷款分类表'},
+                    {'name': '贷款总额', 'value': m.total_loans, 'unit': '元', 'source': '资产负债表'}
+                ],
+                'regulatory_requirement': '根据《贷款风险分类指引》，不良贷款率不得超过5%',
+                'related_indicators': ['provision_coverage_ratio', 'provision_adequacy_ratio']
+            },
+            'provision_coverage_ratio': {
+                'formula': '拨备覆盖率 = 贷款损失准备 / 不良贷款余额 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'loan_loss_provision': m.loan_loss_provision
+                    },
+                    'denominator': {
+                        'non_performing_loans': m.non_performing_loans
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '贷款损失准备', 'value': m.loan_loss_provision, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '不良贷款余额', 'value': m.non_performing_loans, 'unit': '元', 'source': '贷款分类表'}
+                ],
+                'regulatory_requirement': '根据《商业银行贷款损失准备管理办法》，拨备覆盖率不得低于150%',
+                'related_indicators': ['npl_ratio', 'provision_adequacy_ratio']
+            },
+            'provision_adequacy_ratio': {
+                'formula': '贷款损失准备充足率 = 贷款损失准备 / 应计提贷款损失准备 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'loan_loss_provision': m.loan_loss_provision
+                    },
+                    'denominator': {
+                        'required_provision': m.required_provision
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '贷款损失准备', 'value': m.loan_loss_provision, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '应计提贷款损失准备', 'value': m.required_provision, 'unit': '元', 'source': '贷款损失准备计算表'}
+                ],
+                'regulatory_requirement': '根据《商业银行贷款损失准备管理办法》，贷款损失准备充足率不得低于100%',
+                'related_indicators': ['npl_ratio', 'provision_coverage_ratio']
+            },
+            'lcr': {
+                'formula': '流动性覆盖率 = 优质流动性资产 / 未来30天现金净流出 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'high_quality_liquid_assets': m.high_quality_liquid_assets
+                    },
+                    'denominator': {
+                        'net_cash_outflow_30d': m.net_cash_outflow_30d
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '优质流动性资产', 'value': m.high_quality_liquid_assets, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '未来30天现金净流出', 'value': m.net_cash_outflow_30d, 'unit': '元', 'source': '流动性风险监测表'}
+                ],
+                'regulatory_requirement': '根据《商业银行流动性风险管理办法》，流动性覆盖率不得低于100%',
+                'related_indicators': ['nsfr', 'loan_to_deposit_ratio']
+            },
+            'nsfr': {
+                'formula': '净稳定资金比例 = 可用稳定资金 / 所需稳定资金 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'available_stable_funding': m.available_stable_funding
+                    },
+                    'denominator': {
+                        'required_stable_funding': m.required_stable_funding
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '可用稳定资金', 'value': m.available_stable_funding, 'unit': '元', 'source': '流动性风险监测表'},
+                    {'name': '所需稳定资金', 'value': m.required_stable_funding, 'unit': '元', 'source': '流动性风险监测表'}
+                ],
+                'regulatory_requirement': '根据《商业银行流动性风险管理办法》，净稳定资金比例不得低于100%',
+                'related_indicators': ['lcr', 'loan_to_deposit_ratio']
+            },
+            'loan_to_deposit_ratio': {
+                'formula': '存贷比 = 贷款余额 / 存款余额 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'total_loans': m.total_loans
+                    },
+                    'denominator': {
+                        'deposits': m.deposits
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '贷款余额', 'value': m.total_loans, 'unit': '元', 'source': '资产负债表'},
+                    {'name': '存款余额', 'value': m.deposits, 'unit': '元', 'source': '资产负债表'}
+                ],
+                'regulatory_requirement': '根据《商业银行法》，存贷比不得超过75%',
+                'related_indicators': ['lcr', 'nsfr']
+            },
+            'single_customer_concentration': {
+                'formula': '单一客户集中度 = 对单一客户授信总额 / 资本净额 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'single_customer_exposure': m.single_customer_exposure
+                    },
+                    'denominator': {
+                        'capital_net': getattr(self, 'capital_net', m.total_capital)
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '单一客户授信总额', 'value': m.single_customer_exposure, 'unit': '元', 'source': '授信明细表'},
+                    {'name': '资本净额', 'value': getattr(self, 'capital_net', m.total_capital), 'unit': '元', 'source': '资产负债表'}
+                ],
+                'regulatory_requirement': '根据《商业银行法》，单一客户集中度不得超过资本净额的10%',
+                'related_indicators': ['single_industry_concentration', 'related_party_concentration']
+            },
+            'single_industry_concentration': {
+                'formula': '单一行业集中度 = 对单一行业授信总额 / 资本净额 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'single_industry_exposure': m.single_industry_exposure
+                    },
+                    'denominator': {
+                        'capital_net': getattr(self, 'capital_net', m.total_capital)
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '单一行业授信总额', 'value': m.single_industry_exposure, 'unit': '元', 'source': '授信明细表'},
+                    {'name': '资本净额', 'value': getattr(self, 'capital_net', m.total_capital), 'unit': '元', 'source': '资产负债表'}
+                ],
+                'regulatory_requirement': '根据《商业银行法》，单一行业集中度不得超过资本净额的25%',
+                'related_indicators': ['single_customer_concentration', 'related_party_concentration']
+            },
+            'related_party_concentration': {
+                'formula': '关联交易集中度 = 关联交易总额 / 资本净额 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'related_party_exposure': m.related_party_exposure
+                    },
+                    'denominator': {
+                        'capital_net': getattr(self, 'capital_net', m.total_capital)
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '关联交易总额', 'value': m.related_party_exposure, 'unit': '元', 'source': '关联交易明细表'},
+                    {'name': '资本净额', 'value': getattr(self, 'capital_net', m.total_capital), 'unit': '元', 'source': '资产负债表'}
+                ],
+                'regulatory_requirement': '根据《商业银行法》，关联交易集中度不得超过资本净额的50%',
+                'related_indicators': ['single_customer_concentration', 'single_industry_concentration']
+            },
+            'report_timeliness': {
+                'formula': '监管报送及时率 = 按时报送次数 / 应报送次数 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'regulatory_reports_on_time': m.regulatory_reports_on_time
+                    },
+                    'denominator': {
+                        'regulatory_reports_total': m.regulatory_reports_total
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '按时报送次数', 'value': m.regulatory_reports_on_time, 'unit': '次', 'source': '监管报送记录'},
+                    {'name': '应报送次数', 'value': m.regulatory_reports_total, 'unit': '次', 'source': '监管报送计划'}
+                ],
+                'regulatory_requirement': '根据监管要求，监管报送及时率应达到100%',
+                'related_indicators': ['violations_count', 'customer_info_compliance']
+            },
+            'violations_count': {
+                'formula': '违规事件数量 = 统计期内违规事件总数',
+                'calculation': {
+                    'violations_count': m.violations_count,
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '违规事件数量', 'value': m.violations_count, 'unit': '件', 'source': '合规检查记录'}
+                ],
+                'regulatory_requirement': '根据监管要求，违规事件数量应保持为零',
+                'related_indicators': ['report_timeliness', 'customer_info_compliance']
+            },
+            'customer_info_compliance': {
+                'formula': '客户信息保护合规率 = 合规客户数 / 总客户数 × 100%',
+                'calculation': {
+                    'numerator': {
+                        'compliant_customers': m.compliant_customers
+                    },
+                    'denominator': {
+                        'total_customers': m.total_customers
+                    },
+                    'result': indicator.value
+                },
+                'data_sources': [
+                    {'name': '合规客户数', 'value': m.compliant_customers, 'unit': '户', 'source': '客户信息保护检查记录'},
+                    {'name': '总客户数', 'value': m.total_customers, 'unit': '户', 'source': '客户管理系统'}
+                ],
+                'regulatory_requirement': '根据《个人信息保护法》，客户信息保护合规率应达到100%',
+                'related_indicators': ['report_timeliness', 'violations_count']
+            }
+        }
+        
+        detail = detail_templates.get(indicator_key, {})
+        if detail:
+            detail['indicator'] = {
+                'name': indicator.name,
+                'value': round(indicator.value, 2),
+                'unit': indicator.unit,
+                'status': indicator.status,
+                'threshold_red': indicator.threshold_red,
+                'threshold_warning': indicator.threshold_warning,
+                'threshold_target_min': indicator.threshold_target_min,
+                'threshold_target_max': indicator.threshold_target_max,
+                'last_update': indicator.last_update.isoformat()
+            }
+            
+            # 格式化数值（添加千分位分隔符）
+            if 'calculation' in detail:
+                for key, value in detail['calculation'].items():
+                    if isinstance(value, dict):
+                        for k, v in value.items():
+                            if isinstance(v, (int, float)) and v >= 1000:
+                                value[k] = f'{v:,.0f}'
+            
+            if 'data_sources' in detail:
+                for ds in detail['data_sources']:
+                    if isinstance(ds.get('value'), (int, float)) and ds['value'] >= 1000:
+                        ds['value'] = f'{ds["value"]:,.0f}'
+        
+        return detail
 
