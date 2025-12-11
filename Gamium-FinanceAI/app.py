@@ -7497,11 +7497,11 @@ def api_submit_report_instance(instance_id):
                 'error': '报表生成器未初始化'
             }), 500
         
-        success = report_generator.submit_instance(instance_id)
+        success, error_msg = report_generator.submit_instance(instance_id)
         if not success:
             return jsonify({
                 'success': False,
-                'error': '提交失败，报表实例不存在、状态不允许提交或数据校验未通过'
+                'error': error_msg or '提交失败，报表实例不存在、状态不允许提交或数据校验未通过'
             }), 400
         
         instance = report_generator.get_instance(instance_id)

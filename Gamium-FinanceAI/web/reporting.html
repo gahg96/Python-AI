@@ -912,7 +912,14 @@
                     alert('报表提交成功！');
                     loadInstances();
                 } else {
-                    alert('提交失败: ' + data.error);
+                    // 显示详细的错误信息
+                    const errorMsg = data.error || '提交失败';
+                    // 如果错误信息包含换行，使用更友好的显示方式
+                    if (errorMsg.includes('\n')) {
+                        alert(errorMsg.replace(/\n/g, '\n'));
+                    } else {
+                        alert('提交失败: ' + errorMsg);
+                    }
                 }
             } catch (error) {
                 console.error('提交报表失败:', error);
