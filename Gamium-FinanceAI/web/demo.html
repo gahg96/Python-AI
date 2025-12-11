@@ -858,6 +858,139 @@
             
             alert('✅ 完整流程执行完成！');
         }
+        
+        function showFeatureDetails(step, newFeatures, originalFeatures) {
+            const resultsEl = document.getElementById(`step${step}-results`);
+            if (!resultsEl) return;
+            
+            let html = resultsEl.innerHTML;
+            html += '<h3 style="margin-top: 20px;">新增特征详情：</h3>';
+            html += '<div style="max-height: 300px; overflow-y: auto; background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 10px;">';
+            
+            // 按类别分组显示
+            const categories = {
+                '衍生特征': [],
+                '时间特征': [],
+                '交互特征': [],
+                '其他': []
+            };
+            
+            newFeatures.forEach(feat => {
+                if (feat.includes('ratio') || feat.includes('score') || feat.includes('category')) {
+                    categories['衍生特征'].push(feat);
+                } else if (feat.includes('year') || feat.includes('month') || feat.includes('quarter') || feat.includes('day')) {
+                    categories['时间特征'].push(feat);
+                } else if (feat.includes('interaction') || feat.includes('_x_')) {
+                    categories['交互特征'].push(feat);
+                } else {
+                    categories['其他'].push(feat);
+                }
+            });
+            
+            for (const [category, features] of Object.entries(categories)) {
+                if (features.length > 0) {
+                    html += `<div style="margin-bottom: 15px;"><strong>${category} (${features.length}个):</strong>`;
+                    html += '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 5px; margin-top: 5px;">';
+                    features.forEach(feat => {
+                        html += `<span style="background: white; padding: 4px 8px; border-radius: 4px; font-size: 0.9em; border: 1px solid #ddd;">${feat}</span>`;
+                    });
+                    html += '</div></div>';
+                }
+            }
+            
+            html += '</div>';
+            resultsEl.innerHTML = html;
+        }
+        
+        function showRulesDetails(step, rulesDetail) {
+            const resultsEl = document.getElementById(`step${step}-results`);
+            if (!resultsEl) return;
+            
+            let html = resultsEl.innerHTML;
+            html += '<h3 style="margin-top: 20px;">提取的规则详情：</h3>';
+            html += '<div style="max-height: 400px; overflow-y: auto; margin-top: 10px;">';
+            
+            rulesDetail.forEach((rule, index) => {
+                html += `<div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #667eea;">`;
+                html += `<div style="font-weight: bold; color: #667eea; margin-bottom: 8px;">规则 ${rule.id}: ${rule.name || '未命名规则'}</div>`;
+                html += `<div style="margin-bottom: 5px;"><strong>类型:</strong> ${rule.type || 'N/A'}</div>`;
+                html += `<div style="margin-bottom: 5px;"><strong>客户类型:</strong> ${rule.customer_type || 'both'}</div>`;
+                html += `<div style="margin-bottom: 5px;"><strong>描述:</strong> ${rule.description || '无描述'}</div>`;
+                html += `<div style="margin-bottom: 5px;"><strong>置信度:</strong> ${(rule.confidence * 100).toFixed(2)}% | <strong>支持度:</strong> ${(rule.support * 100).toFixed(2)}%</div>`;
+                
+                if (rule.conditions && rule.conditions.length > 0) {
+                    html += `<div style="margin-top: 8px;"><strong>条件:</strong>`;
+                    html += '<ul style="margin: 5px 0; padding-left: 20px;">';
+                    rule.conditions.forEach(cond => {
+                        html += `<li>${cond.field || 'N/A'} ${cond.operator || 'N/A'} ${cond.value || 'N/A'}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                html += `</div>`;
+            });
+            
+            html += '</div>';
+            resultsEl.innerHTML = html;
+        }
+        
+        function showTransactionDetails(step, transactions, totalCount) {
+            const resultsEl = document.getElementById(`step${step}-results`);
+            if (!resultsEl) return;
+            
+            let html = resultsEl.innerHTML;
+            html += `<h3 style="margin-top: 20px;">详细交易数据 (显示 ${transactions.length} / ${totalCount} 条):</h3>`;
+            html += '<div style="max-height: 500px; overflow-y: auto; margin-top: 10px;">';
+            html += '<table style="width: 100%; border-collapse: collapse; background: white; border-radius: 6px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">';
+            
+            // 表头
+            html += '<thead style="background: #667eea; color: white; position: sticky; top: 0; z-index: 10;">';
+            html += '<tr>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd; font-size: 0.9em;">ID</th>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd; font-size: 0.9em;">客户ID</th>';
+            html += '<th style="padding: 10px; text-align: left; border: 1px solid #ddd; font-size: 0.9em;">客户类型</th>';
+            html += '<th style="padding: 10px; text-align: right; border: 1px solid #ddd; font-size: 0.9em;">贷款金额</th>';
+            html += '<th style="padding: 10px; text-align: center; border: 1px solid #ddd; font-size: 0.9em;">决策</th>';
+            html += '<th style="padding: 10px; text-align: right; border: 1px solid #ddd; font-size: 0.9em;">违约概率</th>';
+            html += '<th style="padding: 10px; text-align: right; border: 1px solid #ddd; font-size: 0.9em;">预期利润</th>';
+            html += '<th style="padding: 10px; text-align: center; border: 1px solid #ddd; font-size: 0.9em;">是否违约</th>';
+            html += '<th style="padding: 10px; text-align: right; border: 1px solid #ddd; font-size: 0.9em;">实际利润</th>';
+            html += '<th style="padding: 10px; text-align: right; border: 1px solid #ddd; font-size: 0.9em;">回收率</th>';
+            html += '</tr>';
+            html += '</thead>';
+            
+            // 表体
+            html += '<tbody>';
+            transactions.forEach((tx, index) => {
+                const rowClass = index % 2 === 0 ? 'background: #f8f9fa;' : 'background: white;';
+                const decisionColor = tx.decision === 'approve' ? '#28a745' : tx.decision === 'reject' ? '#dc3545' : '#ffc107';
+                const defaultColor = tx.actual_defaulted ? '#dc3545' : '#28a745';
+                const profitColor = tx.actual_profit >= 0 ? '#28a745' : '#dc3545';
+                
+                html += `<tr style="${rowClass}">`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; font-size: 0.85em;">${tx.id}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; font-size: 0.85em;">${tx.customer_id || 'N/A'}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; font-size: 0.85em;">${tx.customer_type === 'personal' ? '对私' : tx.customer_type === 'corporate' ? '对公' : tx.customer_type || 'N/A'}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-size: 0.85em;">¥${tx.loan_amount.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 0.85em;"><span style="color: ${decisionColor}; font-weight: bold;">${tx.decision === 'approve' ? '通过' : tx.decision === 'reject' ? '拒绝' : '审核'}</span></td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-size: 0.85em;">${(tx.default_probability * 100).toFixed(2)}%</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-size: 0.85em;">¥${tx.expected_profit.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: center; font-size: 0.85em;"><span style="color: ${defaultColor}; font-weight: bold;">${tx.actual_defaulted ? '是' : '否'}</span></td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right; color: ${profitColor}; font-weight: bold; font-size: 0.85em;">¥${tx.actual_profit.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>`;
+                html += `<td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-size: 0.85em;">${(tx.recovery_rate * 100).toFixed(2)}%</td>`;
+                html += '</tr>';
+            });
+            html += '</tbody>';
+            html += '</table>';
+            html += '</div>';
+            
+            // 添加提示
+            html += '<div style="margin-top: 10px; padding: 10px; background: #e7f3ff; border-radius: 6px; font-size: 0.9em; color: #0066cc;">';
+            html += '💡 提示：表格支持滚动查看，可以查看每条交易的详细信息';
+            html += '</div>';
+            
+            resultsEl.innerHTML = html;
+        }
     </script>
 </body>
 </html>
