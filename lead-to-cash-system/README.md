@@ -3,11 +3,23 @@
 A comprehensive Enterprise Resource Planning (ERP) system for managing the entire business lifecycle from sales opportunities to financial collection.
 
 ## 📚 Documentation
-- [User Manual](./docs/user_manual.md): Detailed usage instructions.
-- [System Design](./docs/system_design.md): Architecture and technology stack.
-- [Database Design](./docs/database_design.md): ER Diagram and Schema.
-- [API Reference](./docs/api_reference.md): API Endpoint list.
-- [Data Flow](./docs/data_flow.md): System data flow diagrams.
+
+The documentation is available in multiple languages:
+
+### [🇨🇳 中文文档 (Chinese Docs)](./docs/zh/user_manual.md)
+- **[用户手册 (User Manual)](./docs/zh/user_manual.md)**: 详细的功能操作指南。
+- **[系统设计 (System Design)](./docs/zh/system_design.md)**: 架构、技术栈与目录结构。
+- **[数据库设计 (DB Design)](./docs/zh/database_design.md)**: ER图与数据字典。
+- **[API 参考 (API Reference)](./docs/zh/api_reference.md)**: 接口文档。
+- **[数据流图 (Data Flow)](./docs/data_flow.md)**: (通用图表，参考旧版或英文版)
+
+### [🇺🇸 English Documentation](./docs/en/user_manual.md)
+- **[User Manual](./docs/en/user_manual.md)**: Comprehensive user guide.
+- **[System Design](./docs/en/system_design.md)**: Architecture and tech stack.
+- **[Database Design](./docs/en/database_design.md)**: Schema and ERD.
+- **[API Reference](./docs/en/api_reference.md)**: Endpoints reference.
+
+---
 
 ## 🚀 Quick Start
 
@@ -31,13 +43,6 @@ npm install
 npm run dev
 ```
 
-## Features
-- **CRM**: Opportunity tracking.
-- **Contract Management**: Drafting, Approval, Signing.
-- **Project Management**: Resource allocation, Profit analysis.
-- **Finance**: Invoicing, Payments, Electronic Receipts.
-- **Bidding**: Tender management.
-
 ## Tech Stack
-- **Frontend**: Next.js, Taiwan CSS, Shadcn UI.
-- **Backend**: NestJS, Prisma, SQLite/PostgreSQL.
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS, Shadcn UI.
+- **Backend**: NestJS, TypeScript, Prisma, SQLite/PostgreSQL.
